@@ -13,6 +13,8 @@ import { ModulesPage } from './pages/ModulesPage.jsx';
 import { SettingsPage } from './pages/SettingsPage.jsx';
 import './styles/app.css';
 import './styles/reading.css';
+import './styles/tokens.css';
+import './styles/theme.css';
 
 function GuestOnly() { const { user, loading } = useAuth(); if (loading) return <div className="auth-loading">Loading…</div>; return user ? <Navigate to="/app/dashboard" replace /> : <Outlet />; }
 

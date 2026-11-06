@@ -1,1 +1,1 @@
-export default { content: ['./index.html', './src/**/*.{js,jsx}'], theme: { extend: {} }, plugins: [] };
+export default { content: ['./index.html', './src/**/*.{js,jsx}'], theme: { extend: { colors: { background: 'var(--color-background)', surface: 'var(--color-surface)', primary: 'var(--color-primary)', secondary: 'var(--color-secondary)', border: 'var(--color-border)', success: 'var(--color-success)', warning: 'var(--color-warning)', error: 'var(--color-error)' }, fontFamily: { sans: ['var(--font-interface)'], mono: ['var(--font-code)'] } } }, plugins: [] };

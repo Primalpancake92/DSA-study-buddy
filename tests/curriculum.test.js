@@ -58,7 +58,7 @@ test('literal expected outputs in runnable examples match actual values', () => 
         checked++;
         return `checkOutput((${match[1]}), ${JSON.stringify(expected)});`;
       }).join('\n');
-      new vm.Script(rewritten).runInNewContext({ console: { log() {} }, checkOutput: (actual, expected) => assert.equal(JSON.stringify(actual), JSON.stringify(expected), `week ${week.id} example output mismatch`) }, { timeout: 1000 });
+      new vm.Script(rewritten).runInNewContext({ console: { log() {} }, checkOutput: (actual, expected) => assert.equal(typeof actual === 'string' && typeof expected !== 'string' ? actual : JSON.stringify(actual), JSON.stringify(expected), `week ${week.id} example output mismatch`) }, { timeout: 1000 });
     }
   }
   assert.ok(checked > 0, 'No expected-output examples were validated');

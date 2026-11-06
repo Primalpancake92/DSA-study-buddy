@@ -239,8 +239,327 @@ console.log(minimumEatingSpeed([3, 6, 7, 11], 8)); //=> 4
 console.log(minimumEatingSpeed([3, 6], 1)); //=> -1
 console.log(minimumEatingSpeed([], 0)); //=> 0`),
           paragraph(`For [3,6,7,11] and eight hours, speed 6 needs 1+1+2+2 = 6 hours, so the answer is no larger than 6. Speed 3 needs 1+2+3+4 = 10, so the answer is larger than 3. Speed 5 needs eight hours and speed 4 also needs eight; the boundary is 4. The maximum pile is a feasible upper bound only when the number of available hours is at least the number of piles. Checking that precondition prevents a loop from returning an impossible answer. With n piles and maximum size M, there are O(log M) candidate checks, each O(n), giving O(n log M) time and O(1) auxiliary space. Avoid using Math.max(...piles) for arbitrarily large inputs because argument-count limits can fail before the algorithm begins.`),
+          paragraph(`For a final review, test your boundary algorithm against a linear oracle on tiny inputs: scan from left to right until the predicate becomes true, then compare indexes. Include a predicate that is always false and one that is always true. Before each iteration, record left, right, midpoint, and which candidates were excluded. A correct return value on one example is weaker evidence than a preserved invariant on every step. For numeric data, remember that JavaScript's default sort compares string representations: [2, 10] sorts incorrectly for numeric binary search unless you provide (a, b) => a - b.`),
           exercise('Explain why binary search cannot generally find the first speed whose required hours equal exactly eight.', ['Is an equality predicate monotonic?', 'The hours function can jump over a value.'], 'Equality can be false at slow speeds, true in a middle interval, and false again at fast speeds; it can also be absent entirely. Search requiredHours <= 8, which stays true at larger speeds, then inspect the boundary if exact equality matters.'),
         ],
       },
     ],
   },
+  7: {
+    sections: [
+      {
+        id: 'w7-node-identity-and-reversal',
+        title: 'Linked nodes: follow references, then change arrows',
+        blocks: [
+          paragraph(`A singly linked list is a chain of objects. Each node stores a value and a next reference; head is a reference to the first node, and null marks the end. Unlike an array, the structure does not provide constant-time access to position i: reaching it requires following i links. Two nodes containing 7 are still different objects. Conversely, two variables can reference the very same node. This distinction between value equality and object identity explains most linked-list bugs. Drawing boxes with names such as A and B, rather than writing only their values, makes aliasing visible. Assigning current = current.next changes a local reference; assigning current.next = anotherNode changes the shared structure.`),
+          paragraph(`Insertion after an already-known node is O(1): connect the new node to the old successor, then connect the predecessor to the new node. Finding that predecessor may take O(n). Deletion also requires the predecessor in a singly linked list, unless the operation is a special case such as deleting the head. The claim that linked-list insertion and deletion are always constant time forgets this search cost. Arrays often remain preferable for indexed reads, compact storage, and locality. JavaScript nodes are ordinary heap objects, so a linked list also pays object and reference overhead. Choose the representation because the operations fit, not because arrow diagrams look simpler than indexes.`),
+          code(`class ListNode {
+  constructor(value, next = null) { this.value = value; this.next = next; }
+}
+function fromArray(values) {
+  const dummy = new ListNode(null);
+  let tail = dummy;
+  for (const value of values) { tail.next = new ListNode(value); tail = tail.next; }
+  return dummy.next;
+}
+function toArray(head) {
+  const values = [];
+  for (let node = head; node !== null; node = node.next) values.push(node.value);
+  return values;
+}
+function reverseList(head) {
+  let previous = null, current = head;
+  while (current !== null) {
+    const next = current.next;
+    current.next = previous;
+    previous = current;
+    current = next;
+  }
+  return previous;
+}
+const original = fromArray([1, 2, 3]);
+const reversed = reverseList(original);
+console.log(toArray(reversed)); //=> [3, 2, 1]
+console.log(original.value, original.next); //=> 1 null
+console.log(toArray(reverseList(null))); //=> []`),
+          diagram(`Original: head → A(1) → B(2) → C(3) → null
+Start:    previous = null; current = A
+Step 1:   previous → A → null; current → B → C → null
+Step 2:   previous → B → A → null; current → C → null
+Step 3:   previous → C → B → A → null; current = null
+Return previous. The old head still references A, now the tail.`),
+          paragraph(`The reversal invariant partitions the original nodes into a reversed prefix headed by previous and an untouched suffix headed by current. Save next before replacing current.next, because the old arrow is the only route to the suffix. After rewiring, advancing previous and current reestablishes the partition. At termination the suffix is empty, so previous heads the entire reversed list. There is one iteration per node, O(n) time, and a fixed number of references, O(1) auxiliary space. This mutates existing nodes: anyone holding the old head observes its new next value. The traversal helper assumes an acyclic list; applying it to a cycle would never terminate. Preconditions belong to a function's contract even when its code looks harmless.`),
+          exercise('What happens if current.next = previous runs before next = current.next? Use a three-node drawing, then explain why returning head is wrong after a correct reversal.', ['Which reference still reaches B after overwriting A.next?', 'The original head object does not change identity.'], 'At A, overwriting A.next with null destroys the path from A to B. Saving next afterward saves null and loses the suffix from the traversal. A correct reversal returns previous, which references C; the original head still references A, now the final node, so returning head returns only the tail chain.'),
+        ],
+      },
+      {
+        id: 'w7-dummy-nodes-and-merging',
+        title: 'Dummy nodes: make the first link ordinary',
+        blocks: [
+          paragraph(`Many list algorithms become awkward because the head has no predecessor. A dummy node supplies an artificial predecessor so the first insertion, removal, or splice can use the same logic as later operations. The dummy's value is irrelevant and never appears in the returned chain. When merging two ascending lists, keep a tail reference to the last node in the merged prefix. Compare the two current heads, link the smaller node after tail, and advance only the list that supplied that node. Then advance tail itself. The invariant says the output prefix is sorted and contains exactly the nodes removed from the two input prefixes; all unselected nodes remain in their original sorted suffixes.`),
+          code(`class ListNode {
+  constructor(value, next = null) { this.value = value; this.next = next; }
+}
+function fromArray(values) {
+  let head = null;
+  for (let i = values.length - 1; i >= 0; i--) head = new ListNode(values[i], head);
+  return head;
+}
+function toArray(head) {
+  const result = [];
+  while (head !== null) { result.push(head.value); head = head.next; }
+  return result;
+}
+function mergeTwoLists(first, second) {
+  const dummy = new ListNode(null);
+  let tail = dummy;
+  while (first !== null && second !== null) {
+    if (first.value <= second.value) { tail.next = first; first = first.next; }
+    else { tail.next = second; second = second.next; }
+    tail = tail.next;
+  }
+  tail.next = first !== null ? first : second;
+  return dummy.next;
+}
+console.log(toArray(mergeTwoLists(fromArray([1, 3, 5]), fromArray([1, 2, 6]))));
+//=> [1, 1, 2, 3, 5, 6]
+console.log(toArray(mergeTwoLists(null, fromArray([2])))); //=> [2]`),
+          paragraph(`For first = [1,3,5] and second = [1,2,6], choose the first list's 1 on equality, then second's 1, second's 2, first's 3, and first's 5. The remaining [6] suffix can be attached without scanning it. With lengths m and n, the worst-case comparison work is O(m+n), and auxiliary space is O(1), excluding the existing nodes. This version reuses and rewires nodes rather than allocating a fresh output list. It requires sorted, acyclic, disjoint inputs: shared tails can create self-links when reused carelessly. Choosing <= also gives a deterministic tie policy favoring the first chain. A fresh-copy merge is appropriate if callers require the original topology to remain intact, but then output allocation is O(m+n).`),
+          exercise('A merge implementation sets tail.next correctly but never executes tail = tail.next. Predict its failure. Why must the returned value be dummy.next?', ['Which link gets overwritten on each iteration?', 'The dummy is a sentinel rather than an input node.'], 'Tail remains the dummy, so each chosen node overwrites dummy.next and earlier choices disappear from the reachable output. Advancing tail preserves the growing prefix. Return dummy.next because returning dummy would add a fake first value and violate the result contract.'),
+        ],
+      },
+      {
+        id: 'w7-slow-fast-cycles-and-reordering',
+        title: 'Slow and fast references: cycles, midpoints, and reorder',
+        blocks: [
+          paragraph(`A cycle means following next eventually revisits the same node object. Repeated values do not prove a cycle: [4,4] can be a perfectly ordinary two-node chain. A Set of visited node references detects repetition in O(n) time and O(n) space. Floyd's slow/fast method removes that extra set. Move slow by one edge and fast by two; if fast reaches null there is no cycle. If both enter a cycle of length c, their relative position advances by one modulo c on each iteration, so they must meet within c iterations. Check fast and fast.next before taking two steps. Compare references after moving, because initializing both at head makes them equal before any evidence has been gathered.`),
+          code(`class ListNode {
+  constructor(value, next = null) { this.value = value; this.next = next; }
+}
+function cycleEntry(head) {
+  let slow = head, fast = head;
+  while (fast !== null && fast.next !== null) {
+    slow = slow.next;
+    fast = fast.next.next;
+    if (slow === fast) {
+      let seeker = head;
+      while (seeker !== slow) { seeker = seeker.next; slow = slow.next; }
+      return seeker;
+    }
+  }
+  return null;
+}
+const a = new ListNode(4), b = new ListNode(4), c = new ListNode(9);
+a.next = b; b.next = c; c.next = b;
+console.log(cycleEntry(a) === b); //=> true
+console.log(cycleEntry(new ListNode(4, new ListNode(4)))); //=> null
+console.log(cycleEntry(null)); //=> null`),
+          diagram(`Cycle: A → B → C → D
+           ↑       ↓
+           └───────┘
+After 1 move: slow B, fast C
+After 2 moves: slow C, fast B
+After 3 moves: slow D, fast D (meeting)
+Reset seeker to A; advance seeker and meeting pointer by one:
+seeker B, slow B → cycle entry B`),
+          paragraph(`Why does the reset locate the entry? Let the noncyclic prefix length be μ, and let slow travel t edges before meeting. Fast traveled 2t, so their difference t is a multiple of c. If the meeting lies x edges past the entry, then t = μ + x modulo c, hence μ + x is a multiple of c. Starting from the meeting and walking μ edges therefore reaches the entry, exactly when a reference starting at head reaches it. Detection plus entry finding takes O(n) time over distinct reachable nodes and O(1) auxiliary space. The argument assumes stable next references during the walk; concurrent rewiring would invalidate it.`),
+          paragraph(`Slow/fast also finds a midpoint in an acyclic chain. With slow and fast at head and a loop requiring fast.next and fast.next.next, slow stops at the last node of the first half. That convention is useful for Reorder List: transform L0→L1→...→Ln into L0→Ln→L1→Ln-1→.... Split after slow, reverse the second half, then weave the two halves. Severing the split first is essential; otherwise old links may remain reachable and produce a cycle. For [1,2,3,4,5], the halves are [1,2,3] and [4,5], reversed second becomes [5,4], and weaving gives [1,5,2,4,3]. The odd-length middle stays at the end naturally.`),
+          code(`class ListNode {
+  constructor(value, next = null) { this.value = value; this.next = next; }
+}
+function fromArray(values) {
+  let head = null;
+  for (let i = values.length - 1; i >= 0; i--) head = new ListNode(values[i], head);
+  return head;
+}
+function toArray(head) {
+  const output = [];
+  while (head !== null) { output.push(head.value); head = head.next; }
+  return output;
+}
+function reorderList(head) {
+  if (head === null || head.next === null) return head;
+  let slow = head, fast = head;
+  while (fast.next !== null && fast.next.next !== null) {
+    slow = slow.next; fast = fast.next.next;
+  }
+  let current = slow.next;
+  slow.next = null;
+  let previous = null;
+  while (current !== null) {
+    const next = current.next;
+    current.next = previous; previous = current; current = next;
+  }
+  let first = head, second = previous;
+  while (second !== null) {
+    const nextFirst = first.next, nextSecond = second.next;
+    first.next = second; second.next = nextFirst;
+    first = nextFirst; second = nextSecond;
+  }
+  return head;
+}
+console.log(toArray(reorderList(fromArray([1, 2, 3, 4, 5])))); //=> [1, 5, 2, 4, 3]
+console.log(toArray(reorderList(fromArray([1, 2, 3, 4])))); //=> [1, 4, 2, 3]
+console.log(toArray(reorderList(null))); //=> []`),
+          paragraph(`Three linear passes still add to O(n), rather than multiplying to O(n³), because they run sequentially. Reordering uses O(1) auxiliary references and no replacement nodes. Diagnose incorrect output by checking each phase separately: the two halves should be disjoint, the reversed suffix should end in null, and each weave iteration should preserve the unprocessed remainder of both halves. Saving only one successor before rewiring is insufficient because two different chains are changing. This is the same save-before-overwrite habit as reversal, now applied twice per iteration.`),
+          exercise('Trace Floyd on a single node whose next points to itself, and on two distinct nodes with equal values and a null tail. State the results and complexity.', ['Reference equality is the test.', 'A self-loop has cycle length one.'], 'The self-loop meets after the first movement, and the entry is the head itself. The acyclic two-node list reaches a null fast reference and returns null even though the values match. Both use constant auxiliary space; general runtime is linear in the number of distinct reachable nodes.'),
+        ],
+      },
+    ],
+  },
+  8: {
+    sections: [
+      {
+        id: 'w8-recursive-contracts-and-call-trees',
+        title: 'Recursion: a contract for smaller inputs',
+        blocks: [
+          paragraph(`A recursive call does not magically restart the whole program. It creates a new execution frame with its own parameters and local variables, while the caller waits for a return value. To design recursion, state what one call promises, identify a base case that can answer directly, and name a progress measure that decreases on every recursive edge. For summing a prefix, the promise is sumFirst(values, count) returns the sum of the first count elements; count decreases until zero. The caller trusts the smaller call to satisfy that contract and adds its own final element. This is also an induction proof: the base establishes correctness at zero, and the recursive step extends correctness from count - 1 to count.`),
+          code(`function sumFirst(values, count = values.length) {
+  if (!Number.isInteger(count) || count < 0 || count > values.length) {
+    throw new RangeError('count must be a valid prefix length');
+  }
+  if (count === 0) return 0;
+  return sumFirst(values, count - 1) + values[count - 1];
+}
+function fibonacci(n) {
+  if (!Number.isInteger(n) || n < 0 || n > 78) {
+    throw new RangeError('Use n from 0 through 78 for safe integer results');
+  }
+  if (n < 2) return n;
+  let previous = 0, current = 1;
+  for (let i = 2; i <= n; i++) {
+    const next = previous + current;
+    previous = current; current = next;
+  }
+  return current;
+}
+console.log(sumFirst([2, 4, 6])); //=> 12
+console.log(sumFirst([])); //=> 0
+console.log(fibonacci(10)); //=> 55`),
+          diagram(`sumFirst([2,4,6], 3)
+  waits for sumFirst(..., 2), then adds 6
+    waits for sumFirst(..., 1), then adds 4
+      waits for sumFirst(..., 0), then adds 2
+        returns 0
+      returns 2
+    returns 6
+  returns 12
+The deepest instant has four suspended/active frames, not twelve.`),
+          paragraph(`For this sum, T(n) = T(n-1) + O(1), so time is O(n); call depth and auxiliary stack space are O(n). Returning a recursive call's result does not guarantee constant space in typical JavaScript runtimes. Deep recursion can exhaust the stack, so a loop is preferable for very long linear chains. Passing values.slice(0, -1) at every level changes the analysis: the copies cost n + (n-1) + ... operations and may occupy quadratic total live storage. Index parameters preserve the original input and keep each level's local work constant. Also distinguish a missing return from a missing base case: one may produce undefined after finite work, while the other may prevent termination entirely.`),
+          paragraph(`Fibonacci illustrates a different recursion tree. The direct recurrence fib(n) = fib(n-1) + fib(n-2) recomputes fib(n-2) in both the left subtree and the right subtree. Its runtime is Θ(φ^n), commonly bounded by O(2^n), while its maximum call depth is only O(n). The number of frames created over the whole execution is not the number alive simultaneously. The iterative implementation above avoids repeated states in O(n) arithmetic steps and O(1) auxiliary space; it is a comparison tool for understanding the recursion, not a claim that recursion is always inefficient. With JavaScript Number, exact integer Fibonacci values cease to be reliably representable beyond the stated range; BigInt is appropriate if exact larger results are required.`),
+          exercise('A recursive function makes two calls on n/2 and performs a linear scan before returning. Compare its time and stack depth with a function making two calls on n-1.', ['Count total work at each level.', 'Depth measures the longest active path, not all calls.'], 'For two half-size calls and linear local work, every level costs O(n), there are O(log n) levels, and time is O(n log n); depth is O(log n) assuming constant-size frame data. Two calls on n-1 with constant local work produce exponential time O(2^n) and linear depth O(n). Allocated per-frame arrays must be counted separately.'),
+        ],
+      },
+      {
+        id: 'w8-subsets-and-permutations',
+        title: 'Backtracking: choose, explore, and restore',
+        blocks: [
+          paragraph(`Backtracking explores a tree of partial decisions. The mutable path describes the current root-to-node choice sequence; recursion explores continuations; undo restores the exact state the caller owned. For subsets of distinct values, every index has two choices: exclude it or include it. The invariant at visit(index) is that path records only decisions for positions before index. At index === values.length, every decision is complete, including the decision to choose nothing. Save a copy of path. Saving path itself puts the same array object into the output repeatedly, so later pop operations change all supposedly completed answers. A shallow copy is sufficient for scalar values; it does not clone nested input objects.`),
+          code(`function subsets(values) {
+  const result = [], path = [];
+  function visit(index) {
+    if (index === values.length) { result.push([...path]); return; }
+    visit(index + 1);
+    path.push(values[index]);
+    visit(index + 1);
+    path.pop();
+  }
+  visit(0);
+  return result;
+}
+console.log(subsets([1, 2])); //=> [[], [2], [1], [1, 2]]
+console.log(subsets([])); //=> [[]]`),
+          diagram(`visit(0), path []
+├─ skip 1 → visit(1), []
+│  ├─ skip 2 → save []
+│  └─ take 2 → save [2], then pop 2
+└─ take 1 → visit(1), [1]
+   ├─ skip 2 → save [1]
+   └─ take 2 → save [1,2], then pop 2
+After the take-1 branch returns, pop 1: path is [] again.`),
+          paragraph(`There are 2^n leaves and 2^(n+1)-1 total calls. However, emitting each subset requires copying its elements. Across all subsets each input element appears in half the outputs, giving n·2^(n-1) copied elements when n >= 1. Time is therefore Θ(n·2^n), and stored output space is also Θ(n·2^n); auxiliary working space excluding output is O(n) for path and call depth. This distinction makes output-sensitive analysis concrete. If the task merely asks for the number of subsets, generating them is wasteful: compute 2^n using an appropriate numeric representation. If input values repeat, this index-based algorithm treats equal values at different positions as different choices and may produce duplicate value arrays; a unique-subsets contract needs additional handling.`),
+          paragraph(`Permutations ask a different question: in what orders can all items appear? Depth is the output position, and each level chooses among unused input positions. A used flag belongs to an index, not a value, so equal-valued objects remain distinguishable when that is the intended contract. The implementation below assumes distinct values for unique value permutations. Set the flag and push before exploring; pop and clear afterward. Undo both pieces of state. Forgetting the flag reset suppresses valid sibling branches, while forgetting pop makes path length and used membership disagree. The invariant is that exactly the indexes represented in path have true flags.`),
+          code(`function permutations(values) {
+  const result = [], path = [], used = Array(values.length).fill(false);
+  function visit() {
+    if (path.length === values.length) { result.push([...path]); return; }
+    for (let i = 0; i < values.length; i++) {
+      if (used[i]) continue;
+      used[i] = true;
+      path.push(values[i]);
+      visit();
+      path.pop();
+      used[i] = false;
+    }
+  }
+  visit();
+  return result;
+}
+console.log(permutations([1, 2, 3]));
+//=> [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]
+console.log(permutations([])); //=> [[]]`),
+          paragraph(`For [1,2,3], choosing 1 leaves choices 2 and 3; choosing 2 next forces 3, producing [1,2,3]. Returning restores [1], then choosing 3 produces [1,3,2]. Only after the entire 1-prefix subtree is done do we restore [] and begin with 2. There are n! completed permutations and copying each costs O(n). The used-array implementation scans n candidate flags at internal nodes; its total bound remains O(n·n!) for n >= 1, with O(n) working space and O(n·n!) output space. This is factorial growth, much faster than the subset tree. For n = 10 there are already 3,628,800 outputs, so feasibility must consider result size before clever pruning. Returning only the first solution changes both the contract and the achievable work.`),
+          exercise('Predict subsets([]) and permutations([]). Then explain how you would test for path aliasing rather than only checking output length.', ['There is one way to make no choices.', 'Mutate one returned array and inspect a sibling.'], 'Both return [[]]: one empty selection and one empty arrangement. To test aliasing, generate multiple results, check that different output arrays are different references, then mutate one and verify others are unchanged. Merely checking the count can pass even when every entry points to the same emptied path.'),
+        ],
+      },
+      {
+        id: 'w8-pruning-combinations-and-phone-letters',
+        title: 'Prune impossible branches without losing solutions',
+        blocks: [
+          paragraph(`Combination Sum allows repeated use of candidates while avoiding duplicate orderings such as [2,3,2] and [2,2,3]. Sort distinct positive integer candidates numerically and carry a start index. A recursive choice may reuse its own index, but never move backward to an earlier candidate; every emitted combination is therefore nondecreasing. The remaining sum is a second progress measure. Because candidates are positive, subtracting a chosen candidate strictly decreases remaining, ensuring termination even when an index is reused. Zero would break that argument; negative values would break the pruning rule. Preconditions are part of correctness, not optional input decoration.`),
+          code(`function combinationSum(candidates, target) {
+  if (!Number.isSafeInteger(target) || target < 0 ||
+      candidates.some(x => !Number.isSafeInteger(x) || x <= 0)) {
+    throw new RangeError('Use positive integer candidates and a nonnegative integer target');
+  }
+  const choices = [...new Set(candidates)].sort((a, b) => a - b);
+  const result = [], path = [];
+  function visit(start, remaining) {
+    if (remaining === 0) { result.push([...path]); return; }
+    for (let i = start; i < choices.length; i++) {
+      if (choices[i] > remaining) break;
+      path.push(choices[i]);
+      visit(i, remaining - choices[i]);
+      path.pop();
+    }
+  }
+  visit(0, target);
+  return result;
+}
+console.log(combinationSum([2, 3, 6, 7], 7)); //=> [[2, 2, 3], [7]]
+console.log(combinationSum([2], 1)); //=> []
+console.log(combinationSum([2], 0)); //=> [[]]`),
+          paragraph(`Trace target 7: choose 2, leaving 5; choose 2 again, leaving 3; another 2 leaves 1 and no candidate fits, so return and undo. Back at remaining 3, choose 3 and save [2,2,3]. After restoring earlier levels, branches starting with 3 cannot later choose 2, which is why [3,2,2] never appears. Finally 7 completes [7]. Breaking when a candidate exceeds remaining is safe because all subsequent sorted candidates are at least as large. On unsorted input, break could discard a later smaller candidate. Checking remaining === 0 before pruning ensures a valid completion is saved. Pruning reduces actual exploration but does not generally convert enumeration into polynomial time.`),
+          paragraph(`Let m be the number of distinct candidates and D = floor(target / minimumCandidate). Depth is at most D. A loose search bound is O(m^(D+1)) for m >= 2, plus the cost of copying completed answers; actual nondecreasing-index exploration is often much smaller. Working space includes O(D) path and stack plus O(m) sorted candidates, while output storage depends on the number and lengths of answers. For m = 1, the recursion is just a chain of at most D calls. Stating parameters matters: calling this O(2^n) without defining n hides the effect of candidate magnitudes and target. Extremely large D can also overflow JavaScript's call stack even if branching is small.`),
+          paragraph(`Phone letter combinations use the same search skeleton with a different choice rule. Each depth corresponds to one digit, and the outgoing branches are that digit's letters. There is no used array because choosing a letter for one digit does not consume it for another. The prefix invariant says path has exactly index letters, each from its matching digit. Empty input conventionally returns [] for this problem, unlike the mathematical empty subset result; this is an API decision stated explicitly. Digits 0 and 1 have no mapping here and are rejected rather than producing a misleading partial answer.`),
+          code(`function letterCombinations(digits) {
+  const letters = {
+    '2': 'abc', '3': 'def', '4': 'ghi', '5': 'jkl',
+    '6': 'mno', '7': 'pqrs', '8': 'tuv', '9': 'wxyz'
+  };
+  if (typeof digits !== 'string' || /[^2-9]/.test(digits)) {
+    throw new RangeError('Use a string containing digits 2 through 9');
+  }
+  if (digits.length === 0) return [];
+  const result = [], path = [];
+  function visit(index) {
+    if (index === digits.length) { result.push(path.join('')); return; }
+    for (const letter of letters[digits[index]]) {
+      path.push(letter);
+      visit(index + 1);
+      path.pop();
+    }
+  }
+  visit(0);
+  return result;
+}
+console.log(letterCombinations('23')); //=> ['ad','ae','af','bd','be','bf','cd','ce','cf']
+console.log(letterCombinations('')); //=> []
+console.log(letterCombinations('7')); //=> ['p','q','r','s']`),
+          paragraph(`For d digits, the number P of outputs is the product of each digit's branching factor, at most 4^d. Joining each completed path takes O(d), so time and stored output are O(d·P); auxiliary working space is O(d). In '23', the a-prefix produces ad, ae, af before the b-prefix begins. Compare the four patterns from this week: subsets choose include/exclude by index, permutations choose an unused index, combination sum chooses a nondecreasing candidate with decreasing remainder, and phone combinations choose a mapped letter by depth. Before coding, name state, allowed choices, completion, progress, and undo. Those five answers expose most bugs before a test does.`),
+          exercise('A Combination Sum solver recursively calls visit(i + 1, remaining - choices[i]). What contract does that implement instead? Why is pruning remaining < 0 unsafe when negative candidates are allowed?', ['Reusing an index is what permits repeated candidate use.', 'A future negative choice could change an overshoot.'], 'Advancing to i + 1 permits each candidate index at most once, so it loses valid repeated-use answers such as [2,2,3]. With negative candidates, an overshoot might later be repaired, and remaining need not decrease toward zero; both the positive-only pruning proof and termination argument fail.'),
+        ],
+      },
+    ],
+  },
+};
