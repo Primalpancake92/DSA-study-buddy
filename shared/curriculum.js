@@ -1,3 +1,5 @@
+import { textbookChapters } from './textbook/index.js';
+
 export const weekCatalog = [
   ['Complexity and Arrays', 'Big O, Big Theta, traversal, mutation, time and space complexity'],
   ['Hash Maps and Sets', 'Hashing, frequency counting, JavaScript Map and Set'],
@@ -193,7 +195,7 @@ const moduleGuides = {
     theory: 'A state stores the minimum information needed for the future. A recurrence describes its transition; a base case seeds the table. Memoisation keeps top-down structure, while tabulation computes bottom-up.',
     code: `function minCostClimbingStairs(cost) {\n  const dp = [0, 0];\n  for (let step = 2; step <= cost.length; step += 1) {\n    dp[step] = Math.min(dp[step - 1] + cost[step - 1], dp[step - 2] + cost[step - 2]);\n  }\n  return dp[cost.length];\n}`,
     walkthrough: 'At each step, the final jump came from one or two steps earlier. Only those two values are needed, so the full table can later be compressed.',
-    examples: ['[10,15,20] returns 15 by stepping on indices 0 and 2.', '[1] returns 0 because the top can be reached without paying the single stair.', 'An empty cost array also returns 0.'],
+    examples: ['[10,15,20] returns 15 by starting at index 1, paying 15 and jumping to the top. Indices 0 and 2 would cost 30.', '[1] returns 0 under the convention that you may start at step 1, already the top.', 'An empty cost array returns 0.'],
     complexity: 'The table fills once per state: O(n) time and O(n) space, or O(1) auxiliary space after rolling-state compression. The recurrence, not the keyword “DP,” determines the cost.',
     patterns: 'Count ways, minimum cost, maximum value, choices over prefixes and repeated recursive states suggest DP. Define the state before writing nested loops.',
     mistakes: ['A state that omits necessary context cannot produce a correct transition.', 'Mixing “ways” addition with “best value” min/max gives wrong answers.', 'Mutating a shared row or using the wrong base index causes silent table errors.'],
@@ -255,5 +257,7 @@ export function getLesson(weekId) {
     problems: [],
     resources: []
   };
-  return { ...base, sections: makeSections(week, guide), guide };
+  const overview = makeSections(week, guide);
+  const chapter = textbookChapters[weekId];
+  return { ...base, sections: [overview[0], ...(chapter?.sections || []), ...overview.slice(1)], guide };
 }
