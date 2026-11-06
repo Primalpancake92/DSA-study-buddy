@@ -2,11 +2,10 @@ import dotenv from 'dotenv';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pg from 'pg';
+import { createDatabasePool } from './database.js';
 
-const { Pool } = pg;
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = createDatabasePool();
 const migrationsDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../migrations');
 const migrations = (await readdir(migrationsDirectory)).filter((file) => file.endsWith('.sql')).sort();
 await pool.query('CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');

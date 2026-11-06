@@ -8,13 +8,12 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import helmet from 'helmet';
-import pg from 'pg';
 import { z } from 'zod';
+import { createDatabasePool, logDatabaseError } from './database.js';
 import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { getLesson, weekCatalog } from '../../shared/curriculum.js';
 
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) });
-const { Pool } = pg;
 const app = express();
 const port = Number(process.env.PORT || 3001);
 const isProduction = process.env.NODE_ENV === 'production';
@@ -23,7 +22,7 @@ const sessionSecret = process.env.SESSION_SECRET;
 if (!process.env.DATABASE_URL) console.warn('DATABASE_URL is not configured. Run the API only after configuring PostgreSQL.');
 if (!sessionSecret || sessionSecret.length < 32) console.warn('SESSION_SECRET should be a random value of at least 32 characters.');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DB_POOL_MAX || 10), idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000, ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== 'false' } : undefined });
+const pool = createDatabasePool();
 const PgSession = connectPgSimple(session);
 const allowedOrigins = new Set([process.env.FRONTEND_ORIGIN, 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'].filter(Boolean));
 
@@ -62,7 +61,8 @@ function regenerate(req) { return new Promise((resolve, reject) => req.session.r
 function saveSession(req) { return new Promise((resolve, reject) => req.session.save((error) => error ? reject(error) : resolve())); }
 function hashToken(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 
-app.get('/api/health', async (_req, res) => { try { await pool.query('SELECT 1'); res.json({ ok: true, service: 'dsa-grind-api', database: 'connected' }); } catch { res.status(503).json({ ok: false, service: 'dsa-grind-api', database: 'unavailable' }); } });
+app.get('/', (_req, res) => res.json({ service: 'dsa-grind-api', status: 'running', health: '/api/health' }));
+app.get('/api/health', async (_req, res) => { try { await pool.query('SELECT 1'); res.json({ ok: true, service: 'dsa-grind-api', database: 'connected' }); } catch (error) { logDatabaseError(error, 'health-check'); res.status(503).json({ ok: false, service: 'dsa-grind-api', database: 'unavailable' }); } });
 app.get('/api/auth/csrf', (req, res) => res.json({ csrfToken: csrfToken(req) }));
 
 app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, next) => {
