@@ -24,7 +24,7 @@ if (!sessionSecret || sessionSecret.length < 32) console.warn('SESSION_SECRET sh
 
 const pool = createDatabasePool();
 const PgSession = connectPgSimple(session);
-const allowedOrigins = new Set([process.env.FRONTEND_ORIGIN, 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'].filter(Boolean));
+const allowedOrigins = new Set([process.env.FRONTEND_ORIGIN, ...(process.env.VERCEL_PREVIEW_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean), 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'].filter(Boolean));
 
 app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));

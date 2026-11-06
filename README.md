@@ -29,6 +29,8 @@ npm run server
 
 Set `VITE_API_BASE_URL` when the frontend and API are hosted on different origins. Never commit `.env` files or production credentials.
 
+For Vercel, define `VITE_API_BASE_URL=https://dsa-study-buddy.onrender.com` for the **Production** environment and redeploy after changing it. Vite embeds `VITE_*` values at build time; changing the Vercel variable without a new deployment does not change the browser bundle. The frontend uses absolute Render URLs, so the SPA rewrite in [frontend/vercel.json](./frontend/vercel.json) does not proxy API requests. If preview deployments need credentialed sessions, list their exact origins in the backend `VERCEL_PREVIEW_ORIGINS` variable as a comma-separated allowlist.
+
 For Supabase Session Pooler TLS, keep verification enabled. The repository includes the inspected public Supabase Root 2021 CA at `backend/certs/supabase-root-2021-ca.pem`; when Render uses `backend/` as its root directory, set `DATABASE_CA_CERT_PATH=certs/supabase-root-2021-ca.pem`. Alternatively inject the verified PEM through `DATABASE_CA_CERT` with escaped `\\n` line breaks. Do not set `PGSSL_REJECT_UNAUTHORIZED=false` or `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 
 ### Supabase, Railway and Vercel deployment
