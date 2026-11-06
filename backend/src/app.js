@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import argon2 from 'argon2';
+import { hashPassword, verifyPassword, needsPasswordUpgrade, passwordRounds } from './passwords.js';
 import connectPgSimple from 'connect-pg-simple';
 import cors from 'cors';
 import express from 'express';
@@ -20,6 +20,8 @@ const app = express();
 const port = Number(process.env.PORT || 3001);
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET;
+passwordRounds();
+if (isProduction && (!sessionSecret || sessionSecret.length < 32)) throw new Error('SESSION_SECRET must contain at least 32 random characters in production.');
 
 if (!process.env.DATABASE_URL) console.warn('DATABASE_URL is not configured. Run the API only after configuring PostgreSQL.');
 if (!sessionSecret || sessionSecret.length < 32) console.warn('SESSION_SECRET should be a random value of at least 32 characters.');
@@ -92,7 +94,7 @@ app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, nex
   try {
     client = await pool.connect();
     await client.query('BEGIN');
-    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const passwordHash = await hashPassword(password);
     const result = await client.query('INSERT INTO users (first_name, last_name, username, email, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, last_name, username, email', [firstName, lastName, username, email, passwordHash]);
     await client.query('INSERT INTO user_progress (user_id, week_number, total_lesson_count) SELECT $1, weeks.week_number, 3 FROM generate_series(1, 16) AS weeks(week_number)', [result.rows[0].id]);
     const { rawToken, tokenHash } = createVerificationToken();
@@ -118,21 +120,23 @@ app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) 
   try {
     const result = await pool.query('SELECT id, first_name, last_name, username, email, password_hash, account_active, email_verified_at, created_at FROM users WHERE email = $1', [parsed.data.email]);
     const user = result.rows[0];
-    const valid = user?.account_active ? await argon2.verify(user.password_hash, parsed.data.password) : false;
+    const valid = user?.account_active ? await verifyPassword(user.password_hash, parsed.data.password) : false;
     if (!valid) return errorResponse(res, 401, 'INVALID_CREDENTIALS', 'Invalid email or password.');
     if (!user.email_verified_at) return errorResponse(res, 403, 'EMAIL_NOT_VERIFIED', 'Please verify your email address before signing in.');
+    if (needsPasswordUpgrade(user.password_hash)) await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2 AND password_hash = $3', [await hashPassword(parsed.data.password), user.id, user.password_hash]);
     await regenerate(req);
     req.session.userId = user.id;
     csrfToken(req);
     await saveSession(req);
     const client = await pool.connect();
     try { await client.query('BEGIN'); await client.query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]); await recordActivity(client, user.id, 'auth', 'Signed in', 'Successful account sign-in.'); await client.query('COMMIT'); } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
-    res.json({ user: publicUser(user) });
+    res.json({ user: publicUser(user), csrfToken: csrfToken(req) });
   } catch (error) { next(error); }
 });
 
 app.post('/api/auth/logout', requireSession, csrfProtection, async (req, res, next) => {
-  req.session.destroy((error) => error ? next(error) : res.clearCookie('dsa.sid').json({ ok: true }));
+  const { httpOnly, secure, sameSite, path, domain } = req.session.cookie;
+  req.session.destroy((error) => error ? next(error) : res.clearCookie('dsa.sid', { httpOnly, secure, sameSite, path, ...(domain ? { domain } : {}) }).json({ ok: true }));
 });
 
 app.get('/api/auth/me', async (req, res, next) => {
@@ -159,8 +163,8 @@ app.post('/api/users/me/password', requireAuth, csrfProtection, async (req, res,
   if (!parsed.success) return errorResponse(res, 400, 'INVALID_PASSWORD_CHANGE', 'Check the password fields.', parsed.error.flatten().fieldErrors);
   try {
     const result = await pool.query('SELECT password_hash FROM users WHERE id = $1 AND account_active = true', [req.session.userId]);
-    if (!result.rows[0] || !(await argon2.verify(result.rows[0].password_hash, parsed.data.currentPassword))) return errorResponse(res, 400, 'CURRENT_PASSWORD_INVALID', 'Your current password is incorrect.');
-    const passwordHash = await argon2.hash(parsed.data.newPassword, { type: argon2.argon2id });
+    if (!result.rows[0] || !(await verifyPassword(result.rows[0].password_hash, parsed.data.currentPassword))) return errorResponse(res, 400, 'CURRENT_PASSWORD_INVALID', 'Your current password is incorrect.');
+    const passwordHash = await hashPassword(parsed.data.newPassword);
     await pool.query('UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2', [passwordHash, req.session.userId]);
     await recordActivity(pool, req.session.userId, 'security', 'Password changed');
     res.json({ message: 'Password updated.' });
@@ -246,11 +250,17 @@ app.post('/api/auth/reset-password', authLimiter, csrfProtection, async (req, re
   const parsed = z.object({ token: z.string().min(32), password: z.string().min(12).max(128), confirmPassword: z.string() }).refine((value) => value.password === value.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match.' }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Check the password fields.' });
   try {
-    const tokenResult = await pool.query('SELECT user_id FROM password_reset_tokens WHERE token_hash = $1 AND expires_at > now() AND used_at IS NULL', [hashToken(parsed.data.token)]);
-    if (!tokenResult.rows[0]) return res.status(400).json({ error: 'This reset link is invalid or expired.' });
-    const passwordHash = await argon2.hash(parsed.data.password, { type: argon2.argon2id });
-    await pool.query('UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2', [passwordHash, tokenResult.rows[0].user_id]);
-    await pool.query('UPDATE password_reset_tokens SET used_at = now() WHERE token_hash = $1', [hashToken(parsed.data.token)]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const tokenResult = await client.query('SELECT user_id FROM password_reset_tokens WHERE token_hash = $1 AND expires_at > now() AND used_at IS NULL FOR UPDATE', [hashToken(parsed.data.token)]);
+      if (!tokenResult.rows[0]) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'This reset link is invalid or expired.' }); }
+      const passwordHash = await hashPassword(parsed.data.password);
+      await client.query('UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2', [passwordHash, tokenResult.rows[0].user_id]);
+      await client.query('UPDATE password_reset_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL', [tokenResult.rows[0].user_id]);
+      await client.query("DELETE FROM sessions WHERE sess->>'userId' = $1", [tokenResult.rows[0].user_id]);
+      await client.query('COMMIT');
+    } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     res.json({ ok: true });
   } catch (error) { next(error); }
 });
@@ -314,6 +324,6 @@ app.post('/api/journal', requireAuth, csrfProtection, async (req, res, next) => 
 });
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
-app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ error: 'The server could not complete the request.' }); });
+app.use((error, _req, res, _next) => { console.error('[api-error]', JSON.stringify({ category: 'request-failure', code: /^[A-Z0-9_]{1,40}$/.test(error.code || '') ? error.code : 'UNEXPECTED_ERROR' })); res.status(500).json({ error: 'The server could not complete the request.' }); });
 
 app.listen(port, '0.0.0.0', () => console.log(`DSA Grind API listening on port ${port}`));

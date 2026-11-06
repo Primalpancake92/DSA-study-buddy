@@ -2,6 +2,13 @@ import { apiRequest } from './authApi.js';
 
 const progressEvent = 'dsa-grind-progress-change';
 let progressCache = { completedWeeks: [], completedCheckpoints: [] };
+let cacheGeneration = 0;
+
+export function clearProgress() {
+  cacheGeneration++;
+  progressCache = { completedWeeks: [], completedCheckpoints: [] };
+  window.dispatchEvent(new Event(progressEvent));
+}
 
 export function readProgress() { return progressCache; }
 
@@ -16,11 +23,13 @@ export function toggleCheckpoint(id) {
 }
 
 export async function loadProgressFromApi() {
+  const generation = cacheGeneration;
   try {
     const remote = await apiRequest('/api/progress');
+    if (generation !== cacheGeneration) return progressCache;
     progressCache = { completedWeeks: remote.completedWeeks || [], completedCheckpoints: remote.completedCheckpoints || [] };
     window.dispatchEvent(new Event(progressEvent));
-  } catch { progressCache = { completedWeeks: [], completedCheckpoints: [] }; }
+  } catch { if (generation === cacheGeneration) clearProgress(); }
   return progressCache;
 }
 

@@ -25,14 +25,16 @@ export async function apiRequest(path, options = {}) {
   requireApiBase();
   let response;
   try { response = await fetch(`${apiBase}${path}`, { ...options, method, headers, credentials: 'include' }); } catch { throw new Error('The API is unreachable. Check the Render service URL.'); }
-  return parseApiResponse(response);
+  const payload = await parseApiResponse(response);
+  if (payload.csrfToken) csrf = payload.csrfToken;
+  return payload;
 }
 
 export const authApi = {
   me: () => apiRequest('/api/auth/me'),
   register: (data) => apiRequest('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-  logout: async () => { const result = await apiRequest('/api/auth/logout', { method: 'POST' }); csrf = undefined; return result; },
+  logout: async () => { await getCsrf(); const result = await apiRequest('/api/auth/logout', { method: 'POST' }); csrf = undefined; return result; },
   forgotPassword: (email) => apiRequest('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (data) => apiRequest('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
   verifyEmail: (token) => apiRequest('/api/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) }),

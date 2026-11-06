@@ -1,0 +1,13 @@
+# Password and session changes
+
+New registration, password change and reset use bcrypt with BCRYPT_ROUNDS (default 12, allowed 12–16). Benchmark under deployment load before increasing. SHA-256 over a domain-separated password is encoded in base64 before bcrypt to preserve the existing 128-character Unicode input policy beyond bcrypt's 72-byte limit. Stored values are explicitly labelled `bcrypt-sha256:`; do not pass the entire value directly to bcrypt.compare.
+
+Existing Argon2id and standard bcrypt hashes remain verifiable. On successful verified login they upgrade using the supplied password and a compare-and-swap database update. Already current hashes are not hashed again. Unknown formats fail closed and need password reset. No bulk plaintext migration is attempted. Production storage has not been audited; code inspection alone does not establish every stored password format. No schema change is needed for the existing TEXT password_hash column.
+
+Recovery: preserve a database backup, retain this dual-format reader during deployment, and use password reset for unknown formats. Do not roll back to code that reads only Argon2 after bcrypt accounts are created. Never export hashes to logs. Do not reverse upgraded hashes.
+
+Express signs an opaque random session ID in an HttpOnly cookie; signing is not encryption. PostgreSQL stores session userId, CSRF token and cookie metadata, not passwords. Production cookies remain Secure and SameSite=None for the existing cross-site origins. Browser third-party-cookie blocking can still affect this topology. PostgreSQL TLS verification is unchanged. Managed encryption at rest and database role/access policies must be verified in Supabase; application-level AES is not added. Database access still permits reading session contents. Login regenerates the session, logout destroys it, and password reset now atomically consumes tokens and deletes existing sessions. Production startup rejects missing/short session secrets.
+
+Remaining checks: live session expiry/revocation, cross-site browser behaviour and deployment cost benchmarks. Rate limiting is process-local; multiple backend instances would need a shared limiter. Password changes do not currently revoke other sessions; reset does.
+
+Run the read-only audit from the backend directory with `node src/audit-password-formats.js`. It outputs aggregate format counts, never hashes or account identifiers. The configured database audit on 2026-11-06 found one Argon2id record and zero unknown-format records. This is a format classification, not proof of password strength, and does not establish that Render points at the same database. No records were changed by the audit.
