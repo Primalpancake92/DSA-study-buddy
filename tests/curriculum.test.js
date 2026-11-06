@@ -1,78 +1,60 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
 import { getLesson, weekCatalog } from '../shared/curriculum.js';
+import { loadLesson } from '../backend/src/markdownLesson.js';
 
 const requiredSections = [
-  'introduction-and-objectives',
-  'fundamental-theory',
-  'javascript-implementation',
-  'worked-examples',
-  'complexity-analysis',
-  'problem-solving-patterns',
-  'practice-exercises',
-  'common-mistakes',
-  'module-summary-and-mastery'
+  'learning-objectives', 'prerequisite-knowledge', 'core-theory',
+  'javascript-implementations', 'worked-examples', 'visual-explanations',
+  'complexity-analysis', 'common-mistakes',
+  'interview-and-leetcode-pattern-recognition', 'practice-exercises',
+  'hints-and-worked-solutions', 'sources-and-further-reading',
+  'weekly-summary', 'weekly-progress-checklist'
 ];
 
-test('all 16 curriculum modules have the required teaching sections', () => {
-  assert.equal(weekCatalog.length, 16);
+test('all 16 module identities resolve to canonical Markdown with stable section anchors', async () => {
+  assert.deepEqual(weekCatalog.map((week) => week.id), Array.from({ length: 16 }, (_, i) => i + 1));
   for (const week of weekCatalog) {
-    const lesson = getLesson(week.id);
+    const lesson = await loadLesson(week.id);
     assert.ok(lesson, `week ${week.id} should resolve`);
-    assert.ok(requiredSections.every((id) => lesson.sections.some((section) => section.id === id)), `week ${week.id} lost a stable section anchor`);
-    assert.ok(lesson.sections.filter((section) => !section.blocks).every((section) => section.body.trim().length > 80), `week ${week.id} has insufficient overview content`);
+    assert.equal(lesson.id, week.id);
+    assert.equal(lesson.title, week.title);
+    assert.equal(lesson.sourcePath, `docs/weekly_content/week-${String(week.id).padStart(2, '0')}.md`);
+    const markdownSections = lesson.sections.filter((section) => typeof section.markdown === 'string');
+    assert.ok(markdownSections.length, `week ${week.id} must not silently fall back to structured blocks`);
+    assert.deepEqual(markdownSections.filter((section) => section.id !== 'chapter-introduction').map((section) => section.id), requiredSections);
     assert.equal(new Set(lesson.sections.map((section) => section.id)).size, lesson.sections.length);
+    for (const section of markdownSections) assert.ok(section.markdown.trim(), `Empty section ${section.id}`);
+    assert.ok(lesson.sections.some((section) => section.id === 'module-summary-and-mastery'), 'Preserve existing mastery deep link');
+    assert.deepEqual(await loadLesson(week.id), lesson, 'Section and checkpoint identities must remain stable on reload');
   }
 });
 
-test('every module delivers structured concepts, executable examples and concealed practice', () => {
+test('Markdown loading preserves problem, resource and practice metadata', async () => {
   for (const week of weekCatalog) {
-    const concepts = getLesson(week.id).sections.filter((section) => section.blocks);
-    assert.ok(concepts.length >= 2, `week ${week.id} needs multiple concept chapters`);
-    const blocks = concepts.flatMap((section) => section.blocks);
-    assert.ok(blocks.some((block) => block.type === 'diagram'), `week ${week.id} needs a worked state trace`);
-    const exercises = blocks.filter((block) => block.type === 'exercise');
-    assert.ok(exercises.length >= 2, `week ${week.id} needs guided exercises`);
-    assert.ok(exercises.every((block) => block.hints?.length && block.solution?.length > 40));
-    for (const block of blocks.filter((block) => block.type === 'code')) {
-      assert.doesNotThrow(() => new vm.Script(block.code).runInNewContext({ console: { log() {} } }, { timeout: 1000 }), `week ${week.id} has an example that fails to execute`);
-    }
+    const legacy = getLesson(week.id);
+    const lesson = await loadLesson(week.id);
+    for (const key of ['problems', 'resources', 'checkpoint']) assert.deepEqual(lesson[key], legacy[key], `week ${week.id} lost ${key}`);
+    for (const key of ['guide', 'theory', 'workedExample']) assert.equal(Object.hasOwn(lesson, key), false, `week ${week.id} duplicates legacy ${key}`);
+    for (const resource of lesson.resources) assert.doesNotThrow(() => new URL(resource.url));
+    for (const problem of lesson.problems) assert.doesNotThrow(() => new URL(problem.url));
   }
 });
 
-test('literal expected outputs in runnable examples match actual values', () => {
-  let checked = 0;
-  for (const week of weekCatalog) {
-    const blocks = getLesson(week.id).sections.flatMap((section) => section.blocks || []);
-    for (const block of blocks.filter((item) => item.type === 'code')) {
-      // Compare explicit single-value console examples when the annotation is a
-      // JavaScript literal. Explanatory annotations are not treated as assertions.
-      const lines = block.code.split('\n');
-      const rewritten = lines.map((line) => {
-        const match = line.match(/^\s*console\.log\((.*)\);?\s*\/\/\s*=>\s*(.+)$/);
-        if (!match) return line;
-        let expected;
-        try { expected = new vm.Script(`(${match[2]})`).runInNewContext({}, { timeout: 100 }); } catch { return line; }
-        if (expected === undefined) return line;
-        checked++;
-        return `checkOutput((${match[1]}), ${JSON.stringify(expected)});`;
-      }).join('\n');
-      new vm.Script(rewritten).runInNewContext({ console: { log() {} }, checkOutput: (actual, expected) => assert.equal(typeof actual === 'string' && typeof expected !== 'string' ? actual : JSON.stringify(actual), JSON.stringify(expected), `week ${week.id} example output mismatch`) }, { timeout: 1000 });
-    }
-  }
-  assert.ok(checked > 0, 'No expected-output examples were validated');
+test('invalid module identities cannot resolve a chapter', async () => {
+  for (const id of [0, -1, 17, 1.5, NaN, '../week-01', '1', null, undefined]) assert.equal(await loadLesson(id), null);
 });
 
-test('module JavaScript examples are syntactically valid', () => {
-  for (const week of weekCatalog) {
-    const lesson = getLesson(week.id);
-    assert.doesNotThrow(() => new vm.Script(lesson.guide.code), `week ${week.id} has invalid JavaScript`);
-  }
-});
-
-test('existing resource and problem links remain valid URLs', () => {
-  const lesson = getLesson(1);
-  for (const resource of lesson.resources) assert.doesNotThrow(() => new URL(resource.url));
-  for (const problem of lesson.problems) assert.doesNotThrow(() => new URL(problem.url));
+test('Markdown routes retain authentication and stable lesson URLs', async () => {
+  const backend = await readFile(new URL('../backend/src/app.js', import.meta.url), 'utf8');
+  const frontend = await readFile(new URL('../frontend/src/App.jsx', import.meta.url), 'utf8');
+  assert.match(backend, /app\.get\('\/api\/curriculum', requireAuth/);
+  assert.match(backend, /app\.get\('\/api\/curriculum\/:weekNumber', requireAuth/);
+  assert.match(backend, /app\.get\('\/api\/curriculum\/preview'/);
+  assert.match(backend, /app\.get\('\/api\/weeks\/:weekNumber', requireAuth/);
+  assert.match(backend, /app\.get\('\/api\/roadmap', requireAuth/);
+  assert.match(frontend, /path="\/app\/weeks\/:weekId"/);
+  assert.match(frontend, /path="\/lesson\/:weekId"[^]*?to="\/app\/weeks\/:weekId"/);
+  assert.doesNotMatch(backend, /express\.static\([^\n]*(?:weekly_content|docs)/);
 });

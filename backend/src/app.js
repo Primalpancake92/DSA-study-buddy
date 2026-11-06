@@ -13,6 +13,7 @@ import { createDatabasePool, logDatabaseError } from './database.js';
 import { createVerificationToken, sendVerificationEmail, validateEmailAddress, validateEmailConfiguration } from './emailService.js';
 import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { getLesson, weekCatalog } from '../../shared/curriculum.js';
+import { loadLesson } from './markdownLesson.js';
 import { createPracticeRouter } from './practiceRoutes.js';
 import { createSettingsRouter } from './settingsRoutes.js';
 
@@ -176,17 +177,19 @@ app.post('/api/users/me/password', requireAuth, csrfProtection, async (req, res,
 
 app.get('/api/curriculum/preview', (_req, res) => res.json({ weeks: 16, tracks: curriculumPreview }));
 app.get('/api/curriculum', requireAuth, (_req, res) => res.json({ weeks: weekCatalog }));
-app.get('/api/curriculum/:weekNumber', requireAuth, (req, res) => {
+app.get('/api/curriculum/:weekNumber', requireAuth, async (req, res, next) => {
   const weekNumber = Number(req.params.weekNumber);
   if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 16) return res.status(404).json({ error: 'Module not found.' });
-  const lesson = getLesson(weekNumber);
+  let lesson;
+  try { lesson = await loadLesson(weekNumber); } catch (error) { return next(error); }
   return lesson ? res.json(lesson) : res.status(404).json({ error: 'Module not found.' });
 });
 app.get('/api/roadmap', requireAuth, (_req, res) => res.json({ weeks: weekCatalog }));
-app.get('/api/weeks/:weekNumber', requireAuth, (req, res) => {
+app.get('/api/weeks/:weekNumber', requireAuth, async (req, res, next) => {
   const weekNumber = Number(req.params.weekNumber);
   if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 16) return res.status(404).json({ error: 'Module not found.' });
-  const lesson = getLesson(weekNumber);
+  let lesson;
+  try { lesson = await loadLesson(weekNumber); } catch (error) { return next(error); }
   return lesson ? res.json(lesson) : res.status(404).json({ error: 'Module not found.' });
 });
 
@@ -300,10 +303,10 @@ app.patch('/api/progress/lessons/:lessonId', requireAuth, csrfProtection, async 
   try {
     await client.query('BEGIN');
     await client.query('INSERT INTO lesson_progress (user_id, lesson_id, status, completed_at) VALUES ($1, $2, $3, CASE WHEN $3 = \'completed\' THEN now() ELSE NULL END) ON CONFLICT (user_id, lesson_id) DO UPDATE SET status = EXCLUDED.status, completed_at = EXCLUDED.completed_at, updated_at = now()', [req.session.userId, lessonId.data, completed.data ? 'completed' : 'started']);
-    const weekMatch = lessonId.data.match(/^w(\d+)-/);
+    const weekMatch = lessonId.data.match(/^w(\d+)-\d+$/);
     if (weekMatch) {
       const week = Number(weekMatch[1]);
-      const count = await client.query('SELECT count(*)::int AS count FROM lesson_progress WHERE user_id = $1 AND lesson_id LIKE $2 AND status = \'completed\'', [req.session.userId, `w${week}-%`]);
+      const count = await client.query('SELECT count(*)::int AS count FROM lesson_progress WHERE user_id = $1 AND lesson_id ~ $2 AND status = \'completed\'', [req.session.userId, `^w${week}-[0-9]+$`]);
       await client.query('UPDATE user_progress SET completed_lesson_count = $1, completion_status = CASE WHEN $1 >= total_lesson_count AND total_lesson_count > 0 THEN \'completed\' ELSE \'started\' END, updated_at = now() WHERE user_id = $2 AND week_number = $3', [count.rows[0].count, req.session.userId, week]);
     }
     await client.query('COMMIT');

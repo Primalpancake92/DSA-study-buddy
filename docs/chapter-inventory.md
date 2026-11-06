@@ -1,6 +1,6 @@
-# Authored chapter inventory
+# Legacy structured-chapter inventory
 
-All 16 modules now include new concept chapters alongside their preserved overview/revision anchors. These are authored learning materials, not independently peer-reviewed textbook chapters. Existing mastery IDs are unchanged.
+This is the historical inventory of the JavaScript block-based chapters in `shared/textbook/`. The active educational source is now [the Markdown textbook](weekly_content/README.md); its current syllabus mapping is in [the curriculum coverage report](curriculum-coverage.md). The lists and validation counts below describe the earlier block format, not the new Markdown validation run. Existing mastery IDs remain unchanged.
 
 ## Week 01 — Complexity and Arrays
 

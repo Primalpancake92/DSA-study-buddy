@@ -1,36 +1,62 @@
 import { apiRequest } from './authApi.js';
 
 const progressEvent = 'dsa-grind-progress-change';
-let progressCache = { completedWeeks: [], completedCheckpoints: [] };
+const emptyProgress = () => ({ completedWeeks: [], completedCheckpoints: [], ready: false, saving: false, error: '' });
+let progressCache = emptyProgress();
 let cacheGeneration = 0;
+let loading;
 
 export function clearProgress() {
   cacheGeneration++;
-  progressCache = { completedWeeks: [], completedCheckpoints: [] };
+  loading = undefined;
+  progressCache = emptyProgress();
   window.dispatchEvent(new Event(progressEvent));
 }
 
 export function readProgress() { return progressCache; }
 
 export function toggleCheckpoint(id) {
-  const completedCheckpoints = progressCache.completedCheckpoints.includes(id)
-    ? progressCache.completedCheckpoints.filter((item) => item !== id)
-    : [...progressCache.completedCheckpoints, id];
-  progressCache = { ...progressCache, completedCheckpoints };
+  if (!progressCache.ready || progressCache.saving) return progressCache;
+  const generation = ++cacheGeneration;
+  // A pre-save refresh belongs to the old generation and must not suppress
+  // the authoritative post-save refresh when the write completes.
+  loading = undefined;
+  const completed = !progressCache.completedCheckpoints.includes(id);
+  progressCache = { ...progressCache, saving: true, error: '' };
   window.dispatchEvent(new Event(progressEvent));
-  apiRequest('/api/progress', { method: 'PUT', body: JSON.stringify(progressCache) }).catch(() => undefined);
+  // Serialize writes across navigation and never replace unrelated saved IDs.
+  apiRequest(`/api/progress/lessons/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ completed }) }).then(() => {
+    if (generation !== cacheGeneration) return;
+    const completedCheckpoints = completed ? [...progressCache.completedCheckpoints, id] : progressCache.completedCheckpoints.filter((item) => item !== id);
+    progressCache = { ...progressCache, completedCheckpoints, saving: false };
+    window.dispatchEvent(new Event(progressEvent));
+    loadProgressFromApi();
+  }).catch((error) => {
+    if (generation !== cacheGeneration) return;
+    progressCache = { ...progressCache, saving: false, error: `Could not save this checkpoint. ${error.message} Try again.` };
+    window.dispatchEvent(new Event(progressEvent));
+  });
   return progressCache;
 }
 
-export async function loadProgressFromApi() {
+export function loadProgressFromApi() {
+  if (progressCache.saving) return Promise.resolve(progressCache);
+  if (loading) return loading;
   const generation = cacheGeneration;
-  try {
-    const remote = await apiRequest('/api/progress');
+  const request = apiRequest('/api/progress').then((remote) => {
     if (generation !== cacheGeneration) return progressCache;
-    progressCache = { completedWeeks: remote.completedWeeks || [], completedCheckpoints: remote.completedCheckpoints || [] };
+    progressCache = { ...progressCache, completedWeeks: remote.completedWeeks || [], completedCheckpoints: remote.completedCheckpoints || [], ready: true, error: '' };
     window.dispatchEvent(new Event(progressEvent));
-  } catch { if (generation === cacheGeneration) clearProgress(); }
-  return progressCache;
+    return progressCache;
+  }).catch((error) => {
+    if (generation === cacheGeneration) {
+      progressCache = { ...progressCache, error: `Could not load saved progress. ${error.message}` };
+      window.dispatchEvent(new Event(progressEvent));
+    }
+    return progressCache;
+  }).finally(() => { if (loading === request) loading = undefined; });
+  loading = request;
+  return request;
 }
 
 export function subscribeToProgress(listener) {
