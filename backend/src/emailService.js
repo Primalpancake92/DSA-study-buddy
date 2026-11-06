@@ -36,15 +36,38 @@ export function createVerificationToken() {
   return { rawToken, tokenHash };
 }
 
-export async function sendVerificationEmail({ email, firstName, rawToken }) {
-  const baseUrl = process.env.EMAIL_VERIFICATION_BASE_URL || 'http://localhost:5173/verify-email';
-  const verificationUrl = `${baseUrl}?token=${encodeURIComponent(rawToken)}`;
-  if (process.env.EMAIL_PROVIDER === 'resend') {
-    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error('Email provider is not configured.');
-    const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [email], subject: 'Verify your DSA Grind email', html: `<p>Hi ${firstName},</p><p>Verify your DSA Grind account:</p><p><a href="${verificationUrl}">Verify my email</a></p><p>This link expires in ${process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60} minutes.</p>` }) });
-    if (!response.ok) { const error = new Error('Email provider rejected the verification email.'); error.code = 'EMAIL_DELIVERY_FAILED'; throw error; }
-    return;
+export function validateEmailConfiguration(env = process.env) {
+  if (env.NODE_ENV !== 'production' && env.EMAIL_PROVIDER !== 'resend') return;
+  if (env.EMAIL_PROVIDER !== 'resend') throw new Error('EMAIL_PROVIDER must equal resend in production.');
+  for (const name of ['RESEND_API_KEY', 'EMAIL_FROM', 'EMAIL_VERIFICATION_BASE_URL']) {
+    if (!env[name]?.trim()) throw new Error(`${name} is required for Resend email delivery.`);
   }
-  if (process.env.NODE_ENV === 'production') throw new Error('EMAIL_PROVIDER=resend, RESEND_API_KEY and EMAIL_FROM are required in production.');
-  console.info('[email:development] verification email queued', JSON.stringify({ email }));
+  let url;
+  try { url = new URL(env.EMAIL_VERIFICATION_BASE_URL); } catch { throw new Error('EMAIL_VERIFICATION_BASE_URL must be a valid HTTPS URL.'); }
+  if (url.protocol !== 'https:' || url.username || url.password || url.hash || url.search) throw new Error('EMAIL_VERIFICATION_BASE_URL must be an HTTPS URL without credentials, query or fragment.');
+}
+
+export async function sendVerificationEmail({ email, firstName, rawToken }, { env = process.env, fetchImpl = fetch } = {}) {
+  try {
+    validateEmailConfiguration(env);
+    if (env.EMAIL_PROVIDER !== 'resend') return; // Development transport intentionally never sends or logs tokens.
+    const url = new URL(env.EMAIL_VERIFICATION_BASE_URL);
+    url.searchParams.set('token', rawToken);
+    const escape = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+    const response = await fetchImpl('https://api.resend.com/emails', {
+      method: 'POST', signal: AbortSignal.timeout(10000),
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: env.EMAIL_FROM, to: [email], subject: 'Verify your DSA Grind email', html: `<p>Hi ${escape(firstName)},</p><p><a href="${escape(url.href)}">Verify my email</a></p><p>This link expires in ${escape(env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60)} minutes.</p>`, text: `Verify your DSA Grind account: ${url.href}` })
+    });
+    if (!response.ok) {
+      console.error('[email]', JSON.stringify({ category: 'provider-rejection', status: response.status }));
+      throw new Error('Provider rejection');
+    }
+  } catch (cause) {
+    // Never log provider bodies, tokens, recipient details or exception messages.
+    console.error('[email]', JSON.stringify({ category: ['TimeoutError', 'AbortError'].includes(cause.name) ? 'timeout' : 'delivery-failure' }));
+    const error = new Error('We could not send your verification email. Please try again shortly.');
+    error.code = 'EMAIL_DELIVERY_FAILED';
+    throw error;
+  }
 }

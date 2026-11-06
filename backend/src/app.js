@@ -10,11 +10,12 @@ import session from 'express-session';
 import helmet from 'helmet';
 import { z } from 'zod';
 import { createDatabasePool, logDatabaseError } from './database.js';
-import { createVerificationToken, sendVerificationEmail, validateEmailAddress } from './emailService.js';
+import { createVerificationToken, sendVerificationEmail, validateEmailAddress, validateEmailConfiguration } from './emailService.js';
 import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { getLesson, weekCatalog } from '../../shared/curriculum.js';
 
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) });
+validateEmailConfiguration();
 const app = express();
 const port = Number(process.env.PORT || 3001);
 const isProduction = process.env.NODE_ENV === 'production';
@@ -61,6 +62,7 @@ const requireAuth = async (req, res, next) => {
     next();
   } catch (error) { next(error); }
 };
+const requireSession = (req, res, next) => req.session.userId ? next() : res.status(401).json({ error: 'Authentication required.' });
 const userShape = z.object({ id: z.string(), firstName: z.string(), lastName: z.string(), username: z.string(), email: z.string() });
 const registerSchema = z.object({ firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/), email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()), password: z.string().min(12).max(128), confirmPassword: z.string() }).refine((value) => value.password === value.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match.' });
 const loginSchema = z.object({ email: z.string().trim().email().transform((value) => value.toLowerCase()), password: z.string().min(1).max(128) });
@@ -85,8 +87,10 @@ app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, nex
   if (!emailValidation.ok) return errorResponse(res, 400, emailValidation.code, emailValidation.message, { email: [emailValidation.message] });
   const { firstName, lastName, username, password } = parsed.data;
   const email = emailValidation.email;
-  const client = await pool.connect();
+  let client;
+  let committed = false;
   try {
+    client = await pool.connect();
     await client.query('BEGIN');
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     const result = await client.query('INSERT INTO users (first_name, last_name, username, email, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, last_name, username, email', [firstName, lastName, username, email, passwordHash]);
@@ -96,15 +100,16 @@ app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, nex
     await client.query('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, now() + ($3 * interval \'1 minute\'))', [result.rows[0].id, tokenHash, ttlMinutes]);
     await client.query('UPDATE users SET email_verification_sent_at = now() WHERE id = $1', [result.rows[0].id]);
     await recordActivity(client, result.rows[0].id, 'account', 'Account created', 'Registration completed; email verification is pending.');
-    await sendVerificationEmail({ email, firstName, rawToken });
     await client.query('COMMIT');
+    committed = true;
+    await sendVerificationEmail({ email, firstName, rawToken });
     res.status(202).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Check your inbox to verify your email before signing in.', email });
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (client && !committed) await client.query('ROLLBACK');
     if (error.code === '23505') return errorResponse(res, 409, 'ACCOUNT_ALREADY_EXISTS', 'An account with those details already exists.');
     if (error.code === 'EMAIL_DELIVERY_FAILED' || error.message === 'Email provider is not configured.') return errorResponse(res, 503, 'EMAIL_DELIVERY_FAILED', 'We could not send the verification email. Please try again shortly.');
     next(error);
-  } finally { client.release(); }
+  } finally { client?.release(); }
 });
 
 app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) => {
@@ -126,7 +131,7 @@ app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) 
   } catch (error) { next(error); }
 });
 
-app.post('/api/auth/logout', requireAuth, csrfProtection, async (req, res, next) => {
+app.post('/api/auth/logout', requireSession, csrfProtection, async (req, res, next) => {
   req.session.destroy((error) => error ? next(error) : res.clearCookie('dsa.sid').json({ ok: true }));
 });
 
@@ -211,10 +216,11 @@ app.post('/api/auth/resend-verification', verificationLimiter, csrfProtection, a
       await client.query('UPDATE email_verification_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL', [user.id]);
       await client.query('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, now() + ($3 * interval \'1 minute\'))', [user.id, tokenHash, ttlMinutes]);
       await client.query('UPDATE users SET email_verification_sent_at = now() WHERE id = $1', [user.id]);
-      await sendVerificationEmail({ email: user.email, firstName: user.first_name, rawToken });
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); client.release(); if (error.code === 'EMAIL_DELIVERY_FAILED' || error.message === 'Email provider is not configured.') return errorResponse(res, 503, 'EMAIL_DELIVERY_FAILED', 'We could not send the verification email. Please try again shortly.'); throw error; }
     client.release();
+    try { await sendVerificationEmail({ email: user.email, firstName: user.first_name, rawToken }); }
+    catch (error) { if (error.code === 'EMAIL_DELIVERY_FAILED') return errorResponse(res, 503, error.code, error.message); throw error; }
     res.status(202).json(generic);
   } catch (error) { next(error); }
 });

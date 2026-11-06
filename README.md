@@ -57,3 +57,7 @@ npm run import:curriculum -- --source ../source/DSA-grind --output frontend/src/
 ```
 
 The importer expects `README.md`, `STUDY-PLAYBOOK.md`, `weeks/01.md` through `weeks/16.md`, resource and guide files, practice files, templates, and tracking CSVs. It exits non-zero for missing required files.
+# Production verification email
+
+See [Resend production setup](docs/resend-production.md) for Render configuration, sender-domain verification, retry behaviour and the manual deployment checklist.
+
