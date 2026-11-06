@@ -39,4 +39,5 @@ export const authApi = {
   resendVerification: (email) => apiRequest('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
   profile: () => apiRequest('/api/users/me'),
   updateProfile: (data) => apiRequest('/api/users/me', { method: 'PATCH', body: JSON.stringify(data) })
+  ,changePassword: (data) => apiRequest('/api/users/me/password', { method: 'POST', body: JSON.stringify(data) })
 };

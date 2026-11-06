@@ -16,7 +16,8 @@ export function AuthProvider({ children }) {
     loading,
     register: async (data) => authApi.register(data),
     login: async (data) => { const result = await authApi.login(data); setUser(result.user); return result.user; },
-    logout: async () => { await authApi.logout(); setUser(null); }
+    logout: async () => { await authApi.logout(); setUser(null); },
+    updateUser: (nextUser) => setUser(nextUser)
   }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

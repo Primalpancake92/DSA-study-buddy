@@ -66,11 +66,12 @@ const registerSchema = z.object({ firstName: z.string().trim().min(1).max(80), l
 const loginSchema = z.object({ email: z.string().trim().email().transform((value) => value.toLowerCase()), password: z.string().min(1).max(128) });
 const progressSchema = z.object({ completedWeeks: z.array(z.number().int().min(1).max(16)), completedCheckpoints: z.array(z.string().min(1).max(120)) });
 
-function publicUser(row) { return { id: row.id, firstName: row.first_name, lastName: row.last_name, username: row.username, email: row.email }; }
+function publicUser(row) { return { id: row.id, firstName: row.first_name, lastName: row.last_name, username: row.username, email: row.email, createdAt: row.created_at, emailVerified: Boolean(row.email_verified_at) }; }
 function regenerate(req) { return new Promise((resolve, reject) => req.session.regenerate((error) => error ? reject(error) : resolve())); }
 function saveSession(req) { return new Promise((resolve, reject) => req.session.save((error) => error ? reject(error) : resolve())); }
 function hashToken(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function errorResponse(res, status, code, message, fields) { return res.status(status).json({ error: { code, message }, ...(fields ? { fields } : {}) }); }
+function recordActivity(client, userId, activityType, title, detail = null, metadata = {}) { return client.query('INSERT INTO user_activity (user_id, activity_type, title, detail, metadata) VALUES ($1, $2, $3, $4, $5)', [userId, activityType, title, detail, metadata]); }
 
 app.get('/', (_req, res) => res.json({ service: 'dsa-grind-api', status: 'running', health: '/api/health' }));
 app.get('/api/health', async (_req, res) => { try { await pool.query('SELECT 1'); res.json({ ok: true, service: 'dsa-grind-api', database: 'connected' }); } catch (error) { logDatabaseError(error, 'health-check'); res.status(503).json({ ok: false, service: 'dsa-grind-api', database: 'unavailable' }); } });
@@ -94,6 +95,7 @@ app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, nex
     const ttlMinutes = Math.max(30, Math.min(120, Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60)));
     await client.query('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, now() + ($3 * interval \'1 minute\'))', [result.rows[0].id, tokenHash, ttlMinutes]);
     await client.query('UPDATE users SET email_verification_sent_at = now() WHERE id = $1', [result.rows[0].id]);
+    await recordActivity(client, result.rows[0].id, 'account', 'Account created', 'Registration completed; email verification is pending.');
     await sendVerificationEmail({ email, firstName, rawToken });
     await client.query('COMMIT');
     res.status(202).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Check your inbox to verify your email before signing in.', email });
@@ -109,7 +111,7 @@ app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) 
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) return errorResponse(res, 400, 'INVALID_CREDENTIALS', 'Enter a valid email and password.');
   try {
-    const result = await pool.query('SELECT id, first_name, last_name, username, email, password_hash, account_active, email_verified_at FROM users WHERE email = $1', [parsed.data.email]);
+    const result = await pool.query('SELECT id, first_name, last_name, username, email, password_hash, account_active, email_verified_at, created_at FROM users WHERE email = $1', [parsed.data.email]);
     const user = result.rows[0];
     const valid = user?.account_active ? await argon2.verify(user.password_hash, parsed.data.password) : false;
     if (!valid) return errorResponse(res, 401, 'INVALID_CREDENTIALS', 'Invalid email or password.');
@@ -118,7 +120,8 @@ app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) 
     req.session.userId = user.id;
     csrfToken(req);
     await saveSession(req);
-    await pool.query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]);
+    const client = await pool.connect();
+    try { await client.query('BEGIN'); await client.query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]); await recordActivity(client, user.id, 'auth', 'Signed in', 'Successful account sign-in.'); await client.query('COMMIT'); } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     res.json({ user: publicUser(user) });
   } catch (error) { next(error); }
 });
@@ -130,20 +133,33 @@ app.post('/api/auth/logout', requireAuth, csrfProtection, async (req, res, next)
 app.get('/api/auth/me', async (req, res, next) => {
   if (!req.session.userId) return res.status(401).json({ error: 'Authentication required.' });
   try {
-    const result = await pool.query('SELECT id, first_name, last_name, username, email, account_active FROM users WHERE id = $1', [req.session.userId]);
+    const result = await pool.query('SELECT id, first_name, last_name, username, email, account_active, created_at, email_verified_at FROM users WHERE id = $1', [req.session.userId]);
     if (!result.rows[0]?.account_active) return res.status(401).json({ error: 'Authentication required.' });
     res.json({ user: publicUser(result.rows[0]), csrfToken: csrfToken(req) });
   } catch (error) { next(error); }
 });
 
 app.get('/api/users/me', requireAuth, async (req, res, next) => {
-  try { const result = await pool.query('SELECT id, first_name, last_name, username, email FROM users WHERE id = $1 AND account_active = true', [req.session.userId]); if (!result.rows[0]) return res.status(404).json({ error: 'Profile not found.' }); res.json({ user: publicUser(result.rows[0]) }); } catch (error) { next(error); }
+  try { const result = await pool.query('SELECT id, first_name, last_name, username, email, created_at, email_verified_at FROM users WHERE id = $1 AND account_active = true', [req.session.userId]); if (!result.rows[0]) return res.status(404).json({ error: 'Profile not found.' }); res.json({ user: publicUser(result.rows[0]) }); } catch (error) { next(error); }
 });
 
 app.patch('/api/users/me', requireAuth, csrfProtection, async (req, res, next) => {
   const parsed = z.object({ firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/) }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Check your profile fields.', fields: parsed.error.flatten().fieldErrors });
-  try { const result = await pool.query('UPDATE users SET first_name = $1, last_name = $2, username = $3, updated_at = now() WHERE id = $4 AND account_active = true RETURNING id, first_name, last_name, username, email', [parsed.data.firstName, parsed.data.lastName, parsed.data.username, req.session.userId]); res.json({ user: publicUser(result.rows[0]) }); } catch (error) { if (error.code === '23505') return res.status(409).json({ error: 'That username is already in use.' }); next(error); }
+  try { const client = await pool.connect(); try { await client.query('BEGIN'); const result = await client.query('UPDATE users SET first_name = $1, last_name = $2, username = $3, updated_at = now() WHERE id = $4 AND account_active = true RETURNING id, first_name, last_name, username, email, created_at, email_verified_at', [parsed.data.firstName, parsed.data.lastName, parsed.data.username, req.session.userId]); await recordActivity(client, req.session.userId, 'profile', 'Profile updated'); await client.query('COMMIT'); res.json({ user: publicUser(result.rows[0]) }); } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); } } catch (error) { if (error.code === '23505') return res.status(409).json({ error: 'That username is already in use.' }); next(error); }
+});
+
+app.post('/api/users/me/password', requireAuth, csrfProtection, async (req, res, next) => {
+  const parsed = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(12).max(128), confirmPassword: z.string() }).refine((value) => value.newPassword === value.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match.' }).safeParse(req.body);
+  if (!parsed.success) return errorResponse(res, 400, 'INVALID_PASSWORD_CHANGE', 'Check the password fields.', parsed.error.flatten().fieldErrors);
+  try {
+    const result = await pool.query('SELECT password_hash FROM users WHERE id = $1 AND account_active = true', [req.session.userId]);
+    if (!result.rows[0] || !(await argon2.verify(result.rows[0].password_hash, parsed.data.currentPassword))) return errorResponse(res, 400, 'CURRENT_PASSWORD_INVALID', 'Your current password is incorrect.');
+    const passwordHash = await argon2.hash(parsed.data.newPassword, { type: argon2.argon2id });
+    await pool.query('UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2', [passwordHash, req.session.userId]);
+    await recordActivity(pool, req.session.userId, 'security', 'Password changed');
+    res.json({ message: 'Password updated.' });
+  } catch (error) { next(error); }
 });
 
 app.get('/api/curriculum/preview', (_req, res) => res.json({ weeks: 16, tracks: curriculumPreview }));
@@ -272,12 +288,17 @@ app.patch('/api/progress/lessons/:lessonId', requireAuth, csrfProtection, async 
       await client.query('UPDATE user_progress SET completed_lesson_count = $1, completion_status = CASE WHEN $1 >= total_lesson_count AND total_lesson_count > 0 THEN \'completed\' ELSE \'started\' END, updated_at = now() WHERE user_id = $2 AND week_number = $3', [count.rows[0].count, req.session.userId, week]);
     }
     await client.query('COMMIT');
+    await pool.query('INSERT INTO user_activity (user_id, activity_type, title, detail, metadata) VALUES ($1, \'learning\', $2, $3, $4)', [req.session.userId, completed.data ? 'Lesson checkpoint completed' : 'Lesson checkpoint reopened', lessonId.data, { lessonId: lessonId.data }]);
     res.json({ lessonId: lessonId.data, completed: completed.data });
   } catch (error) { await client.query('ROLLBACK'); next(error); } finally { client.release(); }
 });
 
 app.get('/api/journal', requireAuth, async (req, res, next) => {
   try { const result = await pool.query('SELECT id, week_id AS "weekId", entry, mood, created_at AS "createdAt" FROM solution_journals WHERE user_id = $1 ORDER BY created_at DESC', [req.session.userId]); res.json(result.rows); } catch (error) { next(error); }
+});
+
+app.get('/api/activity', requireAuth, async (req, res, next) => {
+  try { const result = await pool.query('SELECT id, activity_type AS "activityType", title, detail, occurred_at AS "occurredAt" FROM user_activity WHERE user_id = $1 ORDER BY occurred_at DESC LIMIT 100', [req.session.userId]); res.json({ activities: result.rows }); } catch (error) { next(error); }
 });
 
 app.post('/api/journal', requireAuth, csrfProtection, async (req, res, next) => {
