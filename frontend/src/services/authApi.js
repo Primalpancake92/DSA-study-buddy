@@ -4,6 +4,7 @@ const configuredApiBase = import.meta.env.VITE_API_BASE_URL;
 const apiBase = (configuredApiBase ? configuredApiBase.replace(/\/+$/, '') : import.meta.env.DEV ? 'http://localhost:3001' : '');
 
 let csrf;
+export function clearAuthCache() { csrf = undefined; }
 
 function requireApiBase() {
   if (!apiBase) throw new Error('The production API URL is missing. Set VITE_API_BASE_URL in Vercel and redeploy the frontend.');

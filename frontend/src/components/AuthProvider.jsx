@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { authApi } from '../services/authApi.js';
+import { authApi, clearAuthCache } from '../services/authApi.js';
 import { clearProgress } from '../services/progressStore.js';
 
 const AuthContext = createContext(null);
@@ -18,6 +18,7 @@ export function AuthProvider({ children }) {
     register: async (data) => authApi.register(data),
     login: async (data) => { const result = await authApi.login(data); setUser(result.user); return result.user; },
     logout: async () => { await authApi.logout(); clearProgress(); setUser(null); },
+    clearSession: () => { clearAuthCache(); clearProgress(); setUser(null); },
     updateUser: (nextUser) => setUser(nextUser)
   }), [user, loading]);
 

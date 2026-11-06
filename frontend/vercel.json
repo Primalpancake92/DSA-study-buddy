@@ -1,3 +1,10 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/curriculum", "destination": "/curriculum/index.html" },
+    { "source": "/(.*)", "destination": "/app-shell.html" }
+  ],
+  "headers": [
+    { "source": "/app-shell.html", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
+  ]
 }

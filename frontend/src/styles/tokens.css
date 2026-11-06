@@ -32,3 +32,14 @@
   --font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 @media(max-width:900px){:root{--layout-gutter:22px}}
+:root[data-theme="light"] {
+  color-scheme:light;
+  --color-background:#F3F5FC;--color-surface:#FFFFFF;--color-code:#E9EEF9;
+  --color-surface-raised:#F8FAFF;--color-surface-highlight:#E0E7FF;--color-accent-shade:#E0E7FF;
+  --color-primary:#4F46E5;--color-primary-action:#4F46E5;--color-primary-hover:#4338CA;--color-secondary:#0E7490;
+  --color-text-primary:#111827;--color-text-secondary:#334155;--color-text-muted:#526078;
+  --color-border:#CFD6E4;--color-control-border:#697792;--color-success:#047857;--color-warning:#92400E;--color-error:#BE123C;
+  --color-shadow:rgb(30 41 59 / 10%);--color-accent-shadow:rgb(99 102 241 / 7%);--color-overlay:rgb(30 41 59 / 45%);
+  --color-grid-line:rgb(99 102 241 / 5%);--color-grid-glow:rgb(99 102 241 / 6%);
+}
+:root[data-theme="light"] .button.primary:hover,:root[data-theme="light"] .submit-button:hover{color:var(--color-on-primary)}

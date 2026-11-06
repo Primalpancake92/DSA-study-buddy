@@ -13,6 +13,8 @@ import { createDatabasePool, logDatabaseError } from './database.js';
 import { createVerificationToken, sendVerificationEmail, validateEmailAddress, validateEmailConfiguration } from './emailService.js';
 import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { getLesson, weekCatalog } from '../../shared/curriculum.js';
+import { createPracticeRouter } from './practiceRoutes.js';
+import { createSettingsRouter } from './settingsRoutes.js';
 
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) });
 validateEmailConfiguration();
@@ -65,6 +67,7 @@ const requireAuth = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 const requireSession = (req, res, next) => req.session.userId ? next() : res.status(401).json({ error: 'Authentication required.' });
+app.use('/api', (_req, res, next) => { res.set('X-Robots-Tag', 'noindex, nofollow'); next(); });
 const userShape = z.object({ id: z.string(), firstName: z.string(), lastName: z.string(), username: z.string(), email: z.string() });
 const registerSchema = z.object({ firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/), email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()), password: z.string().min(12).max(128), confirmPassword: z.string() }).refine((value) => value.password === value.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match.' });
 const loginSchema = z.object({ email: z.string().trim().email().transform((value) => value.toLowerCase()), password: z.string().min(1).max(128) });
@@ -323,6 +326,8 @@ app.post('/api/journal', requireAuth, csrfProtection, async (req, res, next) => 
   try { const result = await pool.query('INSERT INTO solution_journals (user_id, week_id, entry, mood) VALUES ($1, $2, $3, $4) RETURNING id, week_id AS "weekId", entry, mood, created_at AS "createdAt"', [req.session.userId, parsed.data.weekId, parsed.data.entry, parsed.data.mood || null]); res.status(201).json(result.rows[0]); } catch (error) { next(error); }
 });
 
+app.use('/api/practice', createPracticeRouter({ pool, requireAuth, csrfProtection }));
+app.use('/api/settings', createSettingsRouter({ pool, requireAuth, csrfProtection }));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
 app.use((error, _req, res, _next) => { console.error('[api-error]', JSON.stringify({ category: 'request-failure', code: /^[A-Z0-9_]{1,40}$/.test(error.code || '') ? error.code : 'UNEXPECTED_ERROR' })); res.status(500).json({ error: 'The server could not complete the request.' }); });
 

@@ -1,0 +1,13 @@
+# Coding practice
+
+The protected lesson page includes Coding Practice for every week. The server-only [catalogue](../shared/practiceCatalog.js) contains 55 deduplicated official LeetCode/HackerRank links, with stable IDs, week mappings, difficulty, topics, prerequisites and original learning objectives. Reused problems share one status across weeks. Existing Contains Duplicate retains its original ID. See [link verification evidence](practice-link-audit.md).
+
+`GET /api/practice?week=1` returns authenticated catalogue entries with the current user's progress; omitting week returns the full protected catalogue. `PATCH /api/practice/:problemId` requires the existing session and CSRF token, validates status/notes/manual attempt count, and never accepts a user ID. Opening an external link is a plain secure anchor and sends no progress update. Submitted platform solutions are never retrieved or executed here.
+
+Statuses are Not Started, Attempted, Solved and Review Needed. Saves persist notes, manual attempt count and timestamps in `user_problem_progress`; this does not automatically mark lesson mastery. Initial solved problems schedule review after two days; explicitly completing a subsequent Review Needed state advances to seven and then 21 days. Review records use `practice:`-prefixed IDs in the existing queue and cannot overwrite lesson review entries. Editing notes does not postpone a review. Dashboard in-app reminders surface due reviews when enabled.
+
+Recommendation order is deterministic: enabled due/review-needed work first, attempted work, new work, then solved work. Saved difficulty preferences influence ordering within those groups. Filters intersect platform, difficulty, topic and status. No AI service is required.
+
+Automatic personal submission synchronisation is not implemented. The review found official HackerRank APIs for employer assessment workflows, not a supported personal community practice sync contract; no supported LeetCode personal submission integration was identified. Public profile bookmarks in settings do not authorise provider access or prove account ownership. No platform passwords, private GraphQL endpoints or scraping dependencies are used.
+
+Migration `005_practice_progress.sql` is additive and has been applied to the configured Supabase database. For another environment run the versioned migration command before deploying the backend. PostgreSQL persistence and two-user isolation were tested with synthetic records in a rollback-only isolated schema using `backend/src/check-learning-integration.js`; no existing user's progress was modified. Deployed registration/login/practice persistence still needs a hosted browser smoke test after deployment.

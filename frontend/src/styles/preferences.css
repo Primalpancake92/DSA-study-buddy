@@ -1,0 +1,17 @@
+:root{--reading-font-size:1rem;--reading-line-height:1.85;--reading-width:78ch}
+:root[data-reading-size="small"]{--reading-font-size:.9rem}
+:root[data-reading-size="large"]{--reading-font-size:1.125rem}
+:root[data-reading-size="extra-large"]{--reading-font-size:1.25rem}
+:root[data-reading-width="narrow"]{--reading-width:62ch}
+:root[data-reading-width="wide"]{--reading-width:92ch}
+:root[data-reading-spacing="compact"]{--reading-line-height:1.6}
+:root[data-reading-spacing="relaxed"]{--reading-line-height:2.1}
+.lesson-main{max-width:var(--reading-width);width:100%}
+.chapter-content,.lesson-copy{font-size:var(--reading-font-size);line-height:var(--reading-line-height)}
+.chapter-content pre,.lesson-copy pre{font-size:calc(var(--reading-font-size) * .88)}
+.chapter-content p,.lesson-copy p{max-width:100%}
+:root[data-reduced-motion="true"],:root[data-reduced-motion="true"] *{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+:root[data-enhanced-contrast="true"]{--color-text-secondary:var(--color-text-primary);--color-text-muted:var(--color-text-primary);--color-border:var(--color-control-border)}
+.learning-reminders{margin-block:24px 36px;padding-block:20px;border-block:1px solid var(--color-border)}
+.learning-reminders h2{font-size:1.15rem}.learning-reminders ul{padding-left:20px;color:var(--color-text-secondary);line-height:1.8}
+.learning-reminders a{color:var(--color-primary-hover)}

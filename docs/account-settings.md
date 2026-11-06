@@ -1,0 +1,21 @@
+# Account settings implementation and deployment
+
+The account menu's existing `/app/settings` link redirects to `/app/settings/profile`. Nested authenticated sections are `profile`, `security`, `connections`, `learning`, `notifications`, `accessibility`, `appearance`, and `privacy`. They share a 240px grouped sidebar and one Outlet panel, with wrapping mobile navigation. Profile and security reuse existing API/password services. Lucide React supplies the sidebar icons.
+
+`AccountSettingsProvider` restores validated PostgreSQL preferences after authentication and applies semantic theme/reading attributes. Only the cosmetic theme value is cached in localStorage to prevent a startup flash; credentials and session state remain in HttpOnly cookies. Logout clears account-specific preferences; stale save responses cannot overwrite another account's preferences. Dark Midnight Indigo remains the default. System appearance follows media-query changes, and OS reduced-motion remains respected.
+
+Learning preferences affect the actual experience: daily minutes scale the dashboard's planned routine; study frequency labels the plan; difficulty and revision choices order practice recommendations; hints can be disabled, solutions start hidden or revealed, state diagrams expand or collapse, and text-based reading-time estimates can be shown. Reading font size, width and line height affect lesson prose/code, not global application typography. Estimates use a stated 220 words/min reading assumption and exclude practice time.
+
+In-app notifications are evaluated by `GET /api/settings/reminders` when the dashboard opens. Categories derive reminders from the saved study target, due review queue, recent completed checkpoints and completed weekly modules. They do not measure actual study minutes or invent historical events. They are not browser push, background alerts, email or product-update subscriptions. Those channels have no toggles; adding email would require opt-in, unsubscribe and a documented scheduler.
+
+Connected accounts are validated public profile bookmarks, not OAuth connections or proof of ownership. Users can save, update, remove (blank then save), and open them. No provider passwords or unsupported submission APIs are used.
+
+Security displays current/other active sessions and expiration only; no device/last-activity data is invented. Sign out other sessions uses the actual PostgreSQL store. Privacy export excludes authentication material. Deletion requires typed confirmation, acknowledgement and current password; database deletion/cascades and session revocation occur server-side. See [API and retention details](account-settings-api.md).
+
+## Migrations and verification
+
+Versioned additive migrations `005_practice_progress.sql` and `006_account_settings.sql` were applied to the configured Supabase database. For another environment, run `npm run migrate` with its backend environment configured; existing rows are preserved. The migration runner now uses one checked-out client and transactional advisory locks. No new settings environment variable is required.
+
+Run `npm run build` before `npm test`, because SEO tests inspect the generated static HTML. The backend integration check is `cd backend && node src/check-learning-integration.js`. It creates its own uniquely named schema inside one transaction, uses synthetic accounts, tests the feature migrations twice, settings/practice persistence and two-user isolation, exports, session revocation and deletion cascades, then rolls everything back. Existing account records are never test fixtures. This check passed against the configured PostgreSQL connection; it does not verify deployed Render/Vercel settings or a production end-to-end browser session.
+
+Deploy the backend and frontend together after migration. Verify a real account can save preferences, refresh/sign in again, reopen every settings route, export its data and revoke another test session. Test permanent deletion only with an explicitly disposable account. This implementation has not deleted any real account. Database backups, provider logs and downloaded exports follow operator/user retention policies and cannot be erased by the live-table deletion transaction.
