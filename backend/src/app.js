@@ -38,7 +38,7 @@ app.use(session({
   saveUninitialized: false,
   rolling: true,
   store: new PgSession({ pool, tableName: 'sessions', createTableIfMissing: true, pruneSessionInterval: 900 }),
-  cookie: { httpOnly: true, secure: isProduction, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 24 * 30 }
+  cookie: { httpOnly: true, secure: isProduction || process.env.COOKIE_SECURE === 'true', sameSite: isProduction ? (process.env.COOKIE_SAME_SITE || 'none') : 'lax', maxAge: 1000 * 60 * 60 * 24 * 30 }
 }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
@@ -105,7 +105,7 @@ app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) 
   } catch (error) { next(error); }
 });
 
-app.post('/api/auth/logout', csrfProtection, async (req, res, next) => {
+app.post('/api/auth/logout', requireAuth, csrfProtection, async (req, res, next) => {
   req.session.destroy((error) => error ? next(error) : res.clearCookie('dsa.sid').json({ ok: true }));
 });
 
@@ -131,6 +131,13 @@ app.patch('/api/users/me', requireAuth, csrfProtection, async (req, res, next) =
 app.get('/api/curriculum/preview', (_req, res) => res.json({ weeks: 16, tracks: curriculumPreview }));
 app.get('/api/curriculum', requireAuth, (_req, res) => res.json({ weeks: weekCatalog }));
 app.get('/api/curriculum/:weekNumber', requireAuth, (req, res) => {
+  const weekNumber = Number(req.params.weekNumber);
+  if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 16) return res.status(404).json({ error: 'Module not found.' });
+  const lesson = getLesson(weekNumber);
+  return lesson ? res.json(lesson) : res.status(404).json({ error: 'Module not found.' });
+});
+app.get('/api/roadmap', requireAuth, (_req, res) => res.json({ weeks: weekCatalog }));
+app.get('/api/weeks/:weekNumber', requireAuth, (req, res) => {
   const weekNumber = Number(req.params.weekNumber);
   if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 16) return res.status(404).json({ error: 'Module not found.' });
   const lesson = getLesson(weekNumber);
@@ -191,6 +198,25 @@ app.put('/api/progress', requireAuth, csrfProtection, async (req, res, next) => 
   } catch (error) { next(error); }
 });
 
+app.patch('/api/progress/lessons/:lessonId', requireAuth, csrfProtection, async (req, res, next) => {
+  const lessonId = z.string().min(1).max(120).safeParse(req.params.lessonId);
+  const completed = z.boolean().default(true).safeParse(req.body?.completed ?? true);
+  if (!lessonId.success || !completed.success) return res.status(400).json({ error: 'Invalid lesson progress payload.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('INSERT INTO lesson_progress (user_id, lesson_id, status, completed_at) VALUES ($1, $2, $3, CASE WHEN $3 = \'completed\' THEN now() ELSE NULL END) ON CONFLICT (user_id, lesson_id) DO UPDATE SET status = EXCLUDED.status, completed_at = EXCLUDED.completed_at, updated_at = now()', [req.session.userId, lessonId.data, completed.data ? 'completed' : 'started']);
+    const weekMatch = lessonId.data.match(/^w(\d+)-/);
+    if (weekMatch) {
+      const week = Number(weekMatch[1]);
+      const count = await client.query('SELECT count(*)::int AS count FROM lesson_progress WHERE user_id = $1 AND lesson_id LIKE $2 AND status = \'completed\'', [req.session.userId, `w${week}-%`]);
+      await client.query('UPDATE user_progress SET completed_lesson_count = $1, completion_status = CASE WHEN $1 >= total_lesson_count AND total_lesson_count > 0 THEN \'completed\' ELSE \'started\' END, updated_at = now() WHERE user_id = $2 AND week_number = $3', [count.rows[0].count, req.session.userId, week]);
+    }
+    await client.query('COMMIT');
+    res.json({ lessonId: lessonId.data, completed: completed.data });
+  } catch (error) { await client.query('ROLLBACK'); next(error); } finally { client.release(); }
+});
+
 app.get('/api/journal', requireAuth, async (req, res, next) => {
   try { const result = await pool.query('SELECT id, week_id AS "weekId", entry, mood, created_at AS "createdAt" FROM solution_journals WHERE user_id = $1 ORDER BY created_at DESC', [req.session.userId]); res.json(result.rows); } catch (error) { next(error); }
 });
@@ -201,6 +227,7 @@ app.post('/api/journal', requireAuth, csrfProtection, async (req, res, next) => 
   try { const result = await pool.query('INSERT INTO solution_journals (user_id, week_id, entry, mood) VALUES ($1, $2, $3, $4) RETURNING id, week_id AS "weekId", entry, mood, created_at AS "createdAt"', [req.session.userId, parsed.data.weekId, parsed.data.entry, parsed.data.mood || null]); res.status(201).json(result.rows[0]); } catch (error) { next(error); }
 });
 
+app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
 app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ error: 'The server could not complete the request.' }); });
 
-app.listen(port, () => console.log(`DSA Grind API listening on port ${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`DSA Grind API listening on port ${port}`));

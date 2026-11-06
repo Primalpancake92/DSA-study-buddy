@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: dsa-study-buddy-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: FRONTEND_ORIGIN
+        value: https://dsa-study-buddy.vercel.app
+      - key: DATABASE_SSL
+        value: true
+      - key: PGSSL_REJECT_UNAUTHORIZED
+        value: true
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: COOKIE_SECURE
+        value: true
+      - key: PASSWORD_RESET_BASE_URL
+        value: https://dsa-study-buddy.vercel.app/reset-password
