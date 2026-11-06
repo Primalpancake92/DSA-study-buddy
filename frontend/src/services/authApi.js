@@ -35,6 +35,8 @@ export const authApi = {
   logout: () => apiRequest('/api/auth/logout', { method: 'POST' }),
   forgotPassword: (email) => apiRequest('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (data) => apiRequest('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+  verifyEmail: (token) => apiRequest('/api/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) }),
+  resendVerification: (email) => apiRequest('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
   profile: () => apiRequest('/api/users/me'),
   updateProfile: (data) => apiRequest('/api/users/me', { method: 'PATCH', body: JSON.stringify(data) })
 };

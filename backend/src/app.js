@@ -10,6 +10,7 @@ import session from 'express-session';
 import helmet from 'helmet';
 import { z } from 'zod';
 import { createDatabasePool, logDatabaseError } from './database.js';
+import { createVerificationToken, sendVerificationEmail, validateEmailAddress } from './emailService.js';
 import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { getLesson, weekCatalog } from '../../shared/curriculum.js';
 
@@ -41,6 +42,7 @@ app.use(session({
 }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
+const verificationLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: 'draft-7', legacyHeaders: false });
 const csrfToken = (req) => {
   if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex');
   return req.session.csrfToken;
@@ -50,7 +52,15 @@ const csrfProtection = (req, res, next) => {
   if (!req.session.csrfToken || req.get('X-CSRF-Token') !== req.session.csrfToken) return res.status(403).json({ error: 'Invalid request token.' });
   next();
 };
-const requireAuth = (req, res, next) => req.session.userId ? next() : res.status(401).json({ error: 'Authentication required.' });
+const requireAuth = async (req, res, next) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Authentication required.' });
+  try {
+    const result = await pool.query('SELECT account_active, email_verified_at FROM users WHERE id = $1', [req.session.userId]);
+    if (!result.rows[0]?.account_active) return res.status(401).json({ error: 'Authentication required.' });
+    if (!result.rows[0].email_verified_at) return errorResponse(res, 403, 'EMAIL_NOT_VERIFIED', 'Please verify your email address before accessing this feature.');
+    next();
+  } catch (error) { next(error); }
+};
 const userShape = z.object({ id: z.string(), firstName: z.string(), lastName: z.string(), username: z.string(), email: z.string() });
 const registerSchema = z.object({ firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/), email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()), password: z.string().min(12).max(128), confirmPassword: z.string() }).refine((value) => value.password === value.confirmPassword, { path: ['confirmPassword'], message: 'Passwords do not match.' });
 const loginSchema = z.object({ email: z.string().trim().email().transform((value) => value.toLowerCase()), password: z.string().min(1).max(128) });
@@ -60,6 +70,7 @@ function publicUser(row) { return { id: row.id, firstName: row.first_name, lastN
 function regenerate(req) { return new Promise((resolve, reject) => req.session.regenerate((error) => error ? reject(error) : resolve())); }
 function saveSession(req) { return new Promise((resolve, reject) => req.session.save((error) => error ? reject(error) : resolve())); }
 function hashToken(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
+function errorResponse(res, status, code, message, fields) { return res.status(status).json({ error: { code, message }, ...(fields ? { fields } : {}) }); }
 
 app.get('/', (_req, res) => res.json({ service: 'dsa-grind-api', status: 'running', health: '/api/health' }));
 app.get('/api/health', async (_req, res) => { try { await pool.query('SELECT 1'); res.json({ ok: true, service: 'dsa-grind-api', database: 'connected' }); } catch (error) { logDatabaseError(error, 'health-check'); res.status(503).json({ ok: false, service: 'dsa-grind-api', database: 'unavailable' }); } });
@@ -67,35 +78,42 @@ app.get('/api/auth/csrf', (req, res) => res.json({ csrfToken: csrfToken(req) }))
 
 app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, next) => {
   const parsed = registerSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Check the highlighted fields.', fields: parsed.error.flatten().fieldErrors });
-  const { firstName, lastName, username, email, password } = parsed.data;
+  if (!parsed.success) return errorResponse(res, 400, 'INVALID_REGISTRATION', 'Check the highlighted fields.', parsed.error.flatten().fieldErrors);
+  let emailValidation;
+  try { emailValidation = await validateEmailAddress(parsed.data.email); } catch (error) { if (error.code === 'EMAIL_DNS_TEMPORARY') return errorResponse(res, 503, error.code, error.message); return next(error); }
+  if (!emailValidation.ok) return errorResponse(res, 400, emailValidation.code, emailValidation.message, { email: [emailValidation.message] });
+  const { firstName, lastName, username, password } = parsed.data;
+  const email = emailValidation.email;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     const result = await client.query('INSERT INTO users (first_name, last_name, username, email, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, last_name, username, email', [firstName, lastName, username, email, passwordHash]);
     await client.query('INSERT INTO user_progress (user_id, week_number, total_lesson_count) SELECT $1, weeks.week_number, 3 FROM generate_series(1, 16) AS weeks(week_number)', [result.rows[0].id]);
+    const { rawToken, tokenHash } = createVerificationToken();
+    const ttlMinutes = Math.max(30, Math.min(120, Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60)));
+    await client.query('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, now() + ($3 * interval \'1 minute\'))', [result.rows[0].id, tokenHash, ttlMinutes]);
+    await client.query('UPDATE users SET email_verification_sent_at = now() WHERE id = $1', [result.rows[0].id]);
+    await sendVerificationEmail({ email, firstName, rawToken });
     await client.query('COMMIT');
-    await regenerate(req);
-    req.session.userId = result.rows[0].id;
-    csrfToken(req);
-    await saveSession(req);
-    res.status(201).json({ user: publicUser(result.rows[0]) });
+    res.status(202).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Check your inbox to verify your email before signing in.', email });
   } catch (error) {
     await client.query('ROLLBACK');
-    if (error.code === '23505') return res.status(409).json({ error: 'An account with those details already exists.' });
+    if (error.code === '23505') return errorResponse(res, 409, 'ACCOUNT_ALREADY_EXISTS', 'An account with those details already exists.');
+    if (error.code === 'EMAIL_DELIVERY_FAILED' || error.message === 'Email provider is not configured.') return errorResponse(res, 503, 'EMAIL_DELIVERY_FAILED', 'We could not send the verification email. Please try again shortly.');
     next(error);
   } finally { client.release(); }
 });
 
 app.post('/api/auth/login', authLimiter, csrfProtection, async (req, res, next) => {
   const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Enter a valid email and password.' });
+  if (!parsed.success) return errorResponse(res, 400, 'INVALID_CREDENTIALS', 'Enter a valid email and password.');
   try {
-    const result = await pool.query('SELECT id, first_name, last_name, username, email, password_hash, account_active FROM users WHERE email = $1', [parsed.data.email]);
+    const result = await pool.query('SELECT id, first_name, last_name, username, email, password_hash, account_active, email_verified_at FROM users WHERE email = $1', [parsed.data.email]);
     const user = result.rows[0];
     const valid = user?.account_active ? await argon2.verify(user.password_hash, parsed.data.password) : false;
-    if (!valid) return res.status(401).json({ error: 'Invalid email or password.' });
+    if (!valid) return errorResponse(res, 401, 'INVALID_CREDENTIALS', 'Invalid email or password.');
+    if (!user.email_verified_at) return errorResponse(res, 403, 'EMAIL_NOT_VERIFIED', 'Please verify your email address before signing in.');
     await regenerate(req);
     req.session.userId = user.id;
     csrfToken(req);
@@ -142,6 +160,47 @@ app.get('/api/weeks/:weekNumber', requireAuth, (req, res) => {
   if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 16) return res.status(404).json({ error: 'Module not found.' });
   const lesson = getLesson(weekNumber);
   return lesson ? res.json(lesson) : res.status(404).json({ error: 'Module not found.' });
+});
+
+app.post('/api/auth/verify-email', authLimiter, csrfProtection, async (req, res, next) => {
+  const parsed = z.object({ token: z.string().min(32).max(128) }).safeParse(req.body);
+  if (!parsed.success) return errorResponse(res, 400, 'INVALID_VERIFICATION_TOKEN', 'This verification link is invalid or expired.');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query('SELECT token.id, token.user_id, users.email_verified_at FROM email_verification_tokens AS token JOIN users ON users.id = token.user_id WHERE token.token_hash = $1 AND token.expires_at > now() AND token.consumed_at IS NULL FOR UPDATE', [hashToken(parsed.data.token)]);
+    if (!result.rows[0]) { await client.query('ROLLBACK'); return errorResponse(res, 400, 'INVALID_VERIFICATION_TOKEN', 'This verification link is invalid or expired.'); }
+    if (result.rows[0].email_verified_at) { await client.query('ROLLBACK'); return errorResponse(res, 409, 'EMAIL_ALREADY_VERIFIED', 'This email address has already been verified.'); }
+    await client.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [result.rows[0].user_id]);
+    await client.query('UPDATE email_verification_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL', [result.rows[0].user_id]);
+    await client.query('COMMIT');
+    res.json({ code: 'EMAIL_VERIFIED', message: 'Your email has been verified. You can now sign in.' });
+  } catch (error) { await client.query('ROLLBACK'); next(error); } finally { client.release(); }
+});
+
+app.post('/api/auth/resend-verification', verificationLimiter, csrfProtection, async (req, res, next) => {
+  const emailParsed = z.string().trim().email().safeParse(req.body?.email);
+  const generic = { code: 'VERIFICATION_EMAIL_REQUESTED', message: 'If that account is awaiting verification, a new email will be sent.' };
+  if (!emailParsed.success) return res.status(202).json(generic);
+  try {
+    const result = await pool.query('SELECT id, first_name, email, email_verified_at, email_verification_sent_at FROM users WHERE email = $1 AND account_active = true', [emailParsed.data.toLowerCase()]);
+    const user = result.rows[0];
+    if (!user || user.email_verified_at) return res.status(202).json(generic);
+    if (user.email_verification_sent_at && Date.now() - new Date(user.email_verification_sent_at).getTime() < 60000) return res.status(202).json(generic);
+    const { rawToken, tokenHash } = createVerificationToken();
+    const ttlMinutes = Math.max(30, Math.min(120, Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES || 60)));
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('UPDATE email_verification_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL', [user.id]);
+      await client.query('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, now() + ($3 * interval \'1 minute\'))', [user.id, tokenHash, ttlMinutes]);
+      await client.query('UPDATE users SET email_verification_sent_at = now() WHERE id = $1', [user.id]);
+      await sendVerificationEmail({ email: user.email, firstName: user.first_name, rawToken });
+      await client.query('COMMIT');
+    } catch (error) { await client.query('ROLLBACK'); client.release(); if (error.code === 'EMAIL_DELIVERY_FAILED' || error.message === 'Email provider is not configured.') return errorResponse(res, 503, 'EMAIL_DELIVERY_FAILED', 'We could not send the verification email. Please try again shortly.'); throw error; }
+    client.release();
+    res.status(202).json(generic);
+  } catch (error) { next(error); }
 });
 
 app.post('/api/auth/forgot-password', authLimiter, csrfProtection, async (req, res, next) => {

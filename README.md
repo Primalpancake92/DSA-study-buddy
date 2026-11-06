@@ -33,6 +33,10 @@ For Vercel, define `VITE_API_BASE_URL=https://dsa-study-buddy.onrender.com` for 
 
 For Supabase Session Pooler TLS, keep verification enabled. The repository includes the inspected public Supabase Root 2021 CA at `backend/certs/supabase-root-2021-ca.pem`; when Render uses `backend/` as its root directory, set `DATABASE_CA_CERT_PATH=certs/supabase-root-2021-ca.pem`. Alternatively inject the verified PEM through `DATABASE_CA_CERT` with escaped `\\n` line breaks. Do not set `PGSSL_REJECT_UNAUTHORIZED=false` or `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 
+### Email verification
+
+New accounts are created unverified. Registration validates syntax with `validator`, checks MX/A/AAAA mail capability with a bounded DNS lookup, stores only a hash of the verification token, and does not create a fully authenticated session until verification succeeds. In development, `EMAIL_PROVIDER=development` queues a non-sending transport; in production configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`, and a verified sender domain with SPF, DKIM and DMARC. The frontend routes are `/check-your-email` and `/verify-email`.
+
 ### Supabase, Railway and Vercel deployment
 
 1. In Supabase, open **Connect → Session pooler** and copy the PostgreSQL URI. Do not use the Supabase HTTPS project URL as `DATABASE_URL`.

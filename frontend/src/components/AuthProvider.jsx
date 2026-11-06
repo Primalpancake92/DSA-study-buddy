@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     user,
     loading,
-    register: async (data) => { const result = await authApi.register(data); setUser(result.user); return result.user; },
+    register: async (data) => authApi.register(data),
     login: async (data) => { const result = await authApi.login(data); setUser(result.user); return result.user; },
     logout: async () => { await authApi.logout(); setUser(null); }
   }), [user, loading]);
