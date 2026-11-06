@@ -6,7 +6,11 @@
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "server": "node backend/src/app.js",
+    "migrate": "npm --prefix backend run migrate",
     "test": "node --test tests/*.test.js",
     "import:curriculum": "node scripts/import-curriculum.js"
+  },
+  "dependencies": {
+    "@supabase/server": "^1.9.2"
   }
 }

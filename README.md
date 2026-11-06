@@ -15,6 +15,29 @@ npm run dev
 
 The frontend is served on port 5173. The Express API is started with `npm run server`.
 
+## Authentication and PostgreSQL
+
+Authentication uses PostgreSQL-backed sessions, Argon2id password hashes, CSRF tokens, and secure HttpOnly cookies. Configure the backend before starting it:
+
+```bash
+cp backend/.env.example backend/.env
+# Set DATABASE_URL and a random SESSION_SECRET in backend/.env
+npm install --prefix backend
+npm run migrate
+npm run server
+```
+
+Set `VITE_API_BASE_URL` when the frontend and API are hosted on different origins. Never commit `.env` files or production credentials.
+
+### Supabase, Railway and Vercel deployment
+
+1. In Supabase, open **Connect → Session pooler** and copy the PostgreSQL URI. Do not use the Supabase HTTPS project URL as `DATABASE_URL`.
+2. Set `DATABASE_URL`, `SESSION_SECRET`, `FRONTEND_ORIGIN`, `DATABASE_SSL=true`, and `PGSSL_REJECT_UNAUTHORIZED=true` in Railway. Keep `DATABASE_URL` and `SESSION_SECRET` out of Vercel variables.
+3. Run the migrations against the Supabase database from a trusted environment with `npm run migrate`.
+4. Deploy the backend using [railway.toml](./railway.toml), then set `VITE_API_BASE_URL` to the Railway API URL in Vercel.
+5. Deploy `frontend/` as the Vercel project root. [frontend/vercel.json](./frontend/vercel.json) keeps React Router refreshes working.
+6. Verify `/api/health`, registration, login, logout, protected curriculum access and progress restoration. Configure database backups and Railway logs before production use.
+
 ## Architecture blueprint
 
 See [`docs/implementation-blueprint.md`](./docs/implementation-blueprint.md). The application keeps source curriculum, parsed content, UI state, persistence, and future isolated code execution as separate seams.
