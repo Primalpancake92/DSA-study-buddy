@@ -10,6 +10,7 @@ const emptyProgress = () => ({
     reloading: false,
     sessionExpired: false,
     pendingId: null,
+    failedSave: null,
     error: ''
 });
 let progressCache = emptyProgress();
@@ -34,6 +35,12 @@ export function progressErrorMessage(error, operation = 'save') {
     }
     if (error.code === 'UNKNOWN_LESSON') {
         return 'This lesson has changed or is unavailable. Reload the module and try again.';
+    }
+    if (error.code === 'PROGRESS_SCHEMA_OUTDATED') {
+        return 'Progress storage needs a server update. Please contact support and try again later.';
+    }
+    if (error.status === 400) {
+        return 'This progress update was not valid. Reload the module and try again.';
     }
     return operation === 'load'
         ? 'Your saved progress could not be loaded. Please try again.'
@@ -61,7 +68,7 @@ export function readProgress() {
     return progressCache;
 }
 
-async function finishCheckpointSave(save, generation, id, completed) {
+async function finishCheckpointSave(save, generation, id, completed, startedOnly = false) {
     try {
         const remote = await save;
         if (generation !== cacheGeneration) return;
@@ -77,6 +84,7 @@ async function finishCheckpointSave(save, generation, id, completed) {
             ...(authoritative ? savedSnapshot(remote) : { completedCheckpoints, startedLessons }),
             saving: false,
             pendingId: null,
+            failedSave: null,
             sessionExpired: false,
             error: ''
         };
@@ -90,6 +98,7 @@ async function finishCheckpointSave(save, generation, id, completed) {
             ...progressCache,
             saving: false,
             pendingId: null,
+            failedSave: { id, completed, startedOnly },
             reloading: false,
             ready: sessionFailure(error) ? false : progressCache.ready,
             sessionExpired: sessionFailure(error),
@@ -112,6 +121,15 @@ export function completeLesson(id) {
 
 export function reopenLesson(id) {
     return saveCheckpoint(id, false);
+}
+
+export function retryProgressSave() {
+    const failed = progressCache.failedSave;
+    if (!failed || progressCache.saving || progressCache.reloading || progressCache.sessionExpired)
+        return;
+    return failed.startedOnly
+        ? markLessonStarted(failed.id)
+        : saveCheckpoint(failed.id, failed.completed);
 }
 
 function saveCheckpoint(id, completed) {
@@ -200,5 +218,5 @@ export async function markLessonStarted(id) {
         method: 'PATCH',
         body: JSON.stringify({ completed: false, startedOnly: true })
     });
-    await finishCheckpointSave(save, generation, id, false);
+    await finishCheckpointSave(save, generation, id, false, true);
 }

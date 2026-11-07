@@ -5,9 +5,10 @@
     "scripts": {
         "dev": "npm --prefix frontend run dev",
         "build": "npm --prefix frontend run build",
-        "server": "node backend/src/app.js",
+        "server": "npm --prefix backend start",
         "migrate": "npm --prefix backend run migrate",
         "test:vercel": "node scripts/vercel-deployment-e2e.mjs",
+        "test:progress:database": "node --test tests/progress-database.integration.mjs",
         "test": "node --test tests/*.test.js",
         "import:curriculum": "node scripts/import-curriculum.js"
     },

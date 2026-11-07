@@ -3,6 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "prestart": "npm run migrate",
         "start": "node src/app.js",
         "migrate": "node src/migrate.js"
     },

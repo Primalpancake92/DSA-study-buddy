@@ -68,6 +68,9 @@ export function logDatabaseError(error, context) {
             context,
             category,
             code: error.code,
+            constraint: /^[a-z_]{1,80}$/.test(error.constraint || '')
+                ? error.constraint
+                : undefined,
             name: error.name,
             errno: error.errno,
             syscall: error.syscall,

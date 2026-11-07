@@ -13,6 +13,7 @@ import {
     readProgress,
     subscribeToProgress,
     markLessonStarted,
+    retryProgressSave,
     toggleCheckpoint
 } from '../services/progressStore.js';
 import { completeLesson, reopenLesson } from '../services/progressStore.js';
@@ -234,6 +235,15 @@ export function LessonPage() {
                 {progress.error && (
                     <div className="form-error" role="alert">
                         {progress.error}{' '}
+                        {progress.failedSave && !progress.sessionExpired && (
+                            <button
+                                type="button"
+                                disabled={progress.saving || progress.reloading}
+                                onClick={() => retryProgressSave()}
+                            >
+                                Retry save
+                            </button>
+                        )}
                         <button
                             type="button"
                             disabled={progress.saving || progress.reloading}

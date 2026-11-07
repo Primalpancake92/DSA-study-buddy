@@ -10,6 +10,7 @@ import {
     markLessonStarted,
     subscribeToProgress
 } from './progressStore.js';
+import { retryProgressSave, progressErrorMessage } from './progressStore.js';
 
 vi.mock('./authApi.js', () => ({ apiRequest: vi.fn() }));
 const deferred = () => {
@@ -33,6 +34,37 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('persisted lesson checkpoints', () => {
+    it('retries the exact failed Arrays section without false completion or losing saved lessons', async () => {
+        const savedId = 'w17-section-chapter-introduction';
+        const failedId = 'w17-section-array-indexing-and-accessing-elements';
+        apiRequest.mockResolvedValueOnce({ completedWeeks: [], completedCheckpoints: [savedId] });
+        await loadProgressFromApi();
+        apiRequest.mockRejectedValueOnce(
+            Object.assign(new Error('outdated'), { code: 'PROGRESS_SCHEMA_OUTDATED', status: 503 })
+        );
+        completeLesson(failedId);
+        await settle();
+        expect(readProgress().completedCheckpoints).toEqual([savedId]);
+        expect(readProgress().error).toContain('server update');
+        expect(readProgress().failedSave).toMatchObject({ id: failedId, completed: true });
+        const pending = deferred();
+        apiRequest.mockReturnValueOnce(pending.promise);
+        retryProgressSave();
+        retryProgressSave();
+        expect(apiRequest).toHaveBeenCalledTimes(3);
+        expect(readProgress().completedCheckpoints).toEqual([savedId]);
+        pending.resolve({ completedWeeks: [], completedCheckpoints: [savedId, failedId] });
+        await settle();
+        expect(readProgress().completedCheckpoints).toEqual([savedId, failedId]);
+        expect(readProgress().failedSave).toBeNull();
+        expect(readProgress().error).toBe('');
+    });
+
+    it('explains invalid updates separately from connection or authentication errors', () => {
+        expect(progressErrorMessage({ status: 400 })).toContain('not valid');
+        expect(progressErrorMessage({ status: 401 })).toContain('session has expired');
+        expect(progressErrorMessage({ code: 'NETWORK_ERROR' })).toContain('connect');
+    });
     it('reopens a lesson only after saving and preserves other completed lessons', async () => {
         apiRequest.mockResolvedValueOnce({
             completedWeeks: [1],

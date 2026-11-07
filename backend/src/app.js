@@ -20,6 +20,7 @@ import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { weekCatalog, moduleIds, isModuleId } from '../../shared/curriculum.js';
 import { loadLesson } from './markdownLesson.js';
 import { getSavedProgress, saveLessonProgress } from './progressService.js';
+import { progressFailure } from './progressErrors.js';
 import { recoveryEmailError } from '../../shared/recoveryEmail.js';
 import { createPracticeRouter } from './practiceRoutes.js';
 import { createSettingsRouter } from './settingsRoutes.js';
@@ -780,33 +781,8 @@ app.post('/api/auth/reset-password', authLimiter, csrfProtection, async (req, re
 
 function respondToProgressError(error, res, operation) {
     logDatabaseError(error, operation);
-    if (error.status && ['UNKNOWN_LESSON', 'AUTH_REQUIRED'].includes(error.code)) {
-        return errorResponse(res, error.status, error.code, error.message);
-    }
-    const unavailable = [
-        '42P01',
-        '42703',
-        '23514',
-        'ENOENT',
-        'ETIMEDOUT',
-        'ECONNREFUSED',
-        'ENOTFOUND',
-        'EAI_AGAIN',
-        '57P01'
-    ].includes(error.code);
-    const loading = operation === 'checkpoint-load';
-    return errorResponse(
-        res,
-        unavailable ? 503 : 500,
-        unavailable
-            ? 'PROGRESS_UNAVAILABLE'
-            : loading
-              ? 'PROGRESS_LOAD_FAILED'
-              : 'PROGRESS_SAVE_FAILED',
-        loading
-            ? 'Your saved progress could not be loaded. Please try again shortly.'
-            : 'Your progress could not be saved. Please try again shortly.'
-    );
+    const { status, code, message } = progressFailure(error, operation === 'checkpoint-load');
+    return errorResponse(res, status, code, message);
 }
 
 app.get('/api/progress', requireAuth, async (req, res) => {
