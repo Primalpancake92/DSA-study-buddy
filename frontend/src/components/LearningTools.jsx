@@ -1,26 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { MessageCircle, NotebookPen, X } from 'lucide-react';
 import { SectionNotes } from './SectionNotes.jsx';
 import { TutorAssistant } from './TutorAssistant.jsx';
 
 export function LearningTools({ lesson, section }) {
-    const [tab, setTab] = useState('tutor');
-    const [visible, setVisible] = useState(false);
+    const [tab, setTab] = useState('notes');
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const [showNotesIcon, setShowNotesIcon] = useState(false);
     const [compact, setCompact] = useState(true);
 
+    const visible = !compact || drawerOpen;
     const panel = useRef(null);
     const trigger = useRef(null);
     const sectionId = lesson.lessons?.find((item) => item.sectionId === section.id)?.id ||
         `w${lesson.id}-section-${section.id}`;
     const close = () => {
-        setVisible(false);
+        setDrawerOpen(false);
         trigger.current?.focus();
     };
 
     useEffect(() => {
-        const media = window.matchMedia('(max-width: 767px)');
+        const media = window.matchMedia('(max-width: 1279px)');
         const update = () => setCompact(media.matches);
         update();
         media.addEventListener('change', update);
@@ -69,9 +69,10 @@ export function LearningTools({ lesson, section }) {
         };
     }, [compact, visible]);
 
-    const content = (
+    return (
         <aside className="learning-tools">
             <button
+                hidden={!compact}
                 ref={trigger}
                 className="tutor-launcher learning-tools-trigger"
                 type="button"
@@ -79,7 +80,7 @@ export function LearningTools({ lesson, section }) {
                 aria-controls="learning-tools-panel"
                 aria-label={visible ? 'Close notes and AI tutor' : 'Open notes and AI tutor'}
                 title="My Notes & AI Tutor"
-                onClick={() => visible ? close() : setVisible(true)}
+                onClick={() => visible ? close() : setDrawerOpen(true)}
             >
                 {visible ? <X size={24} aria-hidden="true" /> : showNotesIcon
                     ? <NotebookPen size={26} aria-hidden="true" />
@@ -100,7 +101,7 @@ export function LearningTools({ lesson, section }) {
                         <button type="button" aria-pressed={tab === 'notes'} onClick={() => setTab('notes')}>My Notes</button>
                         <button type="button" aria-pressed={tab === 'tutor'} onClick={() => setTab('tutor')}>AI Tutor</button>
                     </div>
-                    <button type="button" aria-label="Close learning tools" onClick={close}>×</button>
+                    <button hidden={!compact} type="button" aria-label="Close learning tools" onClick={close}>×</button>
                 </div>
                 <div className="learning-notes-content" hidden={tab !== 'notes'}>
                     <SectionNotes
@@ -118,5 +119,4 @@ export function LearningTools({ lesson, section }) {
             </dialog>
         </aside>
     );
-    return typeof document === 'undefined' ? content : createPortal(content, document.body);
 }

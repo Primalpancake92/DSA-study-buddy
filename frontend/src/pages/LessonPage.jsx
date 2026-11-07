@@ -18,6 +18,7 @@ import {
 } from '../services/progressStore.js';
 import { completeLesson, reopenLesson } from '../services/progressStore.js';
 import { moduleProgress } from '../hooks/useLearningData.js';
+import { ModuleNavigation } from '../components/ModuleNavigation.jsx';
 import { LearningTools } from '../components/LearningTools.jsx';
 import '../styles/learning-workspace.css';
 
@@ -186,7 +187,7 @@ export function LessonPage() {
     return (
         <div className="learning-shell">
             <div className="lesson-layout learning-layout">
-                <aside className="lesson-sidebar">
+                <ModuleNavigation>
                     <Link className="back-link" to="/app/roadmap">
                         ← Roadmap
                     </Link>
@@ -218,7 +219,7 @@ export function LessonPage() {
                             </a>
                         ))}
                     </nav>
-                </aside>
+                </ModuleNavigation>
                 <main className="lesson-main">
                     <div className="eyebrow">
                         MODULE {String(lesson.sequence).padStart(2, '0')} · SELF-PACED
