@@ -1,4 +1,45 @@
 import { Link } from 'react-router-dom';
 import { curriculumPreview } from '../../../shared/curriculumPreview.js';
 
-export function CurriculumPreviewPage() { return <div className="page curriculum-preview-page"><div className="eyebrow">PUBLIC CURRICULUM PREVIEW</div><h1>See the roadmap.<br /><span>Keep the reps yours.</span></h1><p className="lede">Visitors can explore the shape of the programme. Create a free account to unlock the complete weekly syllabus, lessons, exercises and visualisations.</p><div className="preview-roadmap">{curriculumPreview.map((track) => <article className="preview-track" key={track.label}><span>{track.label}</span><h2>{track.title}</h2><div className="preview-topic-list">{track.topics.map((topic) => <span key={topic}>⌁ {topic}</span>)}</div><span className="locked-label">ACCOUNT REQUIRED</span></article>)}</div><div className="unlock-panel"><strong>Unlock the complete 16-week roadmap</strong><p>Create your free account to start Week 01 and save your learning progress.</p><div><Link className="button primary" to="/register">Create Free Account</Link><Link className="text-link" to="/login">Already have an account? Log in</Link></div></div></div>; }
+export function CurriculumPreviewPage() {
+    return (
+        <div className="page curriculum-preview-page">
+            <div className="eyebrow">PUBLIC CURRICULUM PREVIEW</div>
+            <h1>
+                See the roadmap.
+                <br />
+                <span>Keep the reps yours.</span>
+            </h1>
+            <p className="lede">
+                Visitors can explore the shape of the programme. Create a free account to unlock the
+                complete weekly syllabus, lessons, exercises and visualisations.
+            </p>
+            <div className="preview-roadmap">
+                {curriculumPreview.map((track) => (
+                    <article className="preview-track" key={track.label}>
+                        <span>{track.label}</span>
+                        <h2>{track.title}</h2>
+                        <div className="preview-topic-list">
+                            {track.topics.map((topic) => (
+                                <span key={topic}>⌁ {topic}</span>
+                            ))}
+                        </div>
+                        <span className="locked-label">ACCOUNT REQUIRED</span>
+                    </article>
+                ))}
+            </div>
+            <div className="unlock-panel">
+                <strong>Unlock the complete 16-week roadmap</strong>
+                <p>Create your free account to start Week 01 and save your learning progress.</p>
+                <div>
+                    <Link className="button primary" to="/register">
+                        Create Free Account
+                    </Link>
+                    <Link className="text-link" to="/login">
+                        Already have an account? Log in
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+}

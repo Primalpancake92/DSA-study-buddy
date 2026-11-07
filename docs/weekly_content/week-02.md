@@ -19,7 +19,7 @@ There will be a checklist at the end of the module to complete your progress log
 
 ## Prerequisite Knowledge
 
-Review [Week 1](week-01.md) if array references, loop invariants, or auxiliary space still feel uncertain. We will rely on the idea that a variable can hold an object reference and that two different objects can contain identical fields. We also use destructuring in `for (const [key, value] of map)`; each iteration supplies one key/value pair.
+Review [Algorithm Complexity](week-01.md) for auxiliary space and [Arrays](week-17.md) for references and traversal if those foundations still feel uncertain. We will rely on the idea that a variable can hold an object reference and that two different objects can contain identical fields. We also use destructuring in `for (const [key, value] of map)`; each iteration supplies one key/value pair.
 
 The examples use finite numbers for arithmetic problems. Text examples treat strings as sequences of Unicode code points unless a lowercase ASCII restriction is explicitly stated. Code points are not always human-perceived characters: a visible symbol may consist of several code points. Case, spaces, punctuation, and accent normalization remain significant unless a contract says otherwise.
 

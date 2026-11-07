@@ -1,7 +1,7 @@
 import { apiRequest } from './authApi.js';
 
 export async function getCurriculumPreview() {
-  return apiRequest('/api/curriculum/preview');
+    return apiRequest('/api/curriculum/preview');
 }
 
 export const getProtectedCurriculum = () => apiRequest('/api/curriculum');

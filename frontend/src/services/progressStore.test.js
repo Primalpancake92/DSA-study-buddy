@@ -1,10 +1,27 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { apiRequest } from './authApi.js';
-import { clearProgress, readProgress, loadProgressFromApi, toggleCheckpoint, subscribeToProgress } from './progressStore.js';
+import {
+    clearProgress,
+    readProgress,
+    loadProgressFromApi,
+    toggleCheckpoint,
+    markLessonStarted,
+    subscribeToProgress
+} from './progressStore.js';
 
 vi.mock('./authApi.js', () => ({ apiRequest: vi.fn() }));
-const deferred = () => { let resolve; let reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
-const settle = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
+const deferred = () => {
+    let resolve;
+    let reject;
+    const promise = new Promise((yes, no) => {
+        resolve = yes;
+        reject = no;
+    });
+    return { promise, resolve, reject };
+};
+const settle = async () => {
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+};
 
 beforeEach(() => {
     vi.stubGlobal('window', new EventTarget());
@@ -14,13 +31,50 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('persisted lesson checkpoints', () => {
+    it('persists started sections without completing them and restores them on refresh', async () => {
+        apiRequest.mockResolvedValueOnce({ completedCheckpoints: [], startedLessons: [] });
+        await loadProgressFromApi();
+        apiRequest
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({
+                startedLessons: ['w1-section-core-theory'],
+                completedCheckpoints: []
+            });
+        await markLessonStarted('w1-section-core-theory');
+        await settle();
+        expect(apiRequest).toHaveBeenCalledWith('/api/progress/lessons/w1-section-core-theory', {
+            method: 'PATCH',
+            body: JSON.stringify({ completed: false })
+        });
+        expect(readProgress().startedLessons).toEqual(['w1-section-core-theory']);
+        expect(readProgress().completedCheckpoints).toEqual([]);
+        const calls = apiRequest.mock.calls.length;
+        await markLessonStarted('w1-section-core-theory');
+        expect(apiRequest).toHaveBeenCalledTimes(calls);
+        clearProgress();
+        apiRequest.mockResolvedValueOnce({
+            startedLessons: ['w1-section-core-theory'],
+            completedCheckpoints: []
+        });
+        await loadProgressFromApi();
+        expect(readProgress().startedLessons).toEqual(['w1-section-core-theory']);
+    });
+    it('does not overwrite completed lessons with started progress', async () => {
+        apiRequest.mockResolvedValueOnce({ completedCheckpoints: ['done'], startedLessons: [] });
+        await loadProgressFromApi();
+        const calls = apiRequest.mock.calls.length;
+        await markLessonStarted('done');
+        expect(apiRequest).toHaveBeenCalledTimes(calls);
+    });
     it('refreshes mastery after a save even when an older refresh is still pending', async () => {
         apiRequest.mockResolvedValueOnce({ completedWeeks: [], completedCheckpoints: [] });
         await loadProgressFromApi();
         const stale = deferred();
         apiRequest.mockReturnValueOnce(stale.promise);
         const oldRequest = loadProgressFromApi();
-        apiRequest.mockResolvedValueOnce({}).mockResolvedValueOnce({ completedWeeks: [1], completedCheckpoints: ['w1-0'] });
+        apiRequest
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({ completedWeeks: [1], completedCheckpoints: ['w1-0'] });
         toggleCheckpoint('w1-0');
         await settle();
         expect(readProgress().completedWeeks).toEqual([1]);
@@ -39,14 +93,24 @@ describe('persisted lesson checkpoints', () => {
         expect(second).toBe(first);
         pending.resolve({ completedWeeks: [1], completedCheckpoints: ['w1-0', 'w1-explain'] });
         await Promise.all([first, second]);
-        expect(readProgress()).toMatchObject({ ready: true, completedWeeks: [1], completedCheckpoints: ['w1-0', 'w1-explain'] });
+        expect(readProgress()).toMatchObject({
+            ready: true,
+            completedWeeks: [1],
+            completedCheckpoints: ['w1-0', 'w1-explain']
+        });
     });
 
     it('PATCHes one stable ID, serializes writes and preserves unrelated mastery and chapter IDs', async () => {
-        apiRequest.mockResolvedValueOnce({ completedWeeks: [2], completedCheckpoints: ['w2-0', 'w2-other'] });
+        apiRequest.mockResolvedValueOnce({
+            completedWeeks: [2],
+            completedCheckpoints: ['w2-0', 'w2-other']
+        });
         await loadProgressFromApi();
         const save = deferred();
-        apiRequest.mockReturnValueOnce(save.promise).mockResolvedValueOnce({ completedWeeks: [2], completedCheckpoints: ['w2-0', 'w2-other', 'w1-explain'] });
+        apiRequest.mockReturnValueOnce(save.promise).mockResolvedValueOnce({
+            completedWeeks: [2],
+            completedCheckpoints: ['w2-0', 'w2-other', 'w1-explain']
+        });
         const result = toggleCheckpoint('w1-explain');
         expect(result).toBe(readProgress());
         expect(result).not.toBeInstanceOf(Promise);
@@ -55,13 +119,26 @@ describe('persisted lesson checkpoints', () => {
         expect(readProgress().completedCheckpoints).toEqual(['w2-0', 'w2-other']);
         toggleCheckpoint('w1-second');
         expect(apiRequest).toHaveBeenCalledTimes(2);
-        expect(apiRequest).toHaveBeenLastCalledWith('/api/progress/lessons/w1-explain', { method: 'PATCH', body: JSON.stringify({ completed: true }) });
+        expect(apiRequest).toHaveBeenLastCalledWith('/api/progress/lessons/w1-explain', {
+            method: 'PATCH',
+            body: JSON.stringify({ completed: true })
+        });
         save.resolve({});
         await settle();
-        expect(readProgress()).toMatchObject({ saving: false, completedWeeks: [2], completedCheckpoints: ['w2-0', 'w2-other', 'w1-explain'] });
-        apiRequest.mockResolvedValueOnce({}).mockResolvedValueOnce({ completedWeeks: [2], completedCheckpoints: ['w2-0', 'w2-other'] });
+        expect(readProgress()).toMatchObject({
+            saving: false,
+            completedWeeks: [2],
+            completedCheckpoints: ['w2-0', 'w2-other', 'w1-explain']
+        });
+        apiRequest.mockResolvedValueOnce({}).mockResolvedValueOnce({
+            completedWeeks: [2],
+            completedCheckpoints: ['w2-0', 'w2-other']
+        });
         toggleCheckpoint('w1-explain');
-        expect(apiRequest).toHaveBeenLastCalledWith('/api/progress/lessons/w1-explain', { method: 'PATCH', body: JSON.stringify({ completed: false }) });
+        expect(apiRequest).toHaveBeenLastCalledWith('/api/progress/lessons/w1-explain', {
+            method: 'PATCH',
+            body: JSON.stringify({ completed: false })
+        });
         await settle();
         expect(readProgress().completedCheckpoints).toEqual(['w2-0', 'w2-other']);
     });
@@ -73,13 +150,23 @@ describe('persisted lesson checkpoints', () => {
         expect(readProgress().error).toContain('Offline');
         toggleCheckpoint('w1-explain');
         expect(apiRequest).toHaveBeenCalledTimes(1);
-        apiRequest.mockResolvedValueOnce({ completedWeeks: [], completedCheckpoints: ['w1-saved'] });
+        apiRequest.mockResolvedValueOnce({
+            completedWeeks: [],
+            completedCheckpoints: ['w1-saved']
+        });
         await loadProgressFromApi();
-        expect(readProgress()).toMatchObject({ ready: true, error: '', completedCheckpoints: ['w1-saved'] });
+        expect(readProgress()).toMatchObject({
+            ready: true,
+            error: '',
+            completedCheckpoints: ['w1-saved']
+        });
     });
 
     it('keeps saved progress unchanged on failed writes and surfaces a retryable error', async () => {
-        apiRequest.mockResolvedValueOnce({ completedWeeks: [], completedCheckpoints: ['w1-saved'] });
+        apiRequest.mockResolvedValueOnce({
+            completedWeeks: [],
+            completedCheckpoints: ['w1-saved']
+        });
         await loadProgressFromApi();
         apiRequest.mockRejectedValueOnce(new Error('Save unavailable'));
         toggleCheckpoint('w1-new');
@@ -95,7 +182,11 @@ describe('persisted lesson checkpoints', () => {
         clearProgress();
         old.resolve({ completedWeeks: [16], completedCheckpoints: ['w16-private'] });
         await request;
-        expect(readProgress()).toMatchObject({ ready: false, completedWeeks: [], completedCheckpoints: [] });
+        expect(readProgress()).toMatchObject({
+            ready: false,
+            completedWeeks: [],
+            completedCheckpoints: []
+        });
     });
 
     it('ignores stale write responses after logout and supports listener cleanup', async () => {
@@ -111,7 +202,11 @@ describe('persisted lesson checkpoints', () => {
         const events = listener.mock.calls.length;
         save.resolve({});
         await settle();
-        expect(readProgress()).toMatchObject({ ready: false, saving: false, completedCheckpoints: [] });
+        expect(readProgress()).toMatchObject({
+            ready: false,
+            saving: false,
+            completedCheckpoints: []
+        });
         expect(listener).toHaveBeenCalledTimes(events);
         expect(apiRequest).toHaveBeenCalledTimes(2);
     });

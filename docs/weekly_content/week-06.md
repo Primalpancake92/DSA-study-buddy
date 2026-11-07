@@ -18,7 +18,7 @@ There will be a checklist at the end to help you track your progress. Use it aft
 
 ## Prerequisite Knowledge
 
-Review indexed arrays and logarithmic growth in [Week 1](week-01.md), and the idea of a safe pointer move in [Week 3](week-03.md). You should understand `Math.floor`, comparisons, and a loop that updates two boundaries. Examples assume finite numeric data, sorted in ascending order where stated, and integer arithmetic within JavaScript's safe range. The programs are independent; none relies on an earlier code block.
+Review indexing in [Arrays](week-17.md), logarithmic growth in [Algorithm Complexity](week-01.md), and the idea of a safe pointer move in [Week 3](week-03.md). You should understand `Math.floor`, comparisons, and a loop that updates two boundaries. Examples assume finite numeric data, sorted in ascending order where stated, and integer arithmetic within JavaScript's safe range. The programs are independent; none relies on an earlier code block.
 
 ## Core Theory
 

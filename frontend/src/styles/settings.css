@@ -1,68 +1,335 @@
 /* Settings inherit the shared dark indigo palette and any applied theme. */
-.account-settings-page { max-width:var(--layout-width);padding-inline:var(--layout-gutter);margin-inline:auto; }
-.account-settings-intro { margin-bottom:40px; }
-.account-settings-intro h1 { margin:14px 0 12px;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.045em; }
-.account-settings-intro p { margin:0;color:var(--color-text-muted); }
-.account-settings-layout { display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px;align-items:start; }
-.account-settings-nav { width:240px;display:flex;flex-direction:column;gap:28px; }
-.settings-nav-group h2 { margin:0 12px 10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--color-text-muted);font-weight:600; }
-.settings-nav-group>div { display:flex;flex-direction:column;gap:4px; }
-.settings-nav-link { display:flex;align-items:center;gap:12px;padding:12px;min-height:44px;border:1px solid transparent;border-radius:6px;text-decoration:none;color:var(--color-text-secondary);font-size:.85rem;line-height:1.4; }
-.settings-nav-link svg { flex-shrink:0; }
-.settings-nav-link:hover { color:var(--color-text-primary);background:var(--color-surface); }
-.settings-nav-link.is-active { background:var(--color-surface);border-color:var(--color-border);color:var(--color-primary-hover); }
-.settings-nav-link.is-active { border-inline-start:3px solid var(--color-primary); }
-.settings-dashboard-link { display:inline-block;margin-top:32px; }
-.account-settings-content { min-width:0;max-width:800px; }
-.account-settings-heading { border-bottom:1px solid var(--color-border);padding-bottom:24px;margin-bottom:28px; }
-.account-settings-heading h2 { font-size:1.5rem;letter-spacing:-.025em;margin:0 0 10px; }
-.account-settings-heading p { margin:0;line-height:1.7;font-size:.9rem;color:var(--color-text-muted); }
-.account-settings-content h3 { font-size:1rem;margin:0 0 14px; }
-.account-settings-content p { line-height:1.7;overflow-wrap:anywhere; }
-.account-settings-form { display:block; }
-.account-settings-form fieldset { border:0;padding:0;margin:0;min-width:0; }
-.settings-field-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px; }
-.settings-field { display:flex;flex-direction:column;gap:10px;margin-bottom:24px;color:var(--color-text-secondary);font-size:.85rem;min-width:0; }
-.settings-field input,.settings-field select { width:100%;min-width:0;min-height:44px;border:1px solid var(--color-control-border);border-radius:5px;padding:11px 12px;box-sizing:border-box;background:var(--color-background);color:var(--color-text-primary);font:inherit; }
-.settings-field input:disabled { color:var(--color-text-muted);background:var(--color-code); }
-.settings-field small,.settings-note,.settings-toggle small { color:var(--color-text-muted);font-size:.8rem;line-height:1.65;font-weight:400; }
-.settings-section { padding-bottom:30px;margin-bottom:30px;border-bottom:1px solid var(--color-border); }
-.settings-section:last-child { margin-bottom:0; }
-.settings-actions { display:flex;gap:12px;flex-wrap:wrap; }
-.account-settings-content .button { min-height:44px;justify-content:center;font-size:.85rem;cursor:pointer; }
-.settings-save { margin-top:28px; }
-.settings-toggle { display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 0;border-bottom:1px solid var(--color-border);cursor:pointer; }
-.settings-toggle>span { display:flex;flex-direction:column;gap:6px; }
-.settings-toggle strong { font-size:.9rem;font-weight:500; }
-.settings-toggle input,.settings-checkbox input { width:20px;height:20px;flex-shrink:0;accent-color:var(--color-primary);cursor:pointer; }
-.settings-checkbox { display:flex;gap:12px;align-items:start;margin:22px 0;font-size:.85rem;line-height:1.7; }
-.settings-checkbox input { margin:3px 0 0; }
-.settings-error { color:var(--color-error);font-size:.85rem; }
-.settings-success { color:var(--color-success);font-size:.85rem; }
-.settings-session-list { padding:0;margin:20px 0;list-style:none; }
-.settings-session-list li { display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 0;border-top:1px solid var(--color-border);font-size:.85rem; }
-.settings-session-list li span { color:var(--color-text-muted); }
-.settings-danger-zone { border:1px solid var(--color-error);border-radius:6px;padding:24px;margin-top:32px;box-shadow:none; }
-.settings-danger-zone h3 { color:var(--color-error); }
-.settings-danger-button { background:var(--color-background);color:var(--color-error);border:1px solid var(--color-error);border-radius:5px;padding:12px 18px;min-height:44px;font:inherit;font-size:.85rem;cursor:pointer; }
-.settings-danger-button:hover:not(:disabled) { background:var(--color-surface); }
-.settings-sr-only { position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
-.account-settings-content :where(input,select,button):focus-visible,.settings-nav-link:focus-visible { outline:2px solid var(--color-secondary);outline-offset:3px; }
-@media(max-width:900px) {
-  .account-settings-layout { grid-template-columns:minmax(0,1fr);gap:32px; }
-  .account-settings-nav { width:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding-bottom:24px;border-bottom:1px solid var(--color-border); }
-  .settings-nav-link { padding:10px 8px;font-size:.8rem;gap:8px; }
-  .settings-nav-group h2 { margin-left:8px; }
-  .account-settings-content { max-width:none; }
+.account-settings-page {
+    max-width: var(--layout-width);
+    padding-inline: var(--layout-gutter);
+    margin-inline: auto;
 }
-@media(max-width:560px) {
-  .account-settings-intro { margin-bottom:28px; }
-  .account-settings-nav { grid-template-columns:minmax(0,1fr);gap:20px; }
-  .settings-nav-group>div { display:flex;flex-direction:row;flex-wrap:wrap;gap:4px; }
-  .settings-nav-link { font-size:.78rem; }
-  .settings-nav-link svg { width:17px;height:17px; }
-  .settings-field-grid { grid-template-columns:minmax(0,1fr); }
-  .settings-danger-zone { padding:18px; }
-  .settings-actions { flex-direction:column;align-items:stretch; }
-  .settings-toggle { gap:16px; }
+.account-settings-intro {
+    margin-bottom: 40px;
+}
+.account-settings-intro h1 {
+    margin: 14px 0 12px;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -0.045em;
+}
+.account-settings-intro p {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+.account-settings-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+}
+.account-settings-nav {
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+.settings-nav-group h2 {
+    margin: 0 12px 10px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+.settings-nav-group > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.settings-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.settings-nav-link svg {
+    flex-shrink: 0;
+}
+.settings-nav-link:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+}
+.settings-nav-link.is-active {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-primary-hover);
+}
+.settings-nav-link.is-active {
+    border-inline-start: 3px solid var(--color-primary);
+}
+.settings-dashboard-link {
+    display: inline-block;
+    margin-top: 32px;
+}
+.account-settings-content {
+    min-width: 0;
+    max-width: 800px;
+}
+.account-settings-heading {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 24px;
+    margin-bottom: 28px;
+}
+.account-settings-heading h2 {
+    font-size: 1.5rem;
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
+}
+.account-settings-heading p {
+    margin: 0;
+    line-height: 1.7;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+.account-settings-content h3 {
+    font-size: 1rem;
+    margin: 0 0 14px;
+}
+.account-settings-content p {
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.account-settings-form {
+    display: block;
+}
+.account-settings-form fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+.settings-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 24px;
+}
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    min-width: 0;
+}
+.settings-field input,
+.settings-field select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    border: 1px solid var(--color-control-border);
+    border-radius: 5px;
+    padding: 11px 12px;
+    box-sizing: border-box;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    font: inherit;
+}
+.settings-field input:disabled {
+    color: var(--color-text-muted);
+    background: var(--color-code);
+}
+.settings-field small,
+.settings-note,
+.settings-toggle small {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    line-height: 1.65;
+    font-weight: 400;
+}
+.settings-section {
+    padding-bottom: 30px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--color-border);
+}
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+.settings-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.account-settings-content .button {
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.settings-save {
+    margin-top: 28px;
+}
+.settings-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+}
+.settings-toggle > span {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.settings-toggle strong {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.settings-toggle input,
+.settings-checkbox input {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+.settings-checkbox {
+    display: flex;
+    gap: 12px;
+    align-items: start;
+    margin: 22px 0;
+    font-size: 0.85rem;
+    line-height: 1.7;
+}
+.settings-checkbox input {
+    margin: 3px 0 0;
+}
+.settings-error {
+    color: var(--color-error);
+    font-size: 0.85rem;
+}
+.settings-success {
+    color: var(--color-success);
+    font-size: 0.85rem;
+}
+.settings-session-list {
+    padding: 0;
+    margin: 20px 0;
+    list-style: none;
+}
+.settings-session-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 16px 0;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.85rem;
+}
+.settings-session-list li span {
+    color: var(--color-text-muted);
+}
+.settings-danger-zone {
+    border: 1px solid var(--color-error);
+    border-radius: 6px;
+    padding: 24px;
+    margin-top: 32px;
+    box-shadow: none;
+}
+.settings-danger-zone h3 {
+    color: var(--color-error);
+}
+.settings-danger-button {
+    background: var(--color-background);
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
+    border-radius: 5px;
+    padding: 12px 18px;
+    min-height: 44px;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.settings-danger-button:hover:not(:disabled) {
+    background: var(--color-surface);
+}
+.settings-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.account-settings-content :where(input, select, button):focus-visible,
+.settings-nav-link:focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 3px;
+}
+@media (max-width: 900px) {
+    .account-settings-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+    }
+    .account-settings-nav {
+        width: auto;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .settings-nav-link {
+        padding: 10px 8px;
+        font-size: 0.8rem;
+        gap: 8px;
+    }
+    .settings-nav-group h2 {
+        margin-left: 8px;
+    }
+    .account-settings-content {
+        max-width: none;
+    }
+}
+@media (max-width: 560px) {
+    .account-settings-intro {
+        margin-bottom: 28px;
+    }
+    .account-settings-nav {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+    .settings-nav-group > div {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .settings-nav-link {
+        font-size: 0.78rem;
+    }
+    .settings-nav-link svg {
+        width: 17px;
+        height: 17px;
+    }
+    .settings-field-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .settings-danger-zone {
+        padding: 18px;
+    }
+    .settings-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .settings-toggle {
+        gap: 16px;
+    }
 }

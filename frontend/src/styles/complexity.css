@@ -1,0 +1,76 @@
+.complexity-lab {
+    display: grid;
+    gap: 2.5rem;
+    margin-block: 2rem;
+}
+.complexity-lab > section {
+    border-block-start: 1px solid var(--color-border);
+    padding-block-start: 1.5rem;
+    min-width: 0;
+}
+.complexity-lab svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin-block: 1rem;
+}
+.complexity-lab label {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 1rem;
+}
+.complexity-lab input[type='range'] {
+    width: 100%;
+    accent-color: var(--color-primary);
+}
+.complexity-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+.complexity-controls label {
+    flex: 1 1 160px;
+}
+.complexity-array {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+}
+.complexity-array li {
+    display: grid;
+    gap: 0.2rem;
+    text-align: center;
+    padding: 0.5rem;
+    min-width: 4rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: 0.4rem;
+}
+.complexity-array li[aria-current='step'] {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
+}
+.complexity-array small,
+.complexity-array span {
+    font-size: 0.7rem;
+}
+.complexity-lab table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.complexity-lab th,
+.complexity-lab td {
+    text-align: start;
+    padding: 0.5rem 0.25rem;
+    border-block-end: 1px solid var(--color-border);
+    overflow-wrap: anywhere;
+}
+.complexity-lab caption {
+    text-align: start;
+    margin-block-end: 0.5rem;
+    color: var(--color-text-muted);
+}

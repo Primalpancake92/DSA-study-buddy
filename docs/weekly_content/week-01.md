@@ -1,634 +1,609 @@
-# Week 1 - Complexity and Arrays
+# Week 1 - Introduction to Algorithm Complexity
 
-This week, you will be learning how to predict the work a program performs as its input grows. We will connect Big O, Big Theta, and Big Omega to concrete JavaScript operations: reading an array, searching it, changing its contents, and constructing an answer. The aim is to explain your code before reaching for a stopwatch.
+An algorithm can be correct on three values and still become impractical on three million. This chapter teaches you to predict that change before running a large experiment. You will turn small JavaScript traces into operation counts, then turn those counts into precise statements about growth. No previous knowledge of logarithms or mathematical proofs is assumed.
 
-We will start with positions, values, and movement in arrays, then build up to references, copying, method costs, and reusable prefix/suffix calculations. A known index gives direct access; a search needs evidence from individual entries; removing an early entry can move everything after it. Predict each example's output on paper before running it in a modern JavaScript runtime.
+Work through the fifteen lessons in order. You need variables, functions, comparisons, conditionals, and basic loops. Arrays appear only as generic sequences of input values: their length tells us how much input exists, and an index identifies a position. Array methods and copying techniques belong in the separate [Arrays module](week-17.md).
 
-By the end, you should be able to trace a scan, explain mutation and copying, derive loop costs, and improve repeated work with a reusable prefix or suffix. You will also be able to state the assumptions behind your answer, including dense-array behavior, numeric precision, and whether output storage counts toward a space claim.
+Use the independent assessment and final weekly progress checklist to record what you can explain without the answers. You will learn to justify a growth claim from actual code, rather than treating a familiar notation as a substitute for reasoning.
 
-There will be a checklist at the end of the module to complete your progress logs. Complete the practice before consulting its solutions, then use the final Weekly Progress Checklist to record your Theory, JavaScript, Practice, and Reflection progress, including any explanation you still need to revisit.
+Every fenced JavaScript example is independent, uses small bounded inputs, and requires no packages in a current Node.js runtime. Its immediately following output block shows the exact console output. Predict that output before running the example. Counting examples count named events rather than measuring milliseconds. Answers to lesson prompts, exercises, and assessment appear in **Hints and Worked Solutions**, which the study interface can collapse. Attempt each question before opening it.
 
-## Learning Objectives
+## Introduction to algorithms and algorithm analysis
 
-- Distinguish positions from values and specify whether a function returns an index, value, boolean, or collection.
-- Derive upper, lower, and tight growth bounds without confusing them with best and worst cases.
-- Count sequential, nested, dependent, logarithmic, and amortized work.
-- Use every array method named in the syllabus deliberately: `push`, `pop`, `shift`, `unshift`, `splice`, `slice`, `includes`, `indexOf`, `find`, `map`, `filter`, `reduce`, and `sort`.
-- Explain aliasing, shallow copying, selective copying, and deep cloning.
-- Implement search, duplicate detection, safe removal, and Product of Array Except Self; account for input, working, and output storage separately.
+An **algorithm** is a finite, unambiguous procedure for solving a specified problem. Its contract describes valid inputs and the required result. “Find a value” is incomplete: do we return its position, return a boolean, or report every occurrence? A clear contract lets us establish correctness before discussing speed. A fast procedure that returns the wrong answer is not an improvement.
 
-## Prerequisite Knowledge
+Imagine checking numbered seats for a lost notebook. Looking at every seat in order is an algorithm. If you inspect one seat each step, twice as many seats can require twice as many inspections. That relationship is the beginning of analysis. **Algorithm analysis** models resource use as a function of input size, usually time or memory. It describes scaling under explicit assumptions, rather than predicting an exact elapsed duration on every computer.
 
-You need variables, numeric comparisons, `if`, functions, `return`, and `for` loops. A function parameter is a local name for an argument. A return ends the function immediately; a loop does not continue after it. `const` prevents rebinding a name but does not freeze an array or its objects.
+Separate three questions: Does the procedure terminate? Does it produce the specified answer? How much work can it require? For a search that advances one position each iteration, the remaining unchecked positions decrease, establishing termination. Correctness requires that a reported position really matches and that failure is reported only after all candidates are excluded. Complexity counts how many candidates may be examined.
 
-An array of length three has indexes 0, 1, and 2. Reading index 3 normally produces `undefined`, rather than throwing an out-of-bounds exception. That convenience can disguise an incorrect loop bound. These chapters assume dense arrays unless stated otherwise: sparse arrays have holes, and different methods treat holes differently. Do not infer general sparse-array behavior from a dense-array trace.
+As a first worked trace, searching for 8 in `[4, 8, 2]` examines 4 and then 8. It performs two value comparisons and stops. Searching for 7 examines all three. The same algorithm has different counts on different inputs of equal size. We will formalize that distinction later.
 
-All runnable blocks are self-contained. Arrays and records are usually logged with `JSON.stringify` so the output does not depend on a console's object-formatting preferences. Modern features in the supplementary examples require a current runtime; the core algorithms need no packages.
+**Misconception:** a shorter program necessarily uses less work. One function call can hide a complete traversal. **Try it:** describe a procedure for finding a missing target, including its termination condition, required result, and one operation worth counting. Explain why source-code length does not answer the resource question.
 
-## Core Theory
+## Elementary operations
 
-### What are we measuring?
+Choose a **cost model**: a set of actions treated as fixed-cost units. Here, reading a known input position, assigning a scalar, comparing bounded numbers, and adding bounded numbers each take constant time. Constant time does not mean exactly one nanosecond; the modeled cost does not grow with input length.
 
-Let `n` be the number of input entries. We count an operation that captures the important work: comparisons in a search, assignments in a compaction, or multiplications in a product. We then ask how that count grows. Ten million simple operations can behave very differently from ten million network requests, so asymptotic analysis is a scaling model, not a latency forecast.
+Counting selected events is often clearer than counting every language action. In a search, count equality comparisons. In pair enumeration, count pair visits. An exact count must name its event: “three comparisons” and “three total operations” make different claims. Loop tests, counter updates, and setup still exist when our selected-event counter omits them.
 
-In the ordinary dense-array model, reading a known index takes constant time. Searching for an unknown position is different: a missing target forces us to inspect every entry. JavaScript does not require arrays to be literal contiguous machine-memory blocks, so these costs describe the conventional algorithm model, not a promise about proxies, exotic accessors, or every engine representation.
-
-For nonnegative running-time functions, `T(n) ∈ O(g(n))` means that some constant multiple of `g(n)` eventually bounds `T(n)` from above. `T(n) ∈ Ω(g(n))` gives an eventual lower bound. `T(n) ∈ Θ(g(n))` means both bounds hold. Formally, Theta needs positive constants `c1`, `c2`, and a threshold `n0` such that `c1 g(n) ≤ T(n) ≤ c2 g(n)` for every `n ≥ n0`.
-
-Suppose a complete scan costs `3n + 7` elementary operations. For `n ≥ 1`, it lies between `3n` and `10n`, so its cost is Θ(n). It is also O(n²), but that loose upper bound hides what we know. Constants and smaller terms matter in real performance; they simply do not change this growth class.
-
-Best, average, and worst case select which inputs we discuss. Bound notation describes the resulting cost function. For linear search on nonempty input, the best case is Θ(1), when the first entry matches; the worst case is Θ(n), when the target is missing or last. Omega does **not** mean best case, and Big O does **not** inherently mean worst case. A worst-case cost can have an Omega bound too.
-
-An average requires a probability model. If a present target is equally likely at each of `n` positions, comparisons average `(1 + 2 + ... + n) / n = (n + 1) / 2`, hence Θ(n). If almost every request asks for the first entry, that distribution changes the average. Say your assumption instead of treating “average” as an intrinsic property of a function.
-
-### Count work, not indentation
-
-Two consecutive scans perform `n + n` work: Θ(n). An outer scan whose inner loop always runs three times performs `3n` work: also Θ(n). Comparing each entry with each later entry performs `(n−1) + (n−2) + ... + 1 = n(n−1)/2` checks: Θ(n²). The last inner loop is short, but the early ones are long enough to make the total quadratic.
-
-Dependent loops need particular care. If an outer counter doubles through `1, 2, 4, ..., n` and the inner loop runs that many times, total work is a geometric sum, at most about `2n`: Θ(n), not Θ(n log n). If the inner loop instead always scans all `n` entries, the same outer loop gives Θ(n log n). If two nested boundaries both move only forward through one sequence, total advances may be at most `2n`. We will exploit that in [Week 4](week-04.md).
-
-A counter repeatedly divided by two reaches one in about `log₂ n` steps. Multiplying input size by two adds one step rather than doubling the work. Common growth classes, from slower to faster growth, are constant, logarithmic, linear, linearithmic (`n log n`), quadratic, and exponential (`2ⁿ`). These comparisons become useful for large inputs; they do not say which of two tiny implementations wins a stopwatch test.
-
-Amortized analysis asks about a sequence of operations without needing a random input distribution. A dynamic array occasionally needs a larger backing store. If growth is geometric, the copied capacities across many appends form a geometric sum. Total work across `n` appends is O(n), so append is amortized O(1), even though an individual append can cost O(n). Expected analysis, by contrast, involves a probabilistic model. Keep those meanings separate.
-
-### References describe ownership
-
-Assigning an array to another variable copies its reference. Both names point to the same array. A shallow copy creates a different outer array but copies each element value; an element that is an object reference still points to the same object. Rearranging the copy is independent, while changing a shared object's fields is not.
-
-Copy the levels you intend to edit. Spreading an array of records and then spreading each record separates those records, but a nested object inside each record is still shared. `structuredClone` can deeply clone supported data, including cycles; it is not a universal copier of functions, custom behavior, or every host object. A JSON round trip is a serialization operation with its own restrictions: it loses unsupported values, changes some types, and cannot serialize ordinary cycles. Choose a data contract before choosing a copying technique.
-
-### Methods are algorithms too
-
-At the end of an array, `push` appends and returns the **new length**, while `pop` removes and returns the **last value**. At the front, `unshift` inserts and returns the new length, while `shift` removes and returns the first value. Front operations can reindex the remaining entries; repeatedly shifting an entire collection can accumulate quadratic work.
-
-`splice(start, deleteCount, ...items)` mutates the receiver and returns the removed entries. `slice(start, end)` leaves the receiver alone and returns a shallow copy; `end` is exclusive. A request for positions 1 through 3 inclusive therefore uses `slice(1, 4)`. Negative slice bounds count backward from the end. Knowing which result a method returns prevents accidentally replacing an array with a length or a removed segment.
-
-`includes` answers a membership question, `indexOf` returns the first matching index or −1, and `find` returns the first value satisfying a predicate or `undefined`. Choose the return contract you actually need. `includes(NaN)` is true when NaN is present; `indexOf(NaN)` returns −1. A successful `find` can itself return `undefined`, so use `findIndex` when that ambiguity matters.
-
-`map` transforms each entry into an output entry. `filter` retains entries that pass a predicate. `reduce` carries an accumulator from one callback to the next. Give reduce an initial value when empty input is possible. A callback must return its result: braces around an arrow-function body require an explicit `return`. With constant-cost callbacks these methods scan linearly, but calling `includes` inside every `map` callback can make the whole operation quadratic. Copying a growing accumulator on every reduce step has the same danger.
-
-`sort` changes the receiver. Default ordering compares string representations, which is why numeric data needs `(a, b) => a - b`. The comparator must express a consistent ordering. A copied array protects the original order but consumes memory. We use an O(n log n) comparison-sort model when discussing algorithms; JavaScript does not specify one universal sort implementation or workspace bound.
-
-### A running minimum preserves the best earlier choice
-
-Best Time to Buy and Sell Stock asks for one purchase followed by one later sale, with zero profit allowed when no profitable transaction exists. A baseline tries every buy day before every sell day. For a fixed sell day, however, the best eligible purchase is simply the cheapest earlier price. Keep that minimum while scanning chronologically; sorting would destroy the required time order.
-
-Before evaluating a sale, the running minimum describes strictly earlier days, and best describes the best completed transaction so far. Evaluate today's sale first, then allow today's price to become a purchase candidate for future days. This temporal invariant is a useful companion to prefix products: both summarize the past, but one retains a minimum and the other a product.
-
-## JavaScript Implementations
-
-### A scan with a precise contract
-
-This search returns the first matching index, with strict equality, or −1. Before iteration `i`, every position before `i` has been ruled out. That sentence is a **loop invariant**: it is true initially, preserved by a failed comparison, and sufficient to justify the final failure result.
+Here the counted event is evaluating `values[i] > 0`. The counter is instrumentation: it observes the event but is not part of the original task's required result.
 
 ```javascript
-function firstIndexOf(values, target) {
-  for (let i = 0; i < values.length; i += 1) {
-    if (values[i] === target) return i;
-  }
-  return -1;
+function countPositiveChecks(values) {
+    let checks = 0;
+    let positives = 0;
+    for (let i = 0; i < values.length; i += 1) {
+        checks += 1;
+        if (values[i] > 0) {
+            positives += 1;
+        }
+    }
+    console.log(checks, positives);
 }
-console.log(firstIndexOf([9, 2, 6], 6));
-console.log(firstIndexOf([], 6));
-console.log(firstIndexOf([6, 6], 6));
-console.log(firstIndexOf([9, 2, 6], 5));
+countPositiveChecks([-2, 5, 0]);
+countPositiveChecks([]);
 ```
+
 ```output
-2
--1
-0
--1
+3 1
+0 0
 ```
 
-### Method laboratory: mutation and copying
+The first trace tests −2, 5, and 0; exactly one passes. Empty input performs no predicate evaluations, although entering the function and checking its loop condition still costs something. This distinction explains constant terms in running-time functions.
 
-Follow the receiver and the return value separately. After each mutation, the next call sees the changed array. The slice is captured before splice, so its primitive entries remain the same afterward.
+The model has limits. Arithmetic on arbitrarily long integers depends on their bit lengths. Printing long text depends on its length and the output device. For these small numeric examples, treat a printed item as one output event; that is not a universal guarantee about console performance. **Try it:** identify two actions omitted from the `checks` counter, and explain why their omission does not make the predicate count incorrect.
+
+## Understanding input size n
+
+The symbol **n** names a measure of input size. It is not automatically the numerical value of an argument. For a sequence, n commonly means entry count. For text, it might mean characters or encoded bytes. For a graph, two parameters—vertices and edges—often communicate more than one. State the measure before writing a complexity expression.
+
+Consider `[900, 3, 12]`: its length is three, even though its largest value is 900. A full scan has three visits. Replacing 900 with 9000 adds no visits under our bounded-number model; adding a fourth entry does. Length is therefore useful for this analysis.
+
+A numeric input needs special care. A loop from 1 through an integer N performs N iterations, but encoding N in binary needs only about `log₂ N` bits. A procedure linear in the numeric value can be exponential in its encoding length. Our counting laboratories sometimes use n as a loop limit; they explicitly measure that limit rather than claiming a bit-complexity result.
+
+Two independent sequences of lengths n and m need separate parameters. Inspecting every cross-sequence pair takes nm visits, not necessarily n². Calling both sizes n assumes they grow together. If one length is fixed at three, the work is 3n and grows linearly in the other length.
+
+**Worked trace:** matching each of two candidate names against each of five allowed names creates ten comparisons when all pairs are checked. Three candidates create fifteen. **Misconception:** input size means the biggest number seen. **Try it:** choose size measures for a document search, a sequence search, and comparing every student in one class with every student in another. State assumptions about item lengths.
+
+## Deriving the running-time function T(n)
+
+**T(n)** denotes work for inputs of size n under a stated model and case. It may count selected events or weighted elementary operations. Start with code, identify repetition, and add the parts. Simplify only after obtaining a defensible count.
+
+For a loop starting at zero, testing `i < n`, advancing by one, and never returning early, there are n body executions, n counter updates, and n + 1 condition evaluations. The extra check is the failed test that exits. At n = 3, the condition is checked with i equal to 0, 1, 2, and 3; the body runs only for the first three values.
+
+Start with ordinary linear search before adding any instrumentation:
 
 ```javascript
-const values = [2, 4];
-console.log(values.push(6));
-console.log(values.pop());
-console.log(values.unshift(0));
-console.log(values.shift());
-const copied = values.slice(0, 1);
-const removed = values.splice(1, 1, 8, 10);
-console.log(JSON.stringify(values));
-console.log(JSON.stringify(removed));
-console.log(JSON.stringify(copied));
-console.log(JSON.stringify([...values].sort((a, b) => b - a)));
-console.log(JSON.stringify(values));
+function linearSearch(arr, target) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] === target) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+console.log(linearSearch([3, 6, 9], 6));
+console.log(linearSearch([3, 6, 9], 12));
+console.log(linearSearch([], 12));
 ```
+
 ```output
-3
-6
-3
-0
-[2,8,10]
-[4]
-[2]
-[10,8,2]
-[2,8,10]
-```
-
-### Method laboratory: searching and transformations
-
-The source array below is unchanged by these operations because the callbacks only inspect numbers. Methods that create new arrays do not prevent a callback from mutating a referenced object; that remains your responsibility.
-
-```javascript
-const values = [3, 6, 6, 9];
-console.log(values.includes(6));
-console.log(values.indexOf(6));
-console.log(values.find(value => value > 6));
-console.log(values.findIndex(value => value > 10));
-console.log(JSON.stringify(values.map(value => value / 3)));
-console.log(JSON.stringify(values.filter(value => value % 2 === 0)));
-console.log(values.reduce((sum, value) => sum + value, 0));
-console.log([].reduce((sum, value) => sum + value, 0));
-console.log([NaN].includes(NaN));
-console.log([NaN].indexOf(NaN));
-console.log(JSON.stringify([10, 2, 1].sort()));
-console.log(JSON.stringify([10, 2, 1].sort((a, b) => a - b)));
-```
-```output
-true
 1
-9
 -1
-[1,2,2,3]
-[6,6]
-24
-0
-true
 -1
-[1,10,2]
-[1,2,10]
 ```
 
-### Supplementary array vocabulary
+For the missing target, list what actually executes rather than counting source lines:
 
-The syllabus methods above deserve fluency first. You will also encounter `at` for relative indexing; `some` and `every` for short-circuit predicates; `forEach` for side effects; `concat` for a shallow combined array; `join` for a string; and `reverse` for in-place reversal. `flat` removes nesting up to a chosen depth and `flatMap` maps then flattens one level. `fill` assigns the same supplied value into a range, so filling with one object aliases that object. `copyWithin` copies a range within the same array without changing length.
+| Event                              | Executions on an absent target |
+| ---------------------------------- | ------------------------------ |
+| Initialize i                       | 1                              |
+| Test the loop condition            | n + 1                          |
+| Compare an element with the target | n                              |
+| Increment i                        | n                              |
+| Execute the inner return           | 0                              |
+| Execute the final return           | 1                              |
 
-Modern copying counterparts `toSorted`, `toReversed`, `toSpliced`, and `with` return changed shallow copies. `findLast` and `findLastIndex` search from the end. `keys`, `values`, and `entries` return iterators. `Array.from` constructs from an iterable or array-like value; `Array.of` constructs from its arguments, avoiding the single-number length behavior of `Array(3)`. `Array.isArray` tests the array type. These are useful vocabulary, not replacements for explaining traversal and allocation.
+If each listed event costs one unit, this particular bookkeeping gives `3n + 3`. We bundled the indexed read into the comparison and the length read into the loop test; another model could charge those separately. The inner return is **not** executed n times merely because it appears inside the loop. It executes once when a match is found, or not at all when the target is absent. For 100 entries and an absent target, there are 100 element comparisons. The final failed loop test is a different kind of comparison and is not counted as an element comparison.
+
+Suppose a simplified scheme instead charges seven units for setup and completion, plus three per entry. Then `T(n) = 3n + 7`. At n = 0 the cost is seven; at n = 1 it is ten; at n = 4 it is nineteen. This is an **illustrative cost model**, not the exact count for the supplied linear-search code and not a claim about a JavaScript engine's machine-instruction count. The fixed overhead changes between schemes, but both functions have linear growth.
+
+The following laboratory evaluates that formula with an explicit three-event body. It illustrates fixed and repeated contributions.
 
 ```javascript
-const a = [1, 2, 3];
-console.log(a.at(-1), a.some(x => x > 2), a.every(x => x > 0));
-let total = 0;
-a.forEach(x => { total += x; });
-console.log(total, a.join(':'));
-console.log(JSON.stringify(a.concat([4])));
-console.log(JSON.stringify([...a].reverse()));
-console.log(JSON.stringify([1, [2, [3]]].flat(2)));
-console.log(JSON.stringify([1, 2].flatMap(x => [x, x * 10])));
-console.log(JSON.stringify(Array(3).fill(7)));
-console.log(JSON.stringify([1, 2, 3, 4].copyWithin(1, 2)));
-console.log(JSON.stringify([3, 1, 2].toSorted((x, y) => x - y)));
-console.log(JSON.stringify(a.toReversed()));
-console.log(JSON.stringify(a.toSpliced(1, 1, 8)));
-console.log(JSON.stringify(a.with(0, 9)));
-console.log([1, 2, 4].findLast(x => x % 2 === 0));
-console.log([1, 2, 4].findLastIndex(x => x % 2 === 0));
-console.log(JSON.stringify([...a.keys()]));
-console.log(JSON.stringify([...a.values()]));
-console.log(JSON.stringify([...a.entries()]));
-console.log(JSON.stringify(Array.from({ length: 3 }, (_, i) => i * 2)));
-console.log(JSON.stringify(Array.of(3)), Array.isArray(a));
+function modeledWork(n) {
+    let units = 7;
+    for (let i = 0; i < n; i += 1) {
+        units += 1;
+        units += 1;
+        units += 1;
+    }
+    return units;
+}
+console.log(modeledWork(0));
+console.log(modeledWork(1));
+console.log(modeledWork(4));
 ```
+
 ```output
-3 true true
-6 1:2:3
-[1,2,3,4]
-[3,2,1]
-[1,2,3]
-[1,10,2,20]
-[7,7,7]
-[1,3,4,4]
-[1,2,3]
-[3,2,1]
-[1,8,3]
-[9,2,3]
-4
+7
+10
+19
+```
+
+Two reasonable accounting conventions can yield `3n + 7` and `8n + 12` while agreeing on linear growth. **Misconception:** deriving T(n) means immediately discarding constants. Preserve the evidence first; simplify when discussing growth classes. **Try it:** derive a function for four setup events, two events per repetition, and one final event. Evaluate it at n = 0 and n = 3.
+
+## Growth families
+
+A **growth family** groups functions with comparable long-run behavior. Ask how much extra work appears when input grows. Constant work stays bounded. Linear work roughly doubles when n doubles. Quadratic work roughly quadruples. Logarithmic work gains only a fixed number of steps when n is multiplied by a fixed factor.
+
+| Family       | Representative | Counting situation                 | At n = 8 and n = 16   |
+| ------------ | -------------- | ---------------------------------- | --------------------- |
+| Constant     | 1              | Inspect one known position         | 1, 1                  |
+| Logarithmic  | log₂ n         | Repeatedly halve a region          | 3, 4                  |
+| Linear       | n              | Inspect every entry                | 8, 16                 |
+| Linearithmic | n log₂ n       | About log₂ n rounds of n work      | 24, 64                |
+| Quadratic    | n²             | Visit every ordered pair           | 64, 256               |
+| Cubic        | n³             | Visit every ordered triple         | 512, 4096             |
+| Exponential  | 2ⁿ             | Explore all binary choice patterns | 256, 65536            |
+| Factorial    | n!             | Enumerate every ordering           | 40320, 20922789888000 |
+
+These are representative values, not benchmarks. For fixed polynomial degree k, exponential growth eventually exceeds nᵏ. Factorial growth eventually exceeds any fixed-base exponential. “Eventually” matters: startup costs and coefficients can reverse comparisons at small sizes.
+
+A **logarithm** asks how many factors of a base produce a number. Since `2³ = 8`, `log₂ 8 = 3`. Halving 8 gives 4, then 2, then 1: three halvings. For non-powers of two, rounding depends on the stopping condition. Different fixed logarithm bases differ by a constant factor, so they share an asymptotic family.
+
+**Worked comparison:** n² events means 10000 at n = 100, whereas 1000n means 100000. The quadratic count is smaller there. At n = 10000, they become 100000000 and 10000000. **Misconception:** the better eventual family always wins immediately. **Try it:** predict the effect of doubling n for constant, linear, quadratic, and exponential functions. Explain why asymptotic ranking does not replace measurement for a specific small workload.
+
+## Big O upper bounds
+
+**Big O** states an eventual upper bound up to a positive constant multiplier. Formally, `T(n) ∈ O(g(n))` if positive constants c and n₀ exist such that `0 ≤ T(n) ≤ c g(n)` for every n ≥ n₀ in the size domain. Constants must be independent of n. Think of c g(n) as a ceiling remaining above the cost after a starting point.
+
+For `T(n) = 3n + 7`, take c = 10 and n₀ = 1. Since 7 ≤ 7n for n ≥ 1, `3n + 7 ≤ 10n`. This proves O(n). Checking n = 1 gives equality; increasing n makes the seven easier to absorb. The proof covers all later sizes, not merely a few observations.
+
+The same function is O(n²): for n ≥ 1, `3n + 7 ≤ 10n ≤ 10n²`. This is true but less informative. Upper bounds need not be tight. Give the strongest justified conventional description and name the case, such as “worst-case Θ(n), hence O(n).”
+
+Big O does not inherently mean worst case. You can upper-bound a best-case function, worst-case function, or defined expected-cost function. Specify which function you are bounding. One comparison on a particular search input does not invalidate a linear worst-case bound.
+
+**Misconception:** choosing c = n makes any function constant. That multiplier is disallowed because c must remain fixed as n varies. **Try it:** find c and n₀ proving `5n + 2 ∈ O(n)`. Explain why two small timings cannot prove the definition.
+
+## Big Omega lower bounds
+
+**Big Omega** gives an eventual lower bound up to a positive constant multiplier. Write `T(n) ∈ Ω(g(n))` when positive c and n₀ exist such that `0 ≤ c g(n) ≤ T(n)` for every n ≥ n₀. Picture a floor beneath the selected cost function.
+
+For `3n + 7`, c = 3 and n₀ = 1 work because `3n ≤ 3n + 7`. Thus it is Ω(n). It is also Ω(1), but the linear lower bound says more about growth.
+
+Be precise about what receives the bound. A full scan that always visits n entries has an Ω(n) visit count on every length-n input. Early-return search does not require n comparisons on every input. Its **worst-case comparison function**, however, has an Ω(n) bound because a missing target forces n comparisons. That is a lower bound on a chosen function, not a statement that every execution is linear.
+
+A lower bound on a whole problem needs further reasoning. For an unsorted sequence with no extra information, membership may require inspecting every entry: an uninspected entry could contain the target. This depends on the access model and assumptions. Sorted input supplies information permitting a different algorithm.
+
+**Worked trace:** a missing target in `[2, 4, 6, 8]` forces a scan to rule out four candidates. Skipping the last position cannot distinguish this sequence from one whose final value matches. **Try it:** prove `5n + 2 ∈ Ω(n)` and explain why “Omega means the first element matches” confuses bounds with cases.
+
+## Big Theta tight bounds
+
+**Big Theta** bounds a function above and below by positive multiples of the same reference function after a threshold. Formally, `T(n) ∈ Θ(g(n))` if positive c₁, c₂, and n₀ exist such that `0 ≤ c₁g(n) ≤ T(n) ≤ c₂g(n)` for all n ≥ n₀. It combines O and Ω bounds.
+
+Think of two rails enclosing a cost curve. The curve need not coincide with n, and the distance between the rails can grow. Fixed multiples of n must contain it. For `3n + 7`, the preceding bounds use the same reference n and establish Θ(n).
+
+For `n² + n`, n² is a lower bound and 2n² is an upper bound when n ≥ 1, since n ≤ n² there. Thus the function is Θ(n²). The linear term remains in the exact count but no longer determines the growth family. Similar reasoning applies to polynomials of fixed degree with positive leading coefficients.
+
+Theta does not mean average case. A full traversal may have best, worst, and average costs all in Θ(n). A short-circuit search has a constant best-case function and linear worst-case function. Both admit tight bounds of their own.
+
+**Misconception:** any known upper and lower bounds prove Theta. Knowing Ω(n) and O(n²) leaves a gap; many functions fit between them. **Try it:** bound `2n² + 3n + 1` using multiples of n² for n ≥ 1. Supply actual constants, then distinguish its exact expression from its tight family.
+
+## Constants and thresholds
+
+Constants allow vertical scaling; **n₀** marks where the inequalities must begin holding. Neither may change with n. A threshold excludes a finite initial region, but every later size still needs coverage. Think of choosing two rails once, then showing that the entire remaining cost curve stays between them.
+
+For `T(n) = 3n + 7` and `g(n) = n`, choose **c₁ = 3, c₂ = 10, n₀ = 1**. For every integer n ≥ 1, `3n ≤ 3n + 7`. Also n ≥ 1 implies `7 ≤ 7n`, so `3n + 7 ≤ 3n + 7n = 10n`. Consequently `0 ≤ 3n ≤ 3n + 7 ≤ 10n` throughout the required domain, proving Θ(n).
+
+| n   | c₁n = 3n | T(n) = 3n + 7 | c₂n = 10n | Both bounds hold?  |
+| --- | -------- | ------------- | --------- | ------------------ |
+| 0   | 0        | 7             | 0         | No: 7 ≤ 0 is false |
+| 1   | 3        | 10            | 10        | Yes                |
+| 2   | 6        | 13            | 20        | Yes                |
+| 5   | 15       | 22            | 50        | Yes                |
+| 10  | 30       | 37            | 100       | Yes                |
+
+With those constants, **n₀ = 0 fails**: the upper bound at zero requires seven to be at most zero. No finite c₂ makes `7 ≤ c₂ × 0` true. This does not contradict Θ(n); the definition requires some valid threshold, and one works. Empty input can be meaningful operationally even when a growth proof starts at one.
+
+Constants still matter in engineering. A linear algorithm with expensive per-item work can lose to a quadratic algorithm on a small bounded workload. Analysis identifies scaling risks; profiling helps choose implementations for actual conditions. **Misconception:** the threshold is a guarantee about when one real implementation becomes faster than another. It only establishes the stated mathematical inequalities. **Try it:** retain c₁ = 3, replace c₂ with 4, and find the smallest integer threshold. Explain why the inequalities prove more than the table alone.
+
+## Best worst and average cases
+
+For fixed n, **best-case cost** is the minimum over valid inputs of that size; **worst-case cost** is the maximum. **Average-case cost** is an expectation under a stated probability distribution. Choose a case first, then bound its function.
+
+For nonempty linear search, count target comparisons. Best case is one when the first entry matches. Worst case is n when the target is last or absent. A successful-search average requires an explicit model: assume the target is present exactly once and its position is **uniformly distributed across all n positions**. Each has probability 1/n, so
+
+`E[C(n)] = (1 + 2 + ... + n)/n = [n(n + 1)/2]/n = (n + 1)/2`.
+
+For n = 4, possible counts are 1, 2, 3, and 4, with mean 2.5. An average need not be an integer although individual counts are integers. The expectation is Θ(n): halving a linear function preserves its family.
+
+If absence has probability p and otherwise the successful position is uniform, expectation becomes `pn + (1 − p)(n + 1)/2`. Other distributions change the formula. If the first position is always requested, average successful cost is one. “Average input” is not a complete mathematical assumption.
+
+Empty input requires zero target comparisons, so our best-case statement explicitly restricts n ≥ 1. **Misconception:** average always means halfway between minimum and maximum. That happens here because of the uniform model. **Try it:** compute expected comparisons for n = 3 when positions 0, 1, and 2 have probabilities 1/2, 1/4, and 1/4. Write the weighted sum first.
+
+## Time versus space
+
+**Time complexity** describes work; **space complexity** describes storage. State what you include. Input storage exists before the function starts. Auxiliary space is additional working storage; output space holds the required result. Some conventions include output in auxiliary space, so separate them explicitly when needed.
+
+A scan can take Θ(n) time with Θ(1) auxiliary space because it retains only a few counters regardless of length. An n-entry result occupies Θ(n) output space even if one variable names it. Space counts retained information, not variable names or assignments executed.
+
+For example, a running sum updates one scalar n times. Peak auxiliary space stays constant. Retaining all n partial sums stores n numeric values. Both procedures can take linear time, but their storage differs. Keeping history may be justified when it is required output; otherwise it stores information the contract does not require.
+
+Count **peak simultaneous storage**, not total allocation events across the execution. Recursive calls also consume stack frames. A depth-n recursion with constant-size frames uses Θ(n) stack space, even without an explicit collection. Our iterative search below retains only a few scalars.
+
+Printing n items needs n output events without retaining all items in the algorithm's own memory. We exclude console buffers and runtime infrastructure from auxiliary-space claims. **Worked accounting:** n input numbers, two counters, a running total, and a scalar result mean Θ(n) input storage, Θ(1) auxiliary storage, and Θ(1) result storage under fixed-size numeric assumptions. **Misconception:** linear time forces linear extra memory. **Try it:** explain why n successive counter updates do not imply Θ(n) space.
+
+## Counting loops and sequential operations
+
+Add sequential work; sum dependent repetition counts. Two complete scans perform `n + n = 2n` visits, giving Θ(n). A scan followed by all ordered pairs performs `n + n²`, giving Θ(n²). Multiply only when each outer execution repeats the same number of inner events, or a proven bound justifies it.
+
+An n-iteration outer loop with three inner repetitions performs 3n events: nested but linear. For pairs with `j = i + 1`, inner counts are `n − 1, n − 2, ..., 0`. Their sum is `n(n − 1)/2`, quadratic despite shrinking inner work. This counts unordered pairs of distinct positions, unlike n² ordered pairs including self-pairs.
+
+Now let an outer width grow through 1, 2, 4, and so on through n. If inner work equals width, the sum is `1 + 2 + ... + 2ᵏ`, with 2ᵏ ≤ n < 2ᵏ⁺¹. The sum `2ᵏ⁺¹ − 1` is at least n and less than 2n for positive integer n, giving Θ(n). If every outer iteration instead processes n items, total work is Θ(n log n).
+
+```javascript
+function loopCounts(n) {
+    let triangular = 0;
+    let geometric = 0;
+    for (let i = 0; i < n; i += 1) {
+        for (let j = i + 1; j < n; j += 1) {
+            triangular += 1;
+        }
+    }
+    for (let width = 1; width <= n; width *= 2) {
+        for (let j = 0; j < width; j += 1) {
+            geometric += 1;
+        }
+    }
+    console.log(triangular, geometric);
+}
+loopCounts(4);
+loopCounts(8);
+```
+
+```output
+6 7
+28 15
+```
+
+**Amortized analysis** bounds the total cost of a sequence, then divides by its length. Suppose an abstract process charges one unit per step, with maintenance at steps 1, 2, 4, 8, ... costing that step number. Across N steps, ordinary work is N and maintenance is less than 2N. Total work is less than 3N, so amortized cost is O(1), although an individual maintenance step can cost Θ(N). This deterministic argument requires no probability distribution.
+
+**Misconception:** every nested loop is quadratic, or amortized means random average. Both ignore the actual sum. **Try it:** compare matching-width work with fixed-n inner work at n = 8. Explain why a constant amortized guarantee does not promise constant latency for every step.
+
+## Worked JavaScript examples
+
+These examples use the fixed-cost numeric and indexed-access model. A function's name does not establish its complexity: trace control flow and count events. Inputs are ordinary dense sequences; searching excludes preprocessing.
+
+### One position: firstElement
+
+The contract returns the first value, or `undefined` for empty input. Nonempty input requires exactly one indexed read regardless of length; empty input requires zero. There is always one emptiness check. Time, auxiliary space, and scalar result space are all Θ(1).
+
+```javascript
+function firstElement(values) {
+    if (values.length === 0) {
+        return undefined;
+    }
+    return values[0];
+}
+console.log(firstElement([7, 4, 9]));
+console.log(firstElement([]));
+```
+
+```output
+7
+undefined
+```
+
+The trace checks length three, reads position zero, and returns 7; it never reads 4 or 9. **Misconception:** receiving n entries forces n work. **Try it:** predict indexed reads for a million-entry nonempty input.
+
+### Every position: printElements
+
+This contract prints every numeric value once, then returns the number of value-output events. There are n indexed reads, n value-print calls, n count increments, and n index updates. The condition is checked n + 1 times. Time is Θ(n + 1), conventionally Θ(n) for n ≥ 1. Auxiliary space is Θ(1), excluding console infrastructure. The caller's printing of the returned count is a separate output event.
+
+```javascript
+function printElements(values) {
+    let count = 0;
+    for (let i = 0; i < values.length; i += 1) {
+        console.log(values[i]);
+        count += 1;
+    }
+    return count;
+}
+console.log(printElements([2, 5, 8]));
+console.log(printElements([]));
+```
+
+```output
 2
-[0,1,2]
-[1,2,3]
-[[0,1],[1,2],[2,3]]
-[0,2,4]
-[3] true
-```
-
-### Copy at the correct depth
-
-The alias grows with the original; the shallow copy does not. Both still share the first record. Even a copied record retains its nested `detail` object until that level is cloned too.
-
-```javascript
-const original = [{ score: 1, detail: { level: 2 } }];
-const alias = original;
-const shallow = original.slice();
-alias.push({ score: 3, detail: { level: 4 } });
-shallow[0].score = 9;
-const records = original.map(item => ({ ...item }));
-records[0].score = 20;
-records[0].detail.level = 7;
-const deep = structuredClone(original);
-deep[0].detail.level = 99;
-console.log(original === alias, original === shallow);
-console.log(original.length, shallow.length);
-console.log(original[0].score, records[0].score);
-console.log(original[0].detail.level, deep[0].detail.level);
-```
-```output
-true false
-2 1
-9 20
-7 99
-```
-
-### Duplicate detection: baseline and memory trade-off
-
-For finite numbers, the pair baseline and Set version agree. The baseline considers distinct positions exactly once. The optimized version asks whether the current value occurred in the processed prefix. General JavaScript values require an equality decision: Set treats NaN as equal to itself while strict equality does not.
-
-```javascript
-function containsDuplicateBrute(values) {
-  for (let i = 0; i < values.length; i += 1) {
-    for (let j = i + 1; j < values.length; j += 1) {
-      if (values[i] === values[j]) return true;
-    }
-  }
-  return false;
-}
-function containsDuplicate(values) {
-  const seen = new Set();
-  for (const value of values) {
-    if (seen.has(value)) return true;
-    seen.add(value);
-  }
-  return false;
-}
-function removeDuplicates(values) {
-  return [...new Set(values)];
-}
-console.log(containsDuplicateBrute([8, 3, 8]));
-console.log(containsDuplicate([8, 3, 5]));
-console.log(containsDuplicate([]));
-console.log(JSON.stringify(removeDuplicates([8, 3, 8, 5])));
-```
-```output
-true
-false
-false
-[8,3,5]
-```
-
-### Product of Array Except Self
-
-The baseline recomputes almost the same product for every output. The optimized version writes the product strictly before each position, then multiplies by the product strictly after it. Multiplication's identity is 1, so an empty side contributes 1. There is no division, and zeros need no special branch. Assume numeric products remain representable and sufficiently precise.
-
-```javascript
-function productExceptSelfBrute(values) {
-  return values.map((_, excluded) => {
-    let product = 1;
-    for (let j = 0; j < values.length; j += 1) {
-      if (j !== excluded) product *= values[j];
-    }
-    return product;
-  });
-}
-function productExceptSelf(values) {
-  const result = Array(values.length).fill(1);
-  let prefix = 1;
-  for (let i = 0; i < values.length; i += 1) {
-    result[i] = prefix;
-    prefix *= values[i];
-  }
-  let suffix = 1;
-  for (let i = values.length - 1; i >= 0; i -= 1) {
-    result[i] *= suffix;
-    suffix *= values[i];
-  }
-  return result;
-}
-console.log(JSON.stringify(productExceptSelfBrute([2, 3, 4])));
-console.log(JSON.stringify(productExceptSelf([2, 3, 4])));
-console.log(JSON.stringify(productExceptSelf([2, 0, 4])));
-console.log(JSON.stringify(productExceptSelf([0, 2, 0])));
-console.log(JSON.stringify(productExceptSelf([7])));
-console.log(JSON.stringify(productExceptSelf([])));
-```
-```output
-[12,8,6]
-[12,8,6]
-[0,8,0]
-[0,0,0]
-[1]
-[]
-```
-
-### Best Time to Buy and Sell Stock: summarize earlier days
-
-The local contract returns zero for fewer than two prices. Prices are finite numbers. The baseline makes the chronological condition explicit; the optimized scan retains exactly the earlier information needed by each candidate sale.
-
-```javascript
-function maxProfitBrute(prices) {
-  let best = 0;
-  for (let buy = 0; buy < prices.length; buy += 1) {
-    for (let sell = buy + 1; sell < prices.length; sell += 1) {
-      best = Math.max(best, prices[sell] - prices[buy]);
-    }
-  }
-  return best;
-}
-function maxProfit(prices) {
-  if (prices.length < 2) return 0;
-  let cheapest = prices[0];
-  let best = 0;
-  for (let sell = 1; sell < prices.length; sell += 1) {
-    best = Math.max(best, prices[sell] - cheapest);
-    cheapest = Math.min(cheapest, prices[sell]);
-  }
-  return best;
-}
-console.log(maxProfitBrute([9, 3, 7, 2, 8]));
-console.log(maxProfit([9, 3, 7, 2, 8]));
-console.log(maxProfit([8, 5, 2]));
-console.log(maxProfit([4]));
-console.log(maxProfit([]));
-```
-```output
-6
-6
-0
-0
+5
+8
+3
 0
 ```
 
-## Worked Examples
+Iterations use indexes 0, 1, and 2; a failed test at 3 ends the loop. **Try it:** distinguish the function's three value prints from the five console lines in the complete example.
 
-### Example 1: establish evidence while searching
+### Every ordered pair: printPairs
 
-Search `[9, 2, 6]` for 6. At index 0, the prefix before the index is empty, so the invariant is automatically true. Comparing 9 with 6 fails and establishes that index 0 cannot be the answer. At index 1, compare 2 and fail again. At index 2, compare 6 and return 2. Notice that the answer is an index, not the third comparison count.
-
-For an absent target, the index reaches length 3. Every earlier position has been excluded, so −1 is justified. For empty input, the same reasoning works without a special-case branch: there are no possible matching positions. This is why a good invariant helps both the ordinary case and boundary cases.
-
-### Example 2: a dependent loop that is linear
-
-With `n = 8`, an outer variable doubling from 1 through 8 gives inner lengths 1, 2, 4, and 8. The total is 15, not `8 × 4`. Compare it with the triangular pair count, 28. Both examples have nested loops; their sums tell different stories.
+This contract includes self-pairs and both orders. It executes n² pair-print calls, 2n² indexed reads, and n² count increments. Outer conditions are evaluated n + 1 times; inner conditions n(n + 1) times in total. Time is Θ(n²) for n ≥ 1. Two indexes and a counter use Θ(1) auxiliary space; streamed output contains n² pairs without storing an n²-entry result.
 
 ```javascript
-function countWork(n) {
-  let triangular = 0;
-  for (let i = 0; i < n; i += 1) {
-    for (let j = i + 1; j < n; j += 1) triangular += 1;
-  }
-  let geometric = 0;
-  for (let width = 1; width <= n; width *= 2) {
-    for (let j = 0; j < width; j += 1) geometric += 1;
-  }
-  return { triangular, geometric };
+function printPairs(values) {
+    let count = 0;
+    for (let i = 0; i < values.length; i += 1) {
+        for (let j = 0; j < values.length; j += 1) {
+            console.log(values[i], values[j]);
+            count += 1;
+        }
+    }
+    return count;
 }
-console.log(JSON.stringify(countWork(8)));
-console.log(JSON.stringify(countWork(16)));
+console.log(printPairs([2, 5]));
+console.log(printPairs([]));
 ```
+
 ```output
-{"triangular":28,"geometric":15}
-{"triangular":120,"geometric":31}
+2 2
+2 5
+5 2
+5 5
+4
+0
 ```
 
-### Example 3: deleting changes future positions
+The outer index stays zero as the inner visits zero and one, then becomes one and restarts the inner scan. **Try it:** count pair prints at n = 3 and explain why the triangular formula does not apply.
 
-Start with `[-1, -2, 3]`. Removing index 0 moves −2 into index 0. Advancing to index 1 skips that value. A backward scan avoids this correctness error because deleting position `i` leaves all earlier positions in place. However, repeatedly deleting early entries can still move a long surviving suffix; correctness does not make it linear.
+### Early stopping: linear search
+
+Return the first matching position or −1, together with target comparisons. Each failed comparison excludes a position. Before iteration i, no earlier position matches; this **loop invariant** supports correctness. All cases use Θ(1) auxiliary space.
 
 ```javascript
-function removeNegativesBackward(values) {
-  for (let i = values.length - 1; i >= 0; i -= 1) {
-    if (values[i] < 0) values.splice(i, 1);
-  }
-  return values;
+function linearSearch(values, target) {
+    let comparisons = 0;
+    for (let i = 0; i < values.length; i += 1) {
+        comparisons += 1;
+        if (values[i] === target) {
+            return { index: i, comparisons };
+        }
+    }
+    return { index: -1, comparisons };
 }
-console.log(JSON.stringify(removeNegativesBackward([-1, -2, 3])));
-console.log(JSON.stringify(removeNegativesBackward([4, -1, 5, -2])));
+console.log(JSON.stringify(linearSearch([4, 8, 2], 8)));
+console.log(JSON.stringify(linearSearch([4, 8, 2], 7)));
+console.log(JSON.stringify(linearSearch([], 7)));
 ```
+
 ```output
-[3]
-[4,5]
+{"index":1,"comparisons":2}
+{"index":-1,"comparisons":3}
+{"index":-1,"comparisons":0}
 ```
 
-### Example 4: reuse products without including self
+The first call stops before the last value; the second exhausts candidates. **Try it:** choose a best-case target and state its tight time bound separately from the worst-case bound.
 
-For `[2, 3, 4]`, the forward pass writes `[1, 2, 6]`. At index 1, prefix is 2 because only index 0 has been multiplied in. In the reverse pass, index 2 is multiplied by 1, index 1 by 4, and index 0 by 12, producing `[12, 8, 6]`. Updating prefix or suffix **before** using it would include the current value and violate “except self.” With a single zero, only the zero's position can receive a nonzero product. With two zeros, every product includes at least one zero.
+### Halving candidates: binary search
 
-### Example 5: a cheaper purchase does not erase an earlier profit
+Binary search requires input already sorted ascending. It checks the middle candidate and discards the half that cannot contain the target. This version returns any matching position, not necessarily the first duplicate. Its interval includes both low and high. Arithmetic midpoint calculation avoids bitwise conversion.
 
-For `[9,3,7,2,8]`, begin with cheapest 9 and best 0. Selling at 3 gives a loss, so best stays zero; then cheapest becomes 3. Selling at 7 earns 4. The price 2 does not improve the sale, but becomes the cheapest purchase for later days. Selling at 8 then earns 6, replacing the earlier best. Keep both variables: the cheapest price alone cannot remember an already completed profitable opportunity.
+```javascript
+function binarySearch(values, target) {
+    let low = 0;
+    let high = values.length - 1;
+    let probes = 0;
+    while (low <= high) {
+        const mid = low + Math.floor((high - low) / 2);
+        probes += 1;
+        if (values[mid] === target) {
+            return { index: mid, probes };
+        }
+        if (values[mid] < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return { index: -1, probes };
+}
+console.log(JSON.stringify(binarySearch([2, 4, 6, 8, 10, 12, 14], 12)));
+console.log(JSON.stringify(binarySearch([2, 4, 6, 8, 10, 12, 14], 5)));
+console.log(JSON.stringify(binarySearch([], 5)));
+```
 
-On `[8,5,2]`, no later sale exceeds an earlier purchase, so best remains zero. Taking global maximum minus global minimum would incorrectly claim profit 6 by buying at the end and selling at the beginning. This is a correctness error caused by discarding chronology, not a small implementation detail.
+```output
+{"index":5,"probes":2}
+{"index":-1,"probes":3}
+{"index":-1,"probes":0}
+```
+
+For 12, probe 8 at index 3, then search indexes 4 through 6 and probe 12 at index 5. For 5, probe 8, 4, and 6 before the interval becomes empty. Each probe makes at most two target comparisons; probe and comparison counts differ by only a constant factor.
+
+After k unsuccessful probes, remaining candidates are at most n/2ᵏ. Worst-case probes for n ≥ 1 are at most `floor(log₂ n) + 1`, giving O(log n) as n grows. Some targets require logarithmically many probes, establishing worst-case Θ(log n). Best case is Θ(1), and auxiliary space is Θ(1). Preparing sorted input requires separate accounting. **Try it:** explain why unsorted input breaks correctness despite quick termination.
+
+## Common misconceptions
+
+Use these corrections to diagnose reasoning, rather than memorizing labels.
+
+| Claim                             | Correction and counterexample                                        |
+| --------------------------------- | -------------------------------------------------------------------- |
+| Every nested loop is quadratic    | n outer iterations with three inner repetitions give 3n events.      |
+| Two scans multiply                | Sequential scans add: n + n = 2n.                                    |
+| Big O gives exact seconds         | Growth bounds depend on a model; hardware affects duration.          |
+| Omega is best; Theta is average   | Cases select functions; bounds describe those functions.             |
+| Constants never matter            | They affect actual workloads without changing tight growth families. |
+| Few variables mean little storage | One reference may retain n result items.                             |
+| An observed average is universal  | Expectations depend on the input probabilities.                      |
+| Any loop is linear                | Repeated halving reaches one in logarithmically many steps.          |
+| Amortized means random average    | A deterministic sequence bound can allow expensive individual steps. |
+| O(n²) proves quadratic growth     | A linear function also satisfies that loose upper bound.             |
+
+Name the event, input size, case, and storage convention before giving a label. If two answers disagree, compare those choices first. One person might count all ordered pairs while another counts only distinct unordered pairs; different contracts produce different formulas.
+
+**Worked correction:** “It visits half the entries, so it is logarithmic” is wrong for a loop advancing by two. Its count is about n/2, still Θ(n). Repeatedly halving the remaining region produces logarithmic work; visiting every second position does not. **Try it:** correct “This search was fast on my example, so its worst case is constant” in one sentence.
+
+## Practice exercises and module assessment
+
+Keep solutions separate from the answer section. For every analysis, state size, counted operation, case, formula or bound, and auxiliary space where applicable. These tasks are independent of an external judge and require only this chapter.
+
+### Lesson practice record
+
+Complete each **Try it** prompt in lessons 1–14. Number them by lesson in your notes; label the five worked-example prompts 13a–13e. This fifteenth lesson's practice is the assessment below. Explanations matter more than bare labels.
+
+### Beginner assessment
+
+**B1.** Six setup events precede four selected events per input. Derive T(n), evaluate it at n = 0 and n = 5, and give a tight growth bound.
+
+**B2.** A loop visits indexes 0 through n − 1. Count successful condition tests, failed tests, and body executions. Include empty input.
+
+**B3.** For firstElement, printElements, and printPairs, give selected-event counts at n = 4, time families, and auxiliary-space families. Name the events.
+
+**B4.** Trace linear search for 9 in `[3, 6, 9, 12]`. Record inspected positions and comparisons. What changes for target 5?
+
+### Intermediate assessment
+
+**I1.** Prove `6n + 4 ∈ Θ(n)` with positive constants and a threshold. Do those constants work at zero?
+
+**I2.** One procedure scans n entries twice sequentially. Another has n outer iterations with inner indexes zero through i inclusive. Derive both body-event counts and families.
+
+**I3.** A successful target is uniform across five positions. Compute expected linear-search comparisons. Recompute when the first position has probability 1/2 and the others each have probability 1/8.
+
+**I4.** Trace binary search for 13 in `[1, 3, 5, 7, 9, 11, 13]`. Record low, high, and mid before each probe; give result, probe count, and auxiliary space.
+
+### Advanced assessment
+
+**A1.** Width doubles from 1 while width ≤ n. One inner loop performs width events; another version performs n events. Derive totals at n = 16 and justify families for general positive integer n.
+
+**A2.** A process has one ordinary event per step and maintenance costing k at steps k = 1, 2, 4, 8, .... Bound total work over N steps. Distinguish worst individual, amortized, and expected cost without inventing probabilities.
+
+**A3.** A task must print every ordered pair of n input values. Can O(n) time meet the contract under a one-event-per-pair output model? Give a lower bound and explain whether quadratic time forces quadratic auxiliary storage.
+
+**A4.** Scan independent inputs of lengths n and m sequentially, then check every cross-input pair. Derive total selected events and a tight bound for n,m ≥ 1. Analyze m = 3 separately. What assumption permits Θ(n²)?
+
+### Module completion standard
+
+Beginner readiness means correct counts with named events. Intermediate readiness adds proofs, traces, and probability assumptions. Advanced readiness adds justified sums and distinctions between individual, sequence, and expected costs. Attempt each tier independently. After checking solutions, explain one correction in your own words and solve the same task with a different small input.
 
 ## Visual Explanations
 
-Think of a shallow copy as a second row of arrows, not a second set of nested records:
+The study interface's interactive complexity lab attaches here through the `visual-explanations` anchor. Use its growth comparisons to connect changing input size with the counts derived above. This chapter remains usable without the interactive interface: the growth table and traces supply the numerical reasoning.
 
-```text
-original ──> array A ── index 0 ──> record R ──> detail D
-alias    ──> array A
-shallow  ──> array B ── index 0 ──> record R
-records  ──> array C ── index 0 ──> record S ──> detail D
-deep     ──> array E ── index 0 ──> record T ──> detail F
-```
+Before changing input size, predict doubling behavior. Linear counts double, quadratic counts quadruple, and base-two logarithmic counts gain one. Compare at the same size and check whether displayed curves use raw or normalized counts. Visual steepness depends on axis scaling and does not prove an asymptotic bound.
 
-Changing the membership of A does not change B. Editing R is visible through both A and B. Editing D is visible even through S. The deepest shared arrow determines which mutations remain shared.
-
-```text
-input:          [2,  3, 4]
-strict prefix:  [1,  2, 6]
-strict suffix:  [12, 4, 1]
-answer:         [12, 8, 6]
-
-For output i, combine the region before i and the region after i.
-The current position is excluded from both regions.
-```
-
-## Complexity Analysis
-
-Here `n` is input length, `k` is copied range length, and callbacks are assumed constant-cost. Extra memory includes newly allocated result arrays unless explicitly separated.
-
-| Operation | Conventional time | Additional memory | Reason |
-| --- | --- | --- | --- |
-| Known-index read/write | O(1) | O(1) | No search |
-| `push` / `pop` | Amortized O(1) / O(1) | Capacity-dependent for growth | End operation |
-| `shift` / `unshift` | O(n) | Engine-dependent | Later positions may move |
-| `splice` | O(n + inserted count) worst case | Removed-result size plus engine storage | Mutation and reindexing |
-| `slice`, spread | Θ(k) copied entries | Θ(k) | New shallow array |
-| `includes`, `indexOf`, `find` | O(n) worst case | O(1) | May inspect all entries |
-| `map`, `filter` | Θ(n) with constant callbacks | O(n) output | Visit each dense entry |
-| `reduce` | Θ(n) with constant callback | Depends on accumulator | Callback determines hidden work |
-| Numeric comparison sort | Usually O(n log n) model | Engine-dependent | Sorting is preprocessing |
-| Duplicate pair baseline | Θ(n²) worst case | O(1) | All distinct pairs |
-| Duplicate Set approach | Expected O(n) | O(n) | Retained membership evidence |
-| Stock pair baseline / running minimum | Θ(n²) / Θ(n) worst case | O(1) | Repeated earlier-price search / retained minimum |
-| Product baseline | Θ(n²) | Θ(n) output, O(1) beyond output | Repeated multiplication |
-| Prefix/suffix product | Θ(n) | Θ(n) output, O(1) beyond output | Two full passes |
-
-Supplementary methods follow the same accounting. `some`, `every`, and reverse searches can stop early but scan O(n) in the worst case. `forEach`, full `reverse`, and full `fill` are linear. Copying variants allocate linear output. Concatenation is linear in copied entries; joining also depends on total produced characters. Flattening depends on visited nested entries and output size, not only the outer length. Constructing an iterator is different from consuming all of it: spreading `entries()` processes the entire array.
-
-Space analysis counts reachable storage, not names. One variable holding an n-entry copy represents Θ(n) storage. A deep clone's cost depends on the size of the reachable data graph, which may be much larger than the outer array. The input occupies space, but it is not newly allocated auxiliary space. When returning n products, report “Θ(n) output and O(1) working memory beyond output,” rather than simply “constant space.”
-
-## Common Mistakes
-
-An inclusive loop bound reads one extra value. If the target is `undefined`, it can even manufacture a successful search outside the array. A numeric comparator omitted from sort changes the meaning of order. Assigning the result of `push` back to the array name replaces the array with a number. Each failure comes from skipping the operation's contract.
-
-The following intentionally broken example leaves a negative value behind. Its syntax is valid, but its traversal is incorrect; do not copy it into a solution.
-
-```javascript-bug
-const values = [-1, -2, 3];
-for (let i = 0; i < values.length; i += 1) {
-  if (values[i] < 0) values.splice(i, 1);
-}
-console.log(JSON.stringify(values));
-```
-
-The broken code prints `[-2,3]`, confirming that the shifted −2 was skipped.
-
-Do not describe every nested loop as quadratic, every built-in call as constant, or every shallow copy as independent. Also avoid changing an array while a callback traverses it unless you have explicitly reasoned about which positions the method will visit. A straightforward loop with a documented invariant is easier to audit than a short expression hiding multiple traversals.
-
-## Interview and LeetCode Pattern Recognition
-
-Start with five questions: What is the input size? What must be returned? May I mutate the input? What counts as equality? What happens on empty input? Then write the simplest correct baseline and locate repeated work.
-
-“Any duplicate” suggests remembering previous values, explored in [Week 2](week-02.md). “Except this position” suggests independent contributions from the left and right. “Remove in place while preserving order” suggests the reader/writer technique in [Week 3](week-03.md). These are hypotheses to prove, not keyword-to-code substitutions. A Set improves duplicate detection by spending memory; it does not automatically satisfy a constant-space constraint.
-
-For Product of Array Except Self, mention why total-product division is unsuitable: zeros break the shortcut, and the external problem explicitly forbids division. For Contains Duplicate, distinguish boolean existence from returning the earliest repeated value or every duplicate; those are different contracts.
-
-## Practice Exercises
-
-### Conceptual
-
-1. Explain why `3n + 7` is Θ(n), O(n²), and Ω(n), and why Omega does not mean “best case.”
-2. Predict which edits are shared among an alias, a shallow array copy, a copy of each outer record, and a deep clone. Include a nested object.
-3. Classify all thirteen syllabus methods by mutation, return type, traversal, and output allocation. Then explain why a quadratic callback can invalidate a linear method estimate.
-
-### Tracing
-
-4. Trace search for 5 in `[2, 5, 5]`, and search for 8 in the same input. Record index, comparison, and excluded prefix.
-5. Count triangular and doubling-dependent inner work at `n = 4`. Compare with a doubling outer loop whose inner loop always runs four times.
-6. Write the strict prefix and suffix arrays for `[3, 0, 2]` before multiplying them.
-
-### Debugging
-
-7. Repair forward deletion above in two ways: a correctness-first backward version and a linear compaction. Explain why they have different worst-case costs.
-8. Explain why `values.map(x => { x * 2; })` does not double numbers, why sorting `[2, 10]` without a comparator surprises you, and why `Array(3).fill({ count: 0 })` shares records.
-
-### Implementation
-
-9. Implement first-index search and stable duplicate removal from memory. State equality and empty-input contracts.
-10. Implement prefix/suffix products without division. Test empty, singleton, negative, one-zero, and two-zero inputs; compare against a pair-loop baseline on small arrays.
-11. Build a method laboratory using different input values. Exercise every syllabus method and at least four supplementary methods, printing both result and receiver when mutation is involved.
-
-### External
-
-The upstream assignment consists of Contains Duplicate, Best Time to Buy and Sell Stock, and Product of Array Except Self. The chapter's additional exercises develop the supporting reasoning.
-
-12. [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** array traversal, pair enumeration, Set membership. **Relevance:** compares a quadratic baseline with an expected-linear solution that spends memory. First explain the pair baseline, then the memory trade-off.
-13. [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** arrays, prefix/suffix accumulation, output-space accounting. **Relevance:** demonstrates how reusing partial results removes repeated multiplication. Derive the exclusion invariant before coding; treat a correct baseline as progress.
-
-14. [Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** chronological traversal, running minimum, best-so-far state. **Relevance:** replaces repeated searches of earlier days with one scalar summary. Trace `[9,3,7,2,8]`, explain why sorting is invalid, then implement both approaches and compare decreasing-price cases.
+For a paper version, draw columns for n = 2, 4, 8, and 16 and plot n and n². Next draw eight candidate positions for binary search. After each unsuccessful middle probe, cross out the impossible half. The picture explains how one probe excludes many candidates; the logarithm expresses repeated reduction mathematically.
 
 ## Hints and Worked Solutions
 
-### Hints to try before reading the answers
+All exercise answers are collected here so the study interface can keep them collapsed. Read the relevant hint first, then cover the answer while retrying the question.
 
-For 1–3, distinguish a mathematical bound from an input case, and draw references rather than copying object text. For 4–6, write the state **before** updating it. For 7, keep a separate destination index so the unread suffix stays intact. For 8, braces change an arrow expression into a block. For 9–13, test a very small counterexample before adding more code.
+### Lesson hints
 
-### Solutions 1–6
+For lessons 1–4, write exactly what changes at each step and what stops execution. For lessons 5–9, identify the dominant term and find fixed constants bounding the remaining terms. For lessons 10–12, distinguish weighted expectations, peak storage, and deterministic repetition sums. For lesson 13, inspect actual bounds and return statements. For lesson 14, distinguish one observation from a claim about every growing size.
 
-For `n ≥ 1`, `3n ≤ 3n + 7 ≤ 10n`, proving Theta and Omega. Since `n ≤ n²` for those n, O(n²) is also true but less informative. The selected runtime function could describe a best, worst, or average case. The bound notation itself does not choose one.
+### Lesson answers
 
-An alias shares the outer array. A slice shares element references but not outer membership. Spreading each record separates record fields, while nested references still point to the old nested objects. A supported deep clone separates the copied graph. For method classification, use the implementations and complexity table as the answer key: push/pop/shift/unshift/splice/sort mutate; the other seven syllabus methods do not themselves mutate the receiver. Predicate and accumulator behavior still needs inspection.
+**1.** Inspect positions in order, return the first match's index, and return −1 after exhaustion. Count target comparisons. Advancing the index eventually empties the unchecked suffix. Source length does not determine execution frequency.
 
-Search for 5 checks 2 then 5 and returns 1; the duplicate at index 2 is never reached. Search for 8 checks all three positions and returns −1. At `n = 4`, triangular work is `3 + 2 + 1 = 6`; doubling-dependent work is `1 + 2 + 4 = 7`; fixed inner work under the same three outer iterations is `4 + 4 + 4 = 12`. For `[3, 0, 2]`, strict prefixes are `[1, 3, 0]`, strict suffixes `[0, 2, 1]`, and products `[0, 6, 0]`.
+**2.** Condition checks and index increments are omitted. Every predicate evaluation is still counted once; the claim concerns a selected event rather than all work.
 
-### Solutions 7–8: linear removal and callback mistakes
+**3.** Use document characters and possibly query length for text search; entry count for bounded-number sequence search; separate class sizes n and m for cross-class comparisons. Variable-length names can add a further item-length cost. State when items have fixed size.
 
-A writer identifies the next output slot. It never moves ahead of the reader, so a write cannot destroy an unread value. Truncate only after all reads finish. This preserves the order of nonnegative entries and avoids repeated shifts.
+**4.** Four setup events, two per repetition, and one final event give `2n + 5`: five at zero and eleven at three.
 
-```javascript
-function removeNegatives(values) {
-  let writer = 0;
-  for (let reader = 0; reader < values.length; reader += 1) {
-    if (values[reader] >= 0) {
-      values[writer] = values[reader];
-      writer += 1;
-    }
-  }
-  values.length = writer;
-  return values;
-}
-console.log(JSON.stringify(removeNegatives([-1, -2, 3])));
-console.log(JSON.stringify(removeNegatives([4, -1, 5, -2])));
-console.log(JSON.stringify([1, 2].map(x => { return x * 2; })));
-const independent = Array.from({ length: 3 }, () => ({ count: 0 }));
-independent[0].count = 1;
-console.log(JSON.stringify(independent));
-```
-```output
-[3]
-[4,5]
-[2,4]
-[{"count":1},{"count":0},{"count":0}]
-```
+**5.** Doubling n preserves a constant, doubles n, quadruples n², and multiplies 2ⁿ by 2ⁿ. For example, 2⁴ = 16 becomes 2⁸ = 256. Coefficients and overhead can reverse small-input rankings.
 
-Compaction reads n entries and writes at most n, so it is Θ(n) time and O(1) auxiliary space. Backward splice is correct but can repeatedly move a surviving suffix. The broken map callback returns nothing, so each mapped value becomes `undefined`. Default sort compares text; the numeric comparator repairs it. `fill` evaluates its object argument once; `Array.from` calls the factory separately for each entry.
+**6.** For n ≥ 1, `5n + 2 ≤ 7n`; c = 7 and n₀ = 1 work. Two timings do not establish an inequality for all later sizes and can reflect runtime effects outside the model.
 
-### Solutions 9–13: evaluate the explanation as well as the result
+**7.** Choose c = 5 and n₀ = 1 because `5n ≤ 5n + 2`. A first-position match selects a best-case input; Omega describes a lower bound on a selected function.
 
-The search, Set deduplication, and prefix/suffix implementations above are complete worked solutions. Rebuild them without looking, then explain the state each variable represents. On `[-2, 3, 4]`, products are `[12, -8, -6]`; on `[0, 0]`, both products are zero. An empty array returns an empty output and a singleton returns `[1]` under the empty-product convention. The external site's constraints may exclude those inputs; our local contracts intentionally define them.
+**8.** For n ≥ 1, `2n² ≤ 2n² + 3n + 1 ≤ 6n²`, since n ≤ n² and 1 ≤ n². Thus c₁ = 2, c₂ = 6, n₀ = 1 prove Θ(n²). The exact expression retains its smaller contributions.
 
-For the method laboratory, a successful answer states that splice returns removed entries, push returns a length, and slice returns a new shallow array. It should also show that modifying a nested record through a slice changes the original. For the external tasks, submit only after your baseline and optimized implementations agree on small inputs within the same equality and numeric contract. No external judge submission is implied by this chapter.
+**9.** The upper inequality becomes `3n + 7 ≤ 4n`, equivalent to n ≥ 7. The lower inequality always holds for nonnegative n. The smallest integer threshold is seven. Algebra covers every later size; a finite table cannot do that alone.
 
-### Solution 14: preserve chronology
+**10.** Expectation is `(1/2) × 1 + (1/4) × 2 + (1/4) × 3 = 7/4 = 1.75`. The distribution is not uniform, so the uniform formula is inapplicable.
 
-Hint: for a fixed sale day, only the smallest eligible earlier price matters. The full stock implementations above provide the worked solution. The trace earns 4 at price 7, retains that best while price 2 becomes the new minimum, and finally earns 6 at price 8. There are n(n−1)/2 buy/sell candidates in the baseline, but only n−1 sale evaluations in the optimized scan; both use constant auxiliary state. A correct answer returns zero for decreasing prices and never proposes a sale before its purchase.
+**11.** Each update overwrites a counter's earlier value. Only one is retained, giving Θ(1) peak auxiliary space in the bounded-number model.
+
+**12.** At eight, matching-width work is `1 + 2 + 4 + 8 = 15`; fixed-n work is `8 × 4 = 32`. Families are Θ(n) and Θ(n log n). Maintenance may be linear on a particular step despite linear total work across the sequence.
+
+**13a.** A million-entry nonempty input still requires one indexed read. **13b.** Three value prints plus the caller's two count prints yield five lines. **13c.** At three, there are nine pair prints; starting every inner loop at zero prevents the triangular restriction. **13d.** Target 4 gives Θ(1) best-case time, while worst-case time is Θ(n). **13e.** Without sorted order, a middle comparison cannot justify excluding a half; the target could be discarded. Termination does not guarantee correctness.
+
+**14.** A fast execution describes only that input; a constant worst-case claim must cover the most expensive valid input at every growing size, which missing targets defeat for linear search.
+
+### Beginner solutions
+
+**B1.** `T(n) = 4n + 6`, so T(0) = 6 and T(5) = 26. For n ≥ 1, `4n ≤ 4n + 6 ≤ 10n`, proving Θ(n).
+
+**B2.** There are n successful tests, one failed test, and n body executions. At zero, the initial condition fails, leaving zero successful tests and executions.
+
+**B3.** Count firstElement's indexed reads, printElements' value prints, and printPairs' pair prints. At four, counts are 1, 4, and 16. Time is Θ(1), Θ(n), and Θ(n²), respectively; each uses Θ(1) auxiliary space under the streaming-output convention. Counting all pair-function indexed reads instead gives 32 without changing the family.
+
+**B4.** Target 9 inspects positions 0, 1, and 2, then returns index 2 after three comparisons. Target 5 inspects all four positions and returns −1 after four comparisons.
+
+### Intermediate solutions
+
+**I1.** Choose c₁ = 6, c₂ = 10, n₀ = 1. Then `6n ≤ 6n + 4 ≤ 10n`. At zero the upper inequality requires 4 ≤ 0, so the same proof cannot begin there.
+
+**I2.** Two scans have 2n body events and Θ(n) growth. Inner counts 1 through n total `n(n + 1)/2`, giving Θ(n²). At four, counts are eight and ten; the formulas and inequalities justify the families beyond those examples.
+
+**I3.** Uniform expectation is `(1 + 2 + 3 + 4 + 5)/5 = 3`. Altered expectation is `(1/2) × 1 + (1/8) × (2 + 3 + 4 + 5) = 9/4 = 2.25`.
+
+**I4.** Before probes, `(low, high, mid)` is `(0, 6, 3)`, `(4, 6, 5)`, and `(6, 6, 6)`. Values are 7, 11, and 13. Return index 6 after three probes. Fixed scalar state gives Θ(1) auxiliary space.
+
+### Advanced solutions
+
+**A1.** At sixteen, widths 1, 2, 4, 8, and 16 give matching-width total 31 and fixed-n total 80. For general n, let k = floor(log₂ n). The first total is `2ᵏ⁺¹ − 1`, between n and 2n, giving Θ(n). The second is `n(k + 1)`, giving Θ(n log n) as n grows; the extra one accounts for n = 1.
+
+**A2.** Ordinary work is N. Maintenance is `2ᵏ⁺¹ − 1 < 2N`, with k = floor(log₂ N). Total is between N and 3N, hence Θ(N), with Θ(1) amortized cost. The largest maintenance step exceeds N/2, so worst individual cost in the prefix is Θ(N). An expected-cost calculation needs a probability model that the question does not supply.
+
+**A3.** Required output has n² pairs, forcing Ω(n²) time under the model. O(n) cannot suffice for unbounded n. Nested loops attain Θ(n²) while streaming with Θ(1) auxiliary state. Retaining every pair would instead add Θ(n²) output storage.
+
+**A4.** Total selected events are `n + m + nm`. For positive sizes, `nm ≤ n + m + nm ≤ 3nm`, establishing Θ(nm). With m = 3 the expression is `4n + 3`, hence Θ(n). Writing Θ(n²) requires m to scale proportionally to n, such as m = n; the independent-input contract does not establish that.
 
 ## Sources and Further Reading
 
-The canonical scope comes from the repository's [curriculum](../../shared/curriculum.js) and [Weeks 1–4 textbook material](../../shared/textbook/weeks01to04.js). A user draft inspected during initial preparation supplied the introductory emphasis on complexity, traversal, mutation, and a final progress checklist. That historical input was not edited or moved when preparing this chapter. This chapter expands those topics in original prose, examples, traces, and exercises.
+The explanations, traces, exercises, and JavaScript examples are original teaching material. These references offer established treatments and language documentation for further study. Their inclusion does not claim that pages were browsed or examples externally verified.
 
-- [MDN Array reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array): opened and consulted to verify array-copy semantics and API vocabulary. This reference does not guarantee the engine-specific complexity estimates used in interview models.
-- [MDN structuredClone](https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone): consulted for supported deep cloning, circular references, and failure on unsupported data.
-- [CS50 Algorithms notes](https://cs50.harvard.edu/x/2024/notes/3/): verified as further reading for algorithm analysis; not a source of these JavaScript implementations.
-- The three LeetCode problem pages linked in Practice Exercises were opened to verify task statements and difficulties. Their editorials were not used, and solutions were not submitted to their judge.
-- [Upstream Week 1](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/01.md): fetched through the GitHub connector to reconcile the assigned problem list, including Stock. Its prose was not copied into this chapter.
-
-External URLs were verified during preparation on 7 November 2026. The explanations are grounded primarily in the canonical local syllabus and independently derived algorithm reasoning. Runtime measurements, all possible engine representations, and a full treatment of JavaScript serialization are outside this chapter's scope.
+- [MIT OpenCourseWare: Introduction to Algorithms, 6.006](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/) — official course materials on algorithmic thinking, cost models, and asymptotic analysis. Extend the mathematical foundation after completing the beginner tasks.
+- [OpenDSA](https://opendsa.org/) — open instructional resources with algorithm-analysis explanations and visual learning material. Look for growth rates, asymptotic bounds, and case analysis; module organization differs between editions.
+- [MDN: Loops and iteration](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration) — JavaScript loop behavior used in the counting examples.
+- [MDN: Math.floor](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor) — rounding used in binary-search midpoints.
+- [MDN: Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number) — numeric representation and background for the limits of a bounded-number cost model.
 
 ## Weekly Summary
 
-You now have a way to connect code to evidence: define the contract, name the state, trace its updates, and count the work. Array methods still perform traversals and allocations even when the call is one line long. References explain why some copies isolate mutations and others share them. Bounds describe growth; cases describe inputs.
+Analysis begins with a contract, input-size measure, and counted operation. Derive an expression or justified sum before choosing a growth family. Sequential work adds; repeated work requires inspecting each repetition's bounds. Repeated multiplicative reduction yields logarithmic counts, while dependent loops may produce triangular or geometric sums.
 
-The first major optimization is reusing evidence. A Set retains prior membership, and prefix/suffix products retain earlier multiplication. Both improve time by changing what is remembered. Continue to [Week 2 — Hash Maps and Sets](week-02.md) to examine that memory trade-off in detail.
+O gives an upper bound, Ω a lower bound, and Θ matching bounds. Cases select the cost function; average cases require probabilities. Amortized guarantees can follow from deterministic sequence totals. Constants and thresholds make proofs precise, while time and peak auxiliary space answer different questions.
+
+You are ready to apply this material when you can explain a count from a trace, defend a bound with fixed constants, and state the assumptions behind both. Carry those habits into later algorithms instead of memorizing a label for every code shape.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] I can distinguish O, Ω, and Θ from best, average, and worst cases. <!-- checkpoint:w1-bounds-and-cases -->
-- [ ] I can derive sequential, triangular, geometric, and logarithmic loop costs. <!-- checkpoint:w1-dependent-loop-costs -->
-- [ ] I can separate amortized analysis from expected analysis. <!-- checkpoint:w1-amortized-growth -->
-- [ ] I can account for input, output, and auxiliary storage. <!-- checkpoint:w1-space-accounting -->
+- [ ] I can define a contract, input size, and counted event. <!-- checkpoint:w1-analysis-foundations -->
+- [ ] I can distinguish O, Ω, and Θ from best, worst, and average cases. <!-- checkpoint:w1-bounds-and-cases -->
+- [ ] I can prove the 3n + 7 bounds and explain the failed zero threshold. <!-- checkpoint:w1-constants-thresholds -->
+- [ ] I can derive sequential, triangular, geometric, and logarithmic counts. <!-- checkpoint:w1-dependent-loop-costs -->
+- [ ] I can distinguish amortized cost from probabilistic average cost. <!-- checkpoint:w1-amortized-growth -->
+- [ ] I can separate input, output, and peak auxiliary storage. <!-- checkpoint:w1-space-accounting -->
 
 ### JavaScript
 
-- [ ] I can explain mutation and return values for every syllabus array method. <!-- checkpoint:w1-array-method-contracts -->
-- [ ] I can demonstrate aliasing, shallow copies, and nested deep-copy behavior. <!-- checkpoint:w1-reference-copy-depth -->
-- [ ] I can implement a bounded scan and stable in-place removal. <!-- checkpoint:w1-scan-and-removal -->
-- [ ] I can implement prefix/suffix products without division. <!-- checkpoint:w1-prefix-suffix-products -->
+- [ ] I can trace firstElement, printElements, and printPairs with named events. <!-- checkpoint:w1-counting-examples -->
+- [ ] I can explain early termination and the linear-search invariant. <!-- checkpoint:w1-linear-search-analysis -->
+- [ ] I can trace binary search and justify its sorted-input requirement. <!-- checkpoint:w1-binary-search-analysis -->
 
 ### Practice
 
-- [ ] I completed conceptual, tracing, debugging, and implementation exercises. <!-- checkpoint:w1-local-practice -->
-- [ ] I attempted Contains Duplicate and explained the space trade-off. <!-- checkpoint:w1-contains-duplicate-practice -->
-- [ ] I attempted Product of Array Except Self and tested zero cases. <!-- checkpoint:w1-product-practice -->
-- [ ] I implemented Stock with a running minimum and preserved chronological order. <!-- checkpoint:w1-stock-running-minimum -->
+- [ ] I attempted each lesson prompt before reading answers. <!-- checkpoint:w1-lesson-practice -->
+- [ ] I completed the beginner assessment with explicit counts. <!-- checkpoint:w1-beginner-assessment -->
+- [ ] I attempted intermediate proofs, traces, and expectation questions. <!-- checkpoint:w1-intermediate-assessment -->
+- [ ] I attempted advanced sums, lower bounds, and two-size analysis. <!-- checkpoint:w1-advanced-assessment -->
 
 ### Reflection
 
-- [ ] I recorded a mistaken prediction and the invariant that corrected it. <!-- checkpoint:w1-reflect-on-error -->
-- [ ] I can explain one optimization aloud without reading its code. <!-- checkpoint:w1-explain-optimization -->
+- [ ] I recorded a mistaken prediction and the reasoning that corrected it. <!-- checkpoint:w1-reflect-on-error -->
+- [ ] I can explain a complexity argument aloud without reading a solution. <!-- checkpoint:w1-explain-complexity -->

@@ -1,45 +1,68 @@
 :root {
-  color-scheme: dark;
-  --layout-width: 1240px;
-  --layout-gutter: 32px;
-  --layout-header-height: 76px;
-  --color-background: #0B1020;
-  --color-surface: #151D32;
-  --color-surface-raised: #1D2944;
-  --color-surface-highlight: #28365A;
-  --color-accent-shade: #343B83;
-  --color-shadow: rgb(5 8 20 / 35%);
-  --color-accent-shadow: rgb(99 102 241 / 12%);
-  --color-grid-line: rgb(129 140 248 / 5%);
-  --color-grid-glow: rgb(99 102 241 / 14%);
-  --shadow-raised: 0 12px 30px var(--color-shadow), inset 0 1px 0 rgb(248 250 252 / 5%);
-  --color-code: #10182B;
-  --color-primary: #6366F1;
-  --color-primary-action: #5B5EE7;
-  --color-primary-hover: #818CF8;
-  --color-secondary: #22D3EE;
-  --color-text-primary: #F8FAFC;
-  --color-text-secondary: #CBD5E1;
-  --color-text-muted: #94A3B8;
-  --color-border: #303B53;
-  --color-control-border: #697792;
-  --color-success: #34D399;
-  --color-warning: #FBBF24;
-  --color-error: #FB7185;
-  --color-on-primary: #FFFFFF;
-  --color-overlay: rgb(11 16 32 / 82%);
-  --font-interface: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+    color-scheme: dark;
+    --layout-width: 1240px;
+    --layout-gutter: 32px;
+    --layout-header-height: 76px;
+    --color-background: #0b1020;
+    --color-surface: #151d32;
+    --color-surface-raised: #1d2944;
+    --color-surface-highlight: #28365a;
+    --color-accent-shade: #343b83;
+    --color-shadow: rgb(5 8 20 / 35%);
+    --color-accent-shadow: rgb(99 102 241 / 12%);
+    --color-grid-line: rgb(129 140 248 / 5%);
+    --color-grid-glow: rgb(99 102 241 / 14%);
+    --shadow-raised: 0 12px 30px var(--color-shadow), inset 0 1px 0 rgb(248 250 252 / 5%);
+    --color-code: #10182b;
+    --color-primary: #6366f1;
+    --color-primary-action: #5b5ee7;
+    --color-primary-hover: #818cf8;
+    --color-secondary: #22d3ee;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #94a3b8;
+    --color-border: #303b53;
+    --color-control-border: #697792;
+    --color-success: #34d399;
+    --color-warning: #fbbf24;
+    --color-error: #fb7185;
+    --color-on-primary: #ffffff;
+    --color-overlay: rgb(11 16 32 / 82%);
+    --font-interface: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
-@media(max-width:900px){:root{--layout-gutter:22px}}
-:root[data-theme="light"] {
-  color-scheme:light;
-  --color-background:#F3F5FC;--color-surface:#FFFFFF;--color-code:#E9EEF9;
-  --color-surface-raised:#F8FAFF;--color-surface-highlight:#E0E7FF;--color-accent-shade:#E0E7FF;
-  --color-primary:#4F46E5;--color-primary-action:#4F46E5;--color-primary-hover:#4338CA;--color-secondary:#0E7490;
-  --color-text-primary:#111827;--color-text-secondary:#334155;--color-text-muted:#526078;
-  --color-border:#CFD6E4;--color-control-border:#697792;--color-success:#047857;--color-warning:#92400E;--color-error:#BE123C;
-  --color-shadow:rgb(30 41 59 / 10%);--color-accent-shadow:rgb(99 102 241 / 7%);--color-overlay:rgb(30 41 59 / 45%);
-  --color-grid-line:rgb(99 102 241 / 5%);--color-grid-glow:rgb(99 102 241 / 6%);
+@media (max-width: 900px) {
+    :root {
+        --layout-gutter: 22px;
+    }
 }
-:root[data-theme="light"] .button.primary:hover,:root[data-theme="light"] .submit-button:hover{color:var(--color-on-primary)}
+:root[data-theme='light'] {
+    color-scheme: light;
+    --color-background: #f3f5fc;
+    --color-surface: #ffffff;
+    --color-code: #e9eef9;
+    --color-surface-raised: #f8faff;
+    --color-surface-highlight: #e0e7ff;
+    --color-accent-shade: #e0e7ff;
+    --color-primary: #4f46e5;
+    --color-primary-action: #4f46e5;
+    --color-primary-hover: #4338ca;
+    --color-secondary: #0e7490;
+    --color-text-primary: #111827;
+    --color-text-secondary: #334155;
+    --color-text-muted: #526078;
+    --color-border: #cfd6e4;
+    --color-control-border: #697792;
+    --color-success: #047857;
+    --color-warning: #92400e;
+    --color-error: #be123c;
+    --color-shadow: rgb(30 41 59 / 10%);
+    --color-accent-shadow: rgb(99 102 241 / 7%);
+    --color-overlay: rgb(30 41 59 / 45%);
+    --color-grid-line: rgb(99 102 241 / 5%);
+    --color-grid-glow: rgb(99 102 241 / 6%);
+}
+:root[data-theme='light'] .button.primary:hover,
+:root[data-theme='light'] .submit-button:hover {
+    color: var(--color-on-primary);
+}

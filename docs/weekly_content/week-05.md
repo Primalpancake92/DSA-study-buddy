@@ -18,7 +18,7 @@ There will be a checklist at the end to help you track your progress. Tick an it
 
 ## Prerequisite Knowledge
 
-You need array indexes, `push`, `pop`, loops, object references, and the time/space distinctions from [Week 1](week-01.md). Sets and maps from [Week 2](week-02.md) help represent bracket categories. The “each item enters and leaves once” argument resembles the pointer accounting in [Week 4](week-04.md). Every JavaScript block below is a complete independent program; collection outputs use JSON so formatting is reproducible.
+You need array indexes, `push`, `pop`, and object references from [Arrays](week-17.md), plus loops and the time/space distinctions from [Algorithm Complexity](week-01.md). Sets and maps from [Week 2](week-02.md) help represent bracket categories. The “each item enters and leaves once” argument resembles the pointer accounting in [Week 4](week-04.md). Every JavaScript block below is a complete independent program; collection outputs use JSON so formatting is reproducible.
 
 ## Core Theory
 

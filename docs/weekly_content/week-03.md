@@ -21,7 +21,7 @@ There will be a checklist at the end of the module to complete your progress log
 
 ## Prerequisite Knowledge
 
-Review [Week 1](week-01.md) for arrays, references, mutation, and numeric sorting, and [Week 2](week-02.md) for the complement-Map alternative to pair search. You need to understand why copying an array protects its order but still consumes memory.
+Review [Arrays](week-17.md) for references, mutation, and numeric sorting, and [Hash Maps](week-02.md) for the complement-Map alternative to pair search. You need to understand why copying an array protects its order but still consumes memory.
 
 A pointer in an array example is simply an integer index. In a linked-chain example it is a reference to a node object. There is no manual memory-address arithmetic here. A node has a value and a `next` reference; null means there is no next node. Two nodes can store the same value while remaining distinct objects.
 
