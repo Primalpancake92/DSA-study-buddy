@@ -181,7 +181,10 @@ const exportTables = {
     practice: [
         'user_problem_progress',
         'problem_id, status, attempts_count, notes, last_attempted_at, solved_at, review_stage, next_review_at, updated_at'
-    ]
+    ],
+    sectionNotes: ['section_notes', 'module_id, section_id, content, version, updated_at'],
+    tutorConversations: ['tutor_conversations', 'id, module_id, section_id, created_at, updated_at'],
+    tutorMessages: ['tutor_messages', 'id, conversation_id, role, content, created_at']
 };
 export async function exportAccount(pool, userId) {
     return transaction(
@@ -210,7 +213,7 @@ export async function exportAccount(pool, userId) {
             };
             for (const [key, [table, columns]] of Object.entries(exportTables)) {
                 const result = await client.query(
-                    `SELECT ${columns} FROM ${table} WHERE user_id = $1`,
+                    `SELECT ${columns} FROM ${table} WHERE user_id = $1${key === 'sectionNotes' ? ' AND is_deleted = false' : ''}`,
                     [userId]
                 );
                 data[key] = result.rows.map((row) =>

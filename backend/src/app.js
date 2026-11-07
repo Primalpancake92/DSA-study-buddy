@@ -23,6 +23,8 @@ import { getSavedProgress, saveLessonProgress } from './progressService.js';
 import { recoveryEmailError } from '../../shared/recoveryEmail.js';
 import { createPracticeRouter } from './practiceRoutes.js';
 import { createSettingsRouter } from './settingsRoutes.js';
+import { createSectionNotesRouter } from './sectionNotesRoutes.js';
+import { createTutorRouter } from './tutorRoutes.js';
 
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) });
 validateEmailConfiguration();
@@ -929,6 +931,8 @@ app.post('/api/journal', requireAuth, csrfProtection, async (req, res, next) => 
 
 app.use('/api/practice', createPracticeRouter({ pool, requireAuth, csrfProtection }));
 app.use('/api/settings', createSettingsRouter({ pool, requireAuth, csrfProtection }));
+app.use('/api/section-notes', createSectionNotesRouter({ pool, requireAuth, csrfProtection }));
+app.use('/api/tutor', createTutorRouter({ pool, requireAuth, csrfProtection }));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
 app.use((error, _req, res, _next) => {
     console.error(

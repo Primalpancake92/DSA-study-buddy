@@ -1,0 +1,43 @@
+/* Native scrollbars: shared by the document, editors and overflow panels. */
+:root {
+    --scrollbar-track: var(--color-background);
+    --scrollbar-thumb: var(--color-control-border);
+    --scrollbar-active: var(--color-primary-hover);
+}
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+/* Chromium/Safari fallback. Standards-capable engines use the rules above. */
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+}
+*::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 2px solid var(--scrollbar-track);
+    border-radius: 10px;
+}
+*::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:active {
+    background: var(--scrollbar-active);
+}
+@media (forced-colors: active) {
+    * {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
+}
+@media (pointer: coarse) {
+    * {
+        scrollbar-width: auto;
+    }
+    *::-webkit-scrollbar {
+        width: 14px;
+        height: 14px;
+    }
+}

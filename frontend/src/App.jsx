@@ -20,6 +20,8 @@ import './styles/reading.css';
 import './styles/tokens.css';
 import './styles/theme.css';
 import './styles/preferences.css';
+import './styles/scrollbars.css';
+import { NotesSaveNotice } from './components/SectionNotes.jsx';
 
 const DashboardPage = lazy(() =>
     import('./pages/DashboardPage.jsx').then((module) => ({ default: module.DashboardPage }))
@@ -90,6 +92,7 @@ export default function App() {
         <AuthProvider>
             <AccountSettingsProvider>
                 <BrowserRouter>
+                    <NotesSaveNotice />
                     <Seo />
                     <Suspense
                         fallback={

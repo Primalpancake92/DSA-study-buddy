@@ -17,6 +17,8 @@ import {
 } from '../services/progressStore.js';
 import { completeLesson, reopenLesson } from '../services/progressStore.js';
 import { moduleProgress } from '../hooks/useLearningData.js';
+import { SectionNotes } from '../components/SectionNotes.jsx';
+import { TutorAssistant } from '../components/TutorAssistant.jsx';
 
 const legacySectionAliases = {
     'introduction-and-objectives': 'chapter-introduction',
@@ -253,7 +255,11 @@ export function LessonPage() {
                     checklist when you can explain the pattern without looking back.
                 </p>
                 {lesson.sections.map((section) => (
-                    <section className="lesson-section" id={section.id} key={section.id}>
+                    <section
+                        className="lesson-section"
+                        id={section.id}
+                        key={`${lesson.id}:${section.id}`}
+                    >
                         <h2>{section.title}</h2>
                         <LessonCompletionButton
                             item={lesson.lessons?.find((item) => item.sectionId === section.id)}
@@ -339,6 +345,15 @@ export function LessonPage() {
                                 })}
                             </div>
                         )}
+                        <SectionNotes
+                            moduleId={lesson.id}
+                            sectionId={
+                                lesson.lessons?.find((item) => item.sectionId === section.id)?.id ||
+                                `w${lesson.id}-section-${section.id}`
+                            }
+                            anchor={section.id}
+                            title={section.title}
+                        />
                     </section>
                 ))}
                 <nav className="chapter-pagination" aria-label="Adjacent modules">
@@ -352,6 +367,13 @@ export function LessonPage() {
                     )}
                 </nav>
             </main>
+            <TutorAssistant
+                lesson={lesson}
+                section={
+                    lesson.sections.find((section) => section.id === activeSection) ||
+                    lesson.sections[0]
+                }
+            />
             <aside className="lesson-right">
                 <div className="section-kicker">RESOURCES</div>
                 {lesson.resources.length ? (

@@ -61,6 +61,37 @@ export async function apiRequest(path, options = {}) {
     return payload;
 }
 
+// Streaming mutations reuse the same backend URL, cookie and CSRF cache.
+export async function apiStreamRequest(path, body, signal) {
+    requireApiBase();
+    const token = csrf || (await getCsrf());
+    signal?.throwIfAborted();
+    let response;
+    try {
+        response = await fetch(`${apiBase}${path}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'text/event-stream',
+                'X-CSRF-Token': token
+            },
+            body: JSON.stringify(body),
+            signal
+        });
+    } catch (error) {
+        if (signal?.aborted) throw error;
+        throw new Error('Unable to connect to the tutor. Check your connection and try again.');
+    }
+    if (!response.ok) await parseApiResponse(response);
+    if (!response.headers.get('content-type')?.includes('text/event-stream')) {
+        throw new Error(
+            'The tutor returned an unexpected response. Please reload the conversation.'
+        );
+    }
+    return response;
+}
+
 export const authApi = {
     me: () => apiRequest('/api/auth/me'),
     register: (data) =>
