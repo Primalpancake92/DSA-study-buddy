@@ -35,6 +35,9 @@ const RoadmapPage = lazy(() =>
 const ModulesPage = lazy(() =>
     import('./pages/ModulesPage.jsx').then((module) => ({ default: module.ModulesPage }))
 );
+const NotesPage = lazy(() =>
+    import('./pages/NotesPage.jsx').then((module) => ({ default: module.NotesPage }))
+);
 const AccountSettingsLayout = lazy(() =>
     import('./pages/account/AccountSettingsLayout.jsx').then((module) => ({
         default: module.AccountSettingsLayout
@@ -136,6 +139,8 @@ export default function App() {
                                     <Route path="/app/dashboard" element={<DashboardPage />} />
                                     <Route path="/app/roadmap" element={<RoadmapPage />} />
                                     <Route path="/app/modules" element={<ModulesPage />} />
+                                    <Route path="/notes" element={<NotesPage />} />
+                                    <Route path="/app/notes" element={<Navigate to="/notes" replace />} />
                                     <Route path="/app/weeks/:weekId" element={<LessonPage />} />
                                     <Route path="/app/settings" element={<AccountSettingsLayout />}>
                                         <Route index element={<Navigate to="profile" replace />} />

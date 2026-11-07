@@ -4,6 +4,7 @@ export const maxNoteLength = 20000;
 const entries = new Map();
 const listeners = new Set();
 let notice = null;
+let revision = 0;
 const draftPrefix = 'dsa-section-draft:';
 
 function message(error) {
@@ -163,6 +164,12 @@ export function createSectionNote({ moduleId, sectionId, api = sectionNotesApi, 
         save,
         remove,
         resolveConflict,
+        acceptRemote: (note) => {
+            // Listing responses must never replace in-flight edits or recovered drafts.
+            if (!active || state.dirty || state.loading || state.saving || state.deleting ||
+                note.version < state.version) return;
+            publish({ ...note, savedContent: note.content, loaded: true, error: '', conflict: false });
+        },
         retry: async () => {
             if (!state.loaded) await load();
             else if (!state.conflict) await save();
@@ -190,6 +197,7 @@ function storage() {
 }
 
 function updateNotice() {
+    revision += 1;
     const found = [...entries.values()].find((entry) => {
         const state = entry.controller.getSnapshot();
         return state.dirty && state.error;
@@ -223,7 +231,7 @@ export function getSectionNote(userId, moduleId, sectionId, anchor) {
                 else storage().removeItem(key);
             }
         });
-        entries.set(key, { controller, moduleId, anchor });
+        entries.set(key, { controller, userId, moduleId, sectionId, anchor });
         controller.subscribe(updateNotice);
     }
     return entries.get(key).controller;
@@ -250,6 +258,32 @@ export const subscribeNotesNotice = (callback) => {
     return () => listeners.delete(callback);
 };
 export const readNotesNotice = () => notice;
+export const readNotesRevision = () => revision;
+
+export function cachedSectionNotes(userId) {
+    return [...entries.values()]
+        .filter((entry) => entry.userId === userId)
+        .map(({ controller, moduleId, sectionId, anchor }) => ({
+            moduleId, sectionId, anchor, ...controller.getSnapshot()
+        }));
+}
+
+export async function refreshCachedSectionNotes(userId, notes) {
+    const remote = new Map(notes.map((note) => [`${note.moduleId}:${note.sectionId}`, note]));
+    const pending = [];
+    for (const entry of entries.values()) {
+        if (entry.userId !== userId) continue;
+        const note = remote.get(`${entry.moduleId}:${entry.sectionId}`);
+        if (note) entry.controller.acceptRemote(note);
+        else {
+            const state = entry.controller.getSnapshot();
+            if (state.loaded && !state.dirty && !state.saving && !state.deleting && state.exists) {
+                pending.push(entry.controller.load());
+            }
+        }
+    }
+    await Promise.all(pending);
+}
 
 export function retrySectionNotes() {
     for (const { controller } of entries.values()) {

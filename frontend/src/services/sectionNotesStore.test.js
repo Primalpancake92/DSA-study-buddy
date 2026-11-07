@@ -314,3 +314,21 @@ describe('section notes autosave', () => {
         expect(controller.getSnapshot().dirty).toBe(false);
     });
 });
+
+describe('library refresh reconciliation', () => {
+    it('accepts newer saved snapshots but never replaces dirty, saving, or newer local content', async () => {
+        const { controller } = setup();
+        controller.acceptRemote({ content: 'Library snapshot', version: 3, exists: true });
+        expect(controller.getSnapshot()).toMatchObject({ content: 'Library snapshot', loaded: true });
+        controller.acceptRemote({ content: 'Stale listing', version: 2, exists: true });
+        expect(controller.getSnapshot().content).toBe('Library snapshot');
+        controller.edit('Local draft');
+        controller.acceptRemote({ content: 'Another tab', version: 4, exists: true });
+        expect(controller.getSnapshot().content).toBe('Local draft');
+        const request = controller.save();
+        controller.acceptRemote({ content: 'Pending response', version: 5, exists: true });
+        expect(controller.getSnapshot().content).toBe('Local draft');
+        await request;
+        expect(controller.getSnapshot().content).toBe('Local draft');
+    });
+});

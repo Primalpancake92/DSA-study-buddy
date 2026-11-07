@@ -153,7 +153,7 @@ export function NotesSaveNotice() {
     return (
         <aside className="notes-save-notice" aria-label="Unsaved section notes">
             <p role="status">A section note is not saved. Your draft is retained in this tab.</p>
-            <Link to={`/app/weeks/${notice.moduleId}#${notice.anchor}`}>
+            <Link to={notice.anchor ? `/app/weeks/${notice.moduleId}#${notice.anchor}` : '/notes'}>
                 Return to the section’s My Notes
             </Link>
         </aside>

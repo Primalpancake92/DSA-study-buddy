@@ -139,6 +139,7 @@ export function AppLayout() {
                     <NavLink to="/app/dashboard">Dashboard</NavLink>
                     <NavLink to="/app/roadmap">Roadmap</NavLink>
                     <NavLink to="/app/modules">Modules</NavLink>
+                    <NavLink to="/notes">My Notes</NavLink>
                 </nav>
                 <AccountMenu user={user} onLogout={logout} />
             </header>

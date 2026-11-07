@@ -22,7 +22,7 @@ test('SPA fallback handles application routes but excludes API and asset request
     const match = new RegExp(`^${fallback.source}$`, 'i');
     for (const path of ['/app', '/app/dashboard', '/app/roadmap', '/app/modules',
         '/app/weeks/1', '/app/weeks/2', '/app/settings/profile', '/dashboard',
-        '/roadmap', '/lesson/2', '/login', '/unknown-route']) {
+        '/roadmap', '/lesson/2', '/notes', '/app/notes', '/login', '/unknown-route']) {
         assert.ok(match.test(path), `missing fallback for ${path}`);
     }
     for (const path of ['/api', '/api/health', '/api/missing', '/assets', '/assets/missing',

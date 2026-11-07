@@ -49,12 +49,13 @@ function request(
     method,
     sectionId,
     body,
-    { userId = 'alice', token = 'valid', moduleId = 2 } = {}
+    { userId = 'alice', token = 'valid', moduleId = 2, query = {} } = {}
 ) {
     return new Promise((resolve, reject) => {
         const req = {
             method,
-            url: `/${moduleId}/${sectionId}`,
+            url: sectionId === null ? '/' : `/${moduleId}/${sectionId}`,
+            query,
             body,
             session: userId ? { userId } : {},
             headers: { 'x-csrf-token': token },
@@ -131,7 +132,7 @@ test('router authenticates every operation and protects both mutations with CSRF
     assert.throws(() => createSectionNotesRouter({ pool, requireAuth: auth }));
 });
 
-test('router validates strict payloads and section identity before any database access', async () => {
+test('router validates payloads and checks ownership for retired section identities', async () => {
     const { pool, router } = setup();
     for (const body of [
         null,
@@ -148,9 +149,11 @@ test('router validates strict payloads and section identity before any database 
         (await request(router, 'DELETE', target, { version: 0, content: '' })).statusCode,
         400
     );
+    assert.equal(pool.calls.length, 0);
     assert.equal((await request(router, 'GET', 'w2-section-invented')).statusCode, 404);
     assert.equal((await request(router, 'GET', target, null, { moduleId: 999 })).statusCode, 404);
-    assert.equal(pool.calls.length, 0);
+    assert.equal(pool.calls.length, 2);
+    assert.ok(pool.calls.every(({ sql, params }) => sql.startsWith('SELECT') && params[0] === 'alice'));
 });
 
 test('atomic saves isolate owners, sections and modules; deletion preserves version against stale resurrection', async () => {
@@ -307,4 +310,67 @@ test('migration is idempotent, owner cascading and constrained; export projects 
     assert.match(query.sql, /WHERE user_id = \$1 AND is_deleted = false/);
     assert.deepEqual(query.params, ['alice']);
     assert.equal(JSON.stringify(data).includes('secret'), false);
+});
+
+test('listing authenticates, validates pagination, scopes one parameterized query, and resolves syllabus metadata', async () => {
+    const calls = [];
+    const lesson = await loadLesson(17);
+    const rows = [
+        { module_id: 17, section_id: lesson.lessons[0].id, content: '<script>text</script>', version: 3,
+            created_at: '2026-01-01', updated_at: '2026-02-01', is_deleted: false },
+        { module_id: 17, section_id: 'w17-section-retired', content: 'Keep me', version: 1,
+            created_at: '2026-01-01', updated_at: '2026-02-01', is_deleted: false }
+    ];
+    const pool = { async query(sql, params) {
+        calls.push({ sql, params });
+        return { rows: params[0] === 'alice' ? rows : [] };
+    } };
+    const router = createSectionNotesRouter({ pool, requireAuth: auth, csrfProtection: csrf });
+    assert.equal((await request(router, 'GET', null, null, { userId: null })).statusCode, 401);
+    for (const query of [{ limit: '201' }, { limit: '-1' }, { limit: '1.5' }, { userId: 'bob' },
+        { afterModule: 'bad' }, { afterSection: 'a'.repeat(121) }]) {
+        assert.equal((await request(router, 'GET', null, null, { query })).statusCode, 400);
+    }
+    assert.equal(calls.length, 0);
+    const first = await request(router, 'GET', null, null, { query: { limit: '1' } });
+    assert.equal(first.statusCode, 200);
+    assert.equal(first.headers['cache-control'], 'private, no-store');
+    assert.equal(first.body.notes.length, 1);
+    assert.equal(first.body.notes[0].sectionTitle, lesson.sections[0].title);
+    assert.equal(first.body.notes[0].anchor, lesson.sections[0].id);
+    assert.equal(first.body.notes[0].sectionOrder, 0);
+    assert.equal(first.body.notes[0].createdAt, '2026-01-01');
+    assert.deepEqual(first.body.nextCursor, { moduleId: 17, sectionId: lesson.lessons[0].id });
+    assert.equal(first.body.modules.find((module) => module.id === 17).sequence, 2);
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].params, ['alice', 0, '', 2]);
+    assert.match(calls[0].sql, /WHERE user_id = \$1 AND is_deleted = false/);
+    assert.match(calls[0].sql, /\(module_id, section_id\) > \(\$2, \$3\)/);
+    assert.match(calls[0].sql, /ORDER BY module_id, section_id LIMIT \$4/);
+    const all = await request(router, 'GET', null);
+    assert.equal(all.body.notes[1].anchor, null);
+    assert.match(all.body.notes[1].sectionTitle, /Unavailable section/);
+    assert.equal(all.body.nextCursor, null);
+    await request(router, 'GET', null, null, {
+        query: { afterModule: '17', afterSection: lesson.lessons[0].id, limit: '1' }
+    });
+    assert.deepEqual(calls.at(-1).params, ['alice', 17, lesson.lessons[0].id, 2]);
+    assert.deepEqual((await request(router, 'GET', null, null, { userId: 'bob' })).body.notes, []);
+    pool.query = async () => { throw new Error('private data'); };
+    const failure = await request(router, 'GET', null);
+    assert.equal(failure.statusCode, 500);
+    assert.ok(!JSON.stringify(failure.body).includes('private data'));
+});
+
+test('retired notes remain editable and deletable only by their owner', async () => {
+    const { router, pool } = setup();
+    const sectionId = 'w2-section-retired';
+    pool.rows.set(JSON.stringify(['alice', 2, sectionId]), {
+        content: 'Archived lesson', version: 4, is_deleted: false, updated_at: '2026-01-01'
+    });
+    assert.equal((await request(router, 'GET', sectionId)).body.note.content, 'Archived lesson');
+    assert.equal((await request(router, 'GET', sectionId, null, { userId: 'bob' })).statusCode, 404);
+    assert.equal((await request(router, 'PUT', sectionId, { content: 'Revised', version: 4 })).body.note.version, 5);
+    assert.equal((await request(router, 'DELETE', sectionId, { version: 5 })).body.note.exists, false);
+    assert.equal((await request(router, 'PUT', sectionId, { content: 'stale', version: 4 })).statusCode, 404);
 });
