@@ -48,6 +48,8 @@
     max-height: calc(100dvh - 130px);
     height: min(680px, calc(100dvh - 130px));
     padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
     color: var(--color-text-secondary);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -63,6 +65,8 @@
     background: var(--color-overlay);
 }
 .tutor-header {
+    flex: 0 0 auto;
+    overflow-wrap: anywhere;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -153,10 +157,10 @@
 }
 .tutor-error {
     color: var(--color-error);
-    padding: 8px 20px;
+    padding: 8px 0;
 }
 .tutor-notice {
-    padding: 8px 20px;
+    padding: 8px 0;
     color: var(--color-success);
 }
 .tutor-toolbar,
@@ -167,17 +171,34 @@
     padding: 0;
 }
 .tutor-actions {
-    padding: 10px 20px;
+    gap: 8px;
+    align-items: flex-start;
+}
+.tutor-panel button {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.tutor-actions button {
+    min-height: 32px;
+    line-height: 1.4;
+}
+.tutor-error button {
+    margin: 4px;
 }
 .tutor-toolbar small {
     width: 100%;
 }
 .tutor-history {
     overflow: auto;
-    min-height: 96px;
-    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    flex: 1 1 0;
+    overflow-anchor: none;
     padding: 20px;
     overscroll-behavior: contain;
+}
+.tutor-history:focus-visible {
+    outline-offset: -3px;
 }
 .tutor-message {
     display: flex;
@@ -253,12 +274,19 @@
     color: var(--color-text-muted);
 }
 .tutor-compose {
-    padding: 0 20px 16px;
-    display: grid;
-    gap: 8px;
-    max-height: 50%;
-    flex-shrink: 0;
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    max-height: 65%;
+    flex: 0 1 auto;
     overflow-y: auto;
+}
+.tutor-compose > * {
+    flex-shrink: 0;
+    min-width: 0;
 }
 .tutor-input-row {
     display: flex;
@@ -271,7 +299,11 @@
     max-height: 120px;
     border-radius: 22px;
     padding: 11px 16px;
-    resize: vertical;
+    resize: none;
+    overflow-y: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    box-sizing: border-box;
     line-height: 20px;
 }
 .tutor-panel .tutor-submit {
@@ -322,6 +354,7 @@
 }
 .tutor-compose textarea {
     width: 100%;
+    box-sizing: border-box;
     min-height: 60px;
     resize: vertical;
     background: var(--color-background);
@@ -346,12 +379,13 @@
     width: auto;
     margin-top: 2px;
 }
-@media (max-width: 1100px) {
+@media (max-width: 767px) {
     .tutor-panel {
-        inset: 0;
+        inset: var(--tutor-viewport-top, 0px) 0 auto;
         width: 100%;
-        height: 100dvh;
+        height: var(--tutor-viewport-height, 100dvh);
         max-height: 100dvh;
+        padding-top: env(safe-area-inset-top);
         border-radius: 0;
     }
     .tutor-launcher {
@@ -367,11 +401,8 @@
     .tutor-history {
         padding: 16px;
     }
-    .tutor-actions {
-        padding: 8px 16px;
-    }
     .tutor-compose {
-        padding: 0 16px 16px;
+        padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
     }
     .tutor-user {
         margin-left: 24px;
@@ -380,5 +411,19 @@
 @media (prefers-reduced-motion: reduce) {
     .tutor-launcher {
         transition: none;
+    }
+}
+
+@media (max-height: 500px) and (min-width: 768px) {
+    .tutor-panel {
+        top: 12px;
+        bottom: 12px;
+        height: calc(100dvh - 24px);
+        max-height: calc(100dvh - 24px);
+    }
+}
+@media (max-width: 767px) {
+    .tutor-compose textarea {
+        font-size: 16px;
     }
 }

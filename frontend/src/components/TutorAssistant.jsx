@@ -99,11 +99,12 @@ function TutorPanel({
     const launcher = useRef(null);
     const input = useRef(null);
     const history = useRef(null);
+    const followLatest = useRef(true);
     const courseUrl = `/app/weeks/${moduleId}#${anchor}`;
     useEffect(() => {
         if (!open) return;
         const element = dialog.current;
-        const media = window.matchMedia('(max-width: 1100px)');
+        const media = window.matchMedia('(max-width: 767px)');
         const display = () => {
             element.close();
             if (media.matches) element.showModal();
@@ -121,10 +122,45 @@ function TutorPanel({
     }, [open, chat.controller]);
     useEffect(() => {
         const element = history.current;
-        if (element) element.scrollTop = element.scrollHeight;
-    }, [chat.messages, chat.partial, chat.pendingQuestion]);
+        if (element && followLatest.current) element.scrollTop = element.scrollHeight;
+    }, [open, chat.messages, chat.partial, chat.pendingQuestion, chat.error, chat.sending, notice]);
+    useEffect(() => {
+        if (!open) return;
+        const viewport = window.visualViewport;
+        const resize = () => {
+            dialog.current?.style.setProperty('--tutor-viewport-height', `${viewport?.height ?? window.innerHeight}px`);
+            dialog.current?.style.setProperty('--tutor-viewport-top', `${viewport?.offsetTop ?? 0}px`);
+        };
+        resize();
+        viewport?.addEventListener('resize', resize);
+        viewport?.addEventListener('scroll', resize);
+        return () => {
+            viewport?.removeEventListener('resize', resize);
+            viewport?.removeEventListener('scroll', resize);
+        };
+    }, [open]);
+    useEffect(() => {
+        const element = input.current;
+        if (!open || !element) return;
+        const resize = () => {
+            element.style.height = 'auto';
+            element.style.height = `${Math.min(element.scrollHeight, 120)}px`;
+        };
+        resize();
+        let width = element.clientWidth;
+        const observer = new ResizeObserver(() => {
+            if (element.clientWidth !== width) {
+                width = element.clientWidth;
+                resize();
+            }
+        });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [message, open]);
     async function send(event, mode = 'tutor', question = message) {
         event?.preventDefault();
+        if (!question.trim() || !chat.loaded || !chat.enabled || chat.loading || chat.sending) return;
+        followLatest.current = true;
         const success = await chat.controller.send({
             message: question.trim(),
             code,
@@ -207,6 +243,12 @@ function TutorPanel({
                 <div
                     ref={history}
                     className="tutor-history"
+                    aria-label="Conversation history"
+                    tabIndex={0}
+                    onScroll={(event) => {
+                        const element = event.currentTarget;
+                        followLatest.current = element.scrollHeight - element.scrollTop - element.clientHeight < 48;
+                    }}
                     aria-busy={chat.sending || chat.loading}
                 >
                     {chat.loading && <p role="status">Loading history…</p>}
@@ -257,33 +299,40 @@ function TutorPanel({
                         </TutorMessage>
                     )}
                     {chat.sending && <p role="status">Thinking / receiving response…</p>}
-                </div>
-                {chat.error && (
-                    <p className="tutor-error" role="alert">
-                        {chat.error}
-                    </p>
-                )}
-                {notice && (
-                    <p className="tutor-notice" role="status">
-                        {notice}
-                    </p>
-                )}
-                <div className="tutor-actions">
-                    {actions.map((action) => (
-                        <button
-                            key={action.label}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                                setMessage(action.prompt);
-                                input.current?.focus();
-                            }}
-                        >
-                            {action.label}
-                        </button>
-                    ))}
+                    {chat.error && (
+                        <p className="tutor-error" role="alert">
+                            {chat.error}
+                            <button
+                                type="button"
+                                disabled={chat.loading || chat.sending}
+                                onClick={() => chat.controller.load()}
+                            >
+                                Reload history
+                            </button>
+                        </p>
+                    )}
+                    {notice && (
+                        <p className="tutor-notice" role="status">
+                            {notice}
+                        </p>
+                    )}
                 </div>
                 <form className="tutor-compose" onSubmit={send}>
+                    <div className="tutor-actions">
+                        {actions.map((action) => (
+                            <button
+                                key={action.label}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => {
+                                    setMessage(action.prompt);
+                                    input.current?.focus();
+                                }}
+                            >
+                                {action.label}
+                            </button>
+                        ))}
+                    </div>
                     <div className="tutor-input-row">
                         <label className="tutor-sr-only" htmlFor="tutor-question">
                             Your question
