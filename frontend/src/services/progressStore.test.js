@@ -6,6 +6,7 @@ import {
     loadProgressFromApi,
     toggleCheckpoint,
     completeLesson,
+    reopenLesson,
     markLessonStarted,
     subscribeToProgress
 } from './progressStore.js';
@@ -32,6 +33,60 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('persisted lesson checkpoints', () => {
+    it('reopens a lesson only after saving and preserves other completed lessons', async () => {
+        apiRequest.mockResolvedValueOnce({
+            completedWeeks: [1],
+            completedCheckpoints: ['lesson', 'other'],
+            startedLessons: []
+        });
+        await loadProgressFromApi();
+        const pending = deferred();
+        apiRequest.mockReturnValueOnce(pending.promise);
+        reopenLesson('lesson');
+        reopenLesson('lesson');
+        expect(apiRequest).toHaveBeenCalledTimes(2);
+        expect(apiRequest).toHaveBeenLastCalledWith('/api/progress/lessons/lesson', {
+            method: 'PATCH',
+            body: JSON.stringify({ completed: false })
+        });
+        expect(readProgress().completedCheckpoints).toEqual(['lesson', 'other']);
+        pending.resolve({
+            completedWeeks: [],
+            completedCheckpoints: ['other'],
+            startedLessons: ['lesson']
+        });
+        await settle();
+        expect(readProgress()).toMatchObject({
+            completedWeeks: [],
+            completedCheckpoints: ['other'],
+            startedLessons: ['lesson'],
+            saving: false
+        });
+        apiRequest.mockResolvedValueOnce({
+            completedWeeks: [],
+            completedCheckpoints: ['other'],
+            startedLessons: ['lesson']
+        });
+        await loadProgressFromApi();
+        expect(readProgress().completedCheckpoints).toEqual(['other']);
+    });
+
+    it('keeps completion intact and reports a failed undo', async () => {
+        apiRequest.mockResolvedValueOnce({
+            completedWeeks: [1],
+            completedCheckpoints: ['lesson'],
+            startedLessons: []
+        });
+        await loadProgressFromApi();
+        apiRequest.mockRejectedValueOnce(new Error('private database error'));
+        reopenLesson('lesson');
+        await settle();
+        expect(readProgress().completedCheckpoints).toEqual(['lesson']);
+        expect(readProgress().completedWeeks).toEqual([1]);
+        expect(readProgress().error).toContain('could not be saved');
+        expect(readProgress().error).not.toContain('database');
+    });
+
     it('applies the committed server snapshot and never repeats an explicit completion', async () => {
         apiRequest.mockResolvedValueOnce({
             completedWeeks: [],

@@ -15,7 +15,7 @@ import {
     markLessonStarted,
     toggleCheckpoint
 } from '../services/progressStore.js';
-import { completeLesson } from '../services/progressStore.js';
+import { completeLesson, reopenLesson } from '../services/progressStore.js';
 import { moduleProgress } from '../hooks/useLearningData.js';
 
 const legacySectionAliases = {
@@ -29,7 +29,7 @@ const prefersReducedMotion = () =>
     document.documentElement.dataset.reducedMotion === 'true' ||
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function LessonCompletionButton({ item, weekId, progress }) {
+export function LessonCompletionButton({ item, weekId, progress }) {
     if (!item) {
         return null;
     }
@@ -39,13 +39,14 @@ function LessonCompletionButton({ item, weekId, progress }) {
         <button
             className="button dark"
             type="button"
-            disabled={!progress.ready || progress.saving || progress.reloading || done}
-            onClick={() => completeLesson(item.id)}
+            disabled={!progress.ready || progress.saving || progress.reloading}
+            aria-pressed={done}
+            onClick={() => (done ? reopenLesson(item.id) : completeLesson(item.id))}
         >
-            {done
-                ? 'Lesson completed ✓'
-                : progress.pendingId === item.id
-                  ? 'Saving…'
+            {progress.pendingId === item.id
+                ? 'Saving…'
+                : done
+                  ? 'Lesson completed ✓ — Mark incomplete'
                   : 'Mark lesson complete'}
         </button>
     );

@@ -110,6 +110,10 @@ export function completeLesson(id) {
     return saveCheckpoint(id, true);
 }
 
+export function reopenLesson(id) {
+    return saveCheckpoint(id, false);
+}
+
 function saveCheckpoint(id, completed) {
     if (!progressCache.ready || progressCache.saving || progressCache.sessionExpired) {
         return progressCache;
