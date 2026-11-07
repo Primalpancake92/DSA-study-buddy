@@ -69,13 +69,12 @@
     border-radius: 12px;
     padding: 0;
     overflow: hidden;
-    width: 100%;
     max-width: 100%;
-    height: min(680px, calc(100dvh - 130px));
+    height: min(760px, calc(100dvh - 130px));
     max-height: calc(100dvh - 130px);
     position: fixed;
     inset: auto 24px 102px auto;
-    width: min(600px, calc(100vw - 48px));
+    width: min(680px, calc(100vw - 48px));
     z-index: 50;
     box-shadow: var(--shadow-raised);
     margin: 0;

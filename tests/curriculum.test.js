@@ -99,6 +99,7 @@ test('Markdown routes retain authentication and stable lesson URLs', async () =>
     assert.match(backend, /app\.get\('\/api\/weeks\/:weekNumber', requireAuth/);
     assert.match(backend, /app\.get\('\/api\/roadmap', requireAuth/);
     assert.match(frontend, /path="\/app\/weeks\/:weekId"/);
-    assert.match(frontend, /path="\/lesson\/:weekId"[^]*?to="\/app\/weeks\/:weekId"/);
+    assert.match(frontend, /path="\/lesson\/:weekId"[^]*?element={<LegacyLessonRedirect/);
+    assert.ok(frontend.includes("to={`/app/weeks/${weekId}`}"));
     assert.doesNotMatch(backend, /express\.static\([^\n]*(?:weekly_content|docs)/);
 });

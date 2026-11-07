@@ -65,13 +65,18 @@ for (const path of [
     '/register',
     '/app/dashboard',
     '/app/roadmap',
+    '/app/modules',
     '/app/weeks/1',
+    '/app/weeks/2',
+    '/app/settings/profile',
+    '/lesson/2',
     '/unknown-route'
 ]) {
     await check(`SPA refresh rewrite ${path}`, async () => {
         const result = await get(path);
         assertHtml(result, path);
-        assert.match(result.body, /app-shell|root/, `${path} did not resolve to the app shell`);
+        assert.match(result.body, /<div id="root"><\/div>/, `${path} did not resolve to the private app shell`);
+        assert.match(result.body, /name="robots" content="noindex,nofollow"/);
     });
 }
 
@@ -89,8 +94,18 @@ await check('critical static assets', async () => {
             200,
             `${assetPath} returned HTTP ${asset.response.status}`
         );
+        assert.doesNotMatch(asset.response.headers.get('content-type') || '', /text\/html/i);
+        assert.match(asset.response.headers.get('content-type') || '', assetPath.endsWith('.css') ? /text\/css/i : /javascript/i);
     }
 });
+
+for (const path of ['/api/missing-route', '/assets/missing.js', '/missing.css']) {
+    await check(`not an SPA document ${path}`, async () => {
+        const result = await get(path);
+        assert.equal(result.response.status, 404);
+        assert.doesNotMatch(result.body, /<div id="root">/);
+    });
+}
 
 for (const path of ['/robots.txt', '/sitemap.xml']) {
     await check(`SEO file ${path}`, async () => {

@@ -1,0 +1,32 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "framework": "vite",
+    "installCommand": "npm ci --prefix frontend",
+    "buildCommand": "npm --prefix frontend run build",
+    "outputDirectory": "frontend/dist",
+    "rewrites": [
+        {
+            "source": "/",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/curriculum",
+            "destination": "/curriculum/index.html"
+        },
+        {
+            "source": "/((?!api(?:/|$)|assets(?:/|$)|.*\\.[^/]+$).*)",
+            "destination": "/app-shell.html"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/app-shell.html",
+            "headers": [
+                {
+                    "key": "X-Robots-Tag",
+                    "value": "noindex, nofollow"
+                }
+            ]
+        }
+    ]
+}

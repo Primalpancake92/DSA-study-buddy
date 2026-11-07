@@ -88,27 +88,32 @@ export function AccountSettingsLayout() {
                 <p>Make your learning space work for you.</p>
             </header>
             <div className="account-settings-layout">
-                <nav className="account-settings-nav" aria-label="Settings navigation">
-                    {groups.map(([group, links]) => (
-                        <div className="settings-nav-group" key={group}>
-                            <h2>{group}</h2>
-                            <div>
-                                {links.map(([path, label]) => (
-                                    <NavLink
-                                        key={path}
-                                        to={`/app/settings/${path}`}
-                                        className={({ isActive }) =>
-                                            `settings-nav-link${isActive ? ' is-active' : ''}`
-                                        }
-                                    >
-                                        <SettingsIcon name={path} />
-                                        {label}
-                                    </NavLink>
-                                ))}
+                <aside className="account-settings-sidebar">
+                    <nav className="account-settings-nav" aria-label="Settings navigation">
+                        {groups.map(([group, links]) => (
+                            <div className="settings-nav-group" key={group}>
+                                <h2>{group}</h2>
+                                <div>
+                                    {links.map(([path, label]) => (
+                                        <NavLink
+                                            key={path}
+                                            to={`/app/settings/${path}`}
+                                            className={({ isActive }) =>
+                                                `settings-nav-link${isActive ? ' is-active' : ''}`
+                                            }
+                                        >
+                                            <SettingsIcon name={path} />
+                                            {label}
+                                        </NavLink>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </nav>
+                        ))}
+                    </nav>
+                    <Link className="back-link settings-dashboard-link" to="/app/dashboard">
+                        ← Back to dashboard
+                    </Link>
+                </aside>
                 <div className="account-settings-content" aria-busy={loading}>
                     {loading && <p role="status">Loading settings…</p>}
                     {error && (
@@ -124,9 +129,6 @@ export function AccountSettingsLayout() {
                     <Outlet />
                 </div>
             </div>
-            <Link className="back-link settings-dashboard-link" to="/app/dashboard">
-                ← Back to dashboard
-            </Link>
         </div>
     );
 }

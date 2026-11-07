@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { Seo } from './seo/Seo.jsx';
 import { AuthProvider, useAuth } from './components/AuthProvider.jsx';
@@ -81,6 +81,11 @@ const DataPrivacySettings = lazy(() =>
     }))
 );
 
+function LegacyLessonRedirect() {
+    const { weekId } = useParams();
+    return <Navigate to={`/app/weeks/${weekId}`} replace />;
+}
+
 function GuestOnly() {
     const { user, loading } = useAuth();
     if (loading) return <div className="auth-loading">Loading…</div>;
@@ -161,7 +166,7 @@ export default function App() {
                                     />
                                     <Route
                                         path="/lesson/:weekId"
-                                        element={<Navigate to="/app/weeks/:weekId" replace />}
+                                        element={<LegacyLessonRedirect />}
                                     />
                                     <Route
                                         path="/dashboard"
@@ -169,6 +174,18 @@ export default function App() {
                                     />
                                 </Route>
                             </Route>
+                            <Route
+                                path="*"
+                                element={
+                                    <div className="page">
+                                        <h1>Page not found</h1>
+                                        <p>The page you requested does not exist.</p>
+                                        <Link className="button primary" to="/">
+                                            Return home
+                                        </Link>
+                                    </div>
+                                }
+                            />
                         </Routes>
                     </Suspense>
                 </BrowserRouter>

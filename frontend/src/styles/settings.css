@@ -22,6 +22,12 @@
     gap: 48px;
     align-items: start;
 }
+.account-settings-sidebar {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    gap: 28px;
+}
 .account-settings-nav {
     width: 240px;
     display: flex;
@@ -71,7 +77,8 @@
 }
 .settings-dashboard-link {
     display: inline-block;
-    margin-top: 32px;
+    align-self: flex-start;
+    margin-top: 0;
 }
 .account-settings-content {
     min-width: 0;
@@ -269,7 +276,8 @@
     border: 0;
 }
 .account-settings-content :where(input, select, button):focus-visible,
-.settings-nav-link:focus-visible {
+.settings-nav-link:focus-visible,
+.settings-dashboard-link:focus-visible {
     outline: 2px solid var(--color-secondary);
     outline-offset: 3px;
 }

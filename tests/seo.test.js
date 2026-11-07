@@ -48,7 +48,7 @@ test('SEO production build serves only existing public previews and a separate e
         [
             ['/', '/index.html'],
             ['/curriculum', '/curriculum/index.html'],
-            ['/(.*)', '/app-shell.html']
+            ["/((?!api(?:/|$)|assets(?:/|$)|.*\\.[^/]+$).*)", '/app-shell.html']
         ]
     );
 });

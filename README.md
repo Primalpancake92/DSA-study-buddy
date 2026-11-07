@@ -61,3 +61,42 @@ The importer expects `README.md`, `STUDY-PLAYBOOK.md`, `weeks/01.md` through `we
 
 See [Resend production setup](docs/resend-production.md) for Render configuration, sender-domain verification, retry behaviour and the manual deployment checklist.
 
+
+### Frontend direct links and refreshes (Vercel)
+
+Production frontend hosting is Vercel; Render serves the separate API. Neither the
+Render web-service configuration nor the Railway API configuration hosts the SPA.
+
+The Vercel configuration now explicitly runs the complete build, including the
+prerender step that creates `app-shell.html`. There are equivalent configurations
+for either project root:
+
+| Vercel Root Directory | Configuration | Build command | Output Directory |
+| --- | --- | --- | --- |
+| `frontend` (recommended) | [frontend/vercel.json](frontend/vercel.json) | `npm run build` | `dist` |
+| repository root | [vercel.json](vercel.json) | `npm --prefix frontend run build` | `frontend/dist` |
+
+For a `frontend` root, enable access to source files outside the Root Directory:
+this application imports shared curriculum/settings modules from its parent.
+Do not deploy `frontend/dist` as the project root or override the build with only
+`vite build`: that omits the private SPA shell. Vercel reads the config in its
+selected project root, not arbitrary nested configs.
+
+The public `/` and `/curriculum` paths retain their prerendered pages. Other
+extensionless frontend URLs, including `/app/dashboard`, `/app/modules`,
+`/app/weeks/1`, `/app/weeks/2`, and `/app/settings/profile`, rewrite internally to
+`/app-shell.html`. Section links use fragments such as `/app/weeks/2#core-theory`;
+fragments are handled by the browser, not the host. Unknown frontend routes render
+the application's Not Found screen. `/api`, `/api/*`, `/assets/*`, and file paths
+are excluded from the SPA fallback, so missing assets remain real 404s.
+
+Keep `VITE_API_BASE_URL` set to the existing backend origin and `VITE_SITE_URL` set
+to the frontend origin in the appropriate Vercel environment. API requests remain
+absolute requests to that backend; there is no new API proxy. Unknown backend
+API endpoints continue returning JSON 404 responses.
+
+Redeploy the frontend after merging these changes. Confirm the deployment log runs
+both Vite and `scripts/prerender.mjs`, and that `app-shell.html` exists in the output.
+Run `VERCEL_DEPLOYMENT_URL=https://your-deployment.vercel.app npm run test:vercel`
+after deployment, then check signed-in direct navigation and refreshes on Modules 1
+and 2. No backend redeployment or database changes are required for this fix.
