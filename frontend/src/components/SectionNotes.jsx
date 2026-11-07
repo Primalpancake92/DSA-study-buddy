@@ -8,12 +8,12 @@ import {
 } from '../services/sectionNotesStore.js';
 import '../styles/section-notes.css';
 
-export function SectionNotes({ moduleId, sectionId, anchor, title }) {
+export function SectionNotes({ moduleId, sectionId, anchor, title, embedded = false }) {
     const [open, setOpen] = useState(false);
     const panelId = useId();
     const editorId = useId();
     const statusId = useId();
-    const note = useSectionNotes(moduleId, sectionId, anchor, open);
+    const note = useSectionNotes(moduleId, sectionId, anchor, embedded || open);
     const busy = note.loading || note.deleting;
     const showEmptyState =
         note.loaded && !note.loading && !note.exists && note.content.trim().length === 0;
@@ -28,17 +28,19 @@ export function SectionNotes({ moduleId, sectionId, anchor, title }) {
 
     return (
         <div className="section-notes">
-            <button
-                type="button"
-                className="section-notes-toggle"
-                aria-expanded={open}
-                aria-controls={panelId}
-                onClick={() => setOpen((value) => !value)}
-            >
-                My Notes <span aria-hidden="true">{open ? '−' : '+'}</span>
-                <span className="sr-only"> for {title}</span>
-            </button>
-            {open && (
+            {!embedded && (
+                <button
+                    type="button"
+                    className="section-notes-toggle"
+                    aria-expanded={open}
+                    aria-controls={panelId}
+                    onClick={() => setOpen((value) => !value)}
+                >
+                    My Notes <span aria-hidden="true">{open ? '−' : '+'}</span>
+                    <span className="sr-only"> for {title}</span>
+                </button>
+            )}
+            {(embedded || open) && (
                 <div id={panelId} className="section-notes-panel">
                     <label htmlFor={editorId}>Personal notes for {title}</label>
                     <p>

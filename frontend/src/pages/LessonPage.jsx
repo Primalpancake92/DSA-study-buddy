@@ -18,8 +18,8 @@ import {
 } from '../services/progressStore.js';
 import { completeLesson, reopenLesson } from '../services/progressStore.js';
 import { moduleProgress } from '../hooks/useLearningData.js';
-import { SectionNotes } from '../components/SectionNotes.jsx';
-import { TutorAssistant } from '../components/TutorAssistant.jsx';
+import { LearningTools } from '../components/LearningTools.jsx';
+import '../styles/learning-workspace.css';
 
 const legacySectionAliases = {
     'introduction-and-objectives': 'chapter-introduction',
@@ -27,10 +27,6 @@ const legacySectionAliases = {
     'javascript-implementation': 'javascript-implementations',
     'problem-solving-patterns': 'interview-and-leetcode-pattern-recognition'
 };
-
-const prefersReducedMotion = () =>
-    document.documentElement.dataset.reducedMotion === 'true' ||
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function LessonCompletionButton({ item, weekId, progress }) {
     if (!item) {
@@ -104,17 +100,27 @@ export function LessonPage() {
         const sections = lesson.sections
             .map(({ id }) => document.getElementById(id))
             .filter(Boolean);
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const visible = entries
-                    .filter((entry) => entry.isIntersecting)
-                    .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-                if (visible[0]) setActiveSection(visible[0].target.id);
-            },
-            { rootMargin: '-96px 0px -55% 0px', threshold: [0, 0.25, 0.75] }
-        );
-        sections.forEach((element) => observer.observe(element));
-        return () => observer.disconnect();
+        let frame;
+        const selectSection = () => {
+            // Select the last heading above a stable reading line, not whichever
+            // intersection entry happened to change most recently.
+            const line = Math.min(160, window.innerHeight * 0.25);
+            const selected = [...sections].reverse().find(
+                (element) => element.getBoundingClientRect().top <= line
+            ) || sections[0];
+            if (selected) setActiveSection(selected.id);
+        };
+        const onScroll = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(selectSection);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        return () => {
+            cancelAnimationFrame(frame);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+        };
     }, [lesson]);
     useEffect(() => {
         if (!location.hash || !lesson) return;
@@ -124,7 +130,7 @@ export function LessonPage() {
         if (target) {
             setActiveSection(target.id);
             target.scrollIntoView({
-                behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+                behavior: 'instant',
                 block: 'start'
             });
         }
@@ -178,252 +184,242 @@ export function LessonPage() {
         navigate({ pathname: location.pathname, hash: `#${id}` });
     };
     return (
-        <div className="lesson-layout">
-            <aside className="lesson-sidebar">
-                <Link className="back-link" to="/app/roadmap">
-                    ← Roadmap
-                </Link>
-                <div className="lesson-week">
-                    MODULE {String(lesson.sequence).padStart(2, '0')}{' '}
-                    <span>of {lesson.moduleCount}</span>
-                </div>
-                <h2>{lesson.title}</h2>
-                <div className="lesson-progress">
-                    <div>
-                        <span>MODULE PROGRESS</span>
-                        <strong>{completion.percentage}%</strong>
+        <div className="learning-shell">
+            <div className="lesson-layout learning-layout">
+                <aside className="lesson-sidebar">
+                    <Link className="back-link" to="/app/roadmap">
+                        ← Roadmap
+                    </Link>
+                    <div className="lesson-week">
+                        MODULE {String(lesson.sequence).padStart(2, '0')}{' '}
+                        <span>of {lesson.moduleCount}</span>
                     </div>
-                    <div className="progress-bar">
-                        <i style={{ width: `${completion.percentage}%` }} />
+                    <h2>{lesson.title}</h2>
+                    <div className="lesson-progress">
+                        <div>
+                            <span>MODULE PROGRESS</span>
+                            <strong>{completion.percentage}%</strong>
+                        </div>
+                        <div className="progress-bar">
+                            <i style={{ width: `${completion.percentage}%` }} />
+                        </div>
                     </div>
-                </div>
-                <nav className="topic-list" aria-label="Module sections">
-                    {lesson.sections.map((section, index) => (
-                        <a
-                            aria-current={activeSection === section.id ? 'location' : undefined}
-                            className={activeSection === section.id ? 'selected' : ''}
-                            href={`#${section.id}`}
-                            onClick={(event) => handleSectionClick(event, section.id)}
-                            key={section.id}
-                        >
-                            <span>{String(index + 1).padStart(2, '0')}</span>
-                            {section.title}
-                        </a>
-                    ))}
-                </nav>
-            </aside>
-            <main className="lesson-main">
-                <div className="eyebrow">
-                    MODULE {String(lesson.sequence).padStart(2, '0')} · SELF-PACED
-                </div>
-                <h1>{lesson.title}</h1>
-                {settings.learning.showEstimates && (
-                    <p className="lesson-reading-estimate">
-                        Reading estimate: {Math.ceil(readingWords / 220)} min at 220 words/minute;
-                        coding practice takes additional time.
-                    </p>
-                )}
-                <div className="checkpoint-save-status" aria-live="polite">
-                    {progress.saving
-                        ? 'Saving checkpoint…'
-                        : progress.reloading
-                          ? 'Reloading saved progress…'
-                          : !progress.ready && !progress.error
-                            ? 'Loading saved progress…'
-                            : ''}
-                </div>
-                {progress.error && (
-                    <div className="form-error" role="alert">
-                        {progress.error}{' '}
-                        {progress.failedSave && !progress.sessionExpired && (
+                    <nav className="topic-list" aria-label="Module sections">
+                        {lesson.sections.map((section, index) => (
+                            <a
+                                aria-current={activeSection === section.id ? 'location' : undefined}
+                                className={activeSection === section.id ? 'selected' : ''}
+                                href={`#${section.id}`}
+                                onClick={(event) => handleSectionClick(event, section.id)}
+                                key={section.id}
+                            >
+                                <span>{String(index + 1).padStart(2, '0')}</span>
+                                {section.title}
+                            </a>
+                        ))}
+                    </nav>
+                </aside>
+                <main className="lesson-main">
+                    <div className="eyebrow">
+                        MODULE {String(lesson.sequence).padStart(2, '0')} · SELF-PACED
+                    </div>
+                    <h1>{lesson.title}</h1>
+                    {settings.learning.showEstimates && (
+                        <p className="lesson-reading-estimate">
+                            Reading estimate: {Math.ceil(readingWords / 220)} min at 220 words/minute;
+                            coding practice takes additional time.
+                        </p>
+                    )}
+                    <div className="checkpoint-save-status" aria-live="polite">
+                        {progress.saving
+                            ? 'Saving checkpoint…'
+                            : progress.reloading
+                              ? 'Reloading saved progress…'
+                              : !progress.ready && !progress.error
+                                ? 'Loading saved progress…'
+                                : ''}
+                    </div>
+                    {progress.error && (
+                        <div className="form-error" role="alert">
+                            {progress.error}{' '}
+                            {progress.failedSave && !progress.sessionExpired && (
+                                <button
+                                    type="button"
+                                    disabled={progress.saving || progress.reloading}
+                                    onClick={() => retryProgressSave()}
+                                >
+                                    Retry save
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 disabled={progress.saving || progress.reloading}
-                                onClick={() => retryProgressSave()}
+                                onClick={() => loadProgressFromApi()}
                             >
-                                Retry save
+                                {progress.reloading ? 'Reloading…' : 'Reload saved progress'}
                             </button>
-                        )}
-                        <button
-                            type="button"
-                            disabled={progress.saving || progress.reloading}
-                            onClick={() => loadProgressFromApi()}
-                        >
-                            {progress.reloading ? 'Reloading…' : 'Reload saved progress'}
-                        </button>
-                        {progress.sessionExpired && (
-                            <Link
-                                to={`/login?next=${encodeURIComponent(location.pathname + location.hash)}`}
-                            >
-                                Sign in again
-                            </Link>
-                        )}
-                    </div>
-                )}
-                <p className="lede">
-                    {lesson.concepts}. Work through each section, then complete the mastery
-                    checklist when you can explain the pattern without looking back.
-                </p>
-                {lesson.sections.map((section) => (
-                    <section
-                        className="lesson-section"
-                        id={section.id}
-                        key={`${lesson.id}:${section.id}`}
-                    >
-                        <h2>{section.title}</h2>
-                        <LessonCompletionButton
-                            item={lesson.lessons?.find((item) => item.sectionId === section.id)}
-                            weekId={lesson.id}
-                            progress={progress}
-                        />
-                        {section.id === 'coding-practice' ? (
-                            <CodingPractice key={lesson.id} weekId={lesson.id} />
-                        ) : typeof section.markdown === 'string' ? (
-                            section.id === 'hints-and-worked-solutions' ? (
-                                <details
-                                    open={
-                                        lesson.id !== 1 && lesson.id !== 17
-                                            ? !settings.learning.hideSolutions || undefined
-                                            : undefined
-                                    }
+                            {progress.sessionExpired && (
+                                <Link
+                                    to={`/login?next=${encodeURIComponent(location.pathname + location.hash)}`}
                                 >
-                                    <summary>Reveal hints and worked solutions</summary>
+                                    Sign in again
+                                </Link>
+                            )}
+                        </div>
+                    )}
+                    <p className="lede">
+                        {lesson.concepts}. Work through each section, then complete the mastery
+                        checklist when you can explain the pattern without looking back.
+                    </p>
+                    {lesson.sections.map((section) => (
+                        <section
+                            className="lesson-section"
+                            id={section.id}
+                            key={`${lesson.id}:${section.id}`}
+                        >
+                            <h2>{section.title}</h2>
+                            <LessonCompletionButton
+                                item={lesson.lessons?.find((item) => item.sectionId === section.id)}
+                                weekId={lesson.id}
+                                progress={progress}
+                            />
+                            {section.id === 'coding-practice' ? (
+                                <CodingPractice key={lesson.id} weekId={lesson.id} />
+                            ) : typeof section.markdown === 'string' ? (
+                                section.id === 'hints-and-worked-solutions' ? (
+                                    <details
+                                        open={
+                                            lesson.id !== 1 && lesson.id !== 17
+                                                ? !settings.learning.hideSolutions || undefined
+                                                : undefined
+                                        }
+                                    >
+                                        <summary>Reveal hints and worked solutions</summary>
+                                        <MarkdownChapter
+                                            markdown={section.markdown}
+                                            weekId={lesson.id}
+                                            progress={progress}
+                                            onToggle={toggleCheckpoint}
+                                        />
+                                    </details>
+                                ) : (
                                     <MarkdownChapter
                                         markdown={section.markdown}
                                         weekId={lesson.id}
                                         progress={progress}
                                         onToggle={toggleCheckpoint}
                                     />
-                                </details>
+                                )
+                            ) : section.blocks ? (
+                                <ChapterContent blocks={section.blocks} />
                             ) : (
-                                <MarkdownChapter
-                                    markdown={section.markdown}
-                                    weekId={lesson.id}
-                                    progress={progress}
-                                    onToggle={toggleCheckpoint}
-                                />
-                            )
-                        ) : section.blocks ? (
-                            <ChapterContent blocks={section.blocks} />
-                        ) : (
-                            <div className="lesson-copy">
-                                {section.body.split('\n\n').map((paragraph, index, parts) =>
-                                    index === parts.length - 1 &&
-                                    section.id === 'javascript-implementation' ? (
-                                        <pre key={index}>
-                                            <code>{paragraph}</code>
-                                        </pre>
-                                    ) : (
-                                        <p key={index}>{paragraph}</p>
-                                    )
-                                )}
-                            </div>
-                        )}
-                        {section.id === 'visual-explanations' && lesson.id === 17 && (
-                            <WeekOneArrayLab />
-                        )}
-                        {section.id === 'visual-explanations' && lesson.id === 1 && (
-                            <ComplexityLab />
-                        )}
-                        {section.id === 'module-summary-and-mastery' && (
-                            <div className="checkpoint">
-                                <div>
-                                    <div className="section-kicker">MASTERY CHECKPOINT</div>
-                                    <h3>Can you explain the pattern?</h3>
-                                    <p>
-                                        Mark each statement only when you can explain it without
-                                        looking back.
-                                    </p>
+                                <div className="lesson-copy">
+                                    {section.body.split('\n\n').map((paragraph, index, parts) =>
+                                        index === parts.length - 1 &&
+                                        section.id === 'javascript-implementation' ? (
+                                            <pre key={index}>
+                                                <code>{paragraph}</code>
+                                            </pre>
+                                        ) : (
+                                            <p key={index}>{paragraph}</p>
+                                        )
+                                    )}
                                 </div>
-                                {lesson.checkpoint.map((item, index) => {
-                                    const id = `w${lesson.id}-${index}`;
-                                    return (
-                                        <label className="check-row" key={id}>
-                                            <input
-                                                type="checkbox"
-                                                disabled={
-                                                    !progress.ready ||
-                                                    progress.saving ||
-                                                    progress.reloading
-                                                }
-                                                checked={progress.completedCheckpoints.includes(id)}
-                                                onChange={() => setProgress(toggleCheckpoint(id))}
-                                            />
-                                            <span>{item}</span>
-                                        </label>
-                                    );
-                                })}
+                            )}
+                            {section.id === 'visual-explanations' && lesson.id === 17 && (
+                                <WeekOneArrayLab />
+                            )}
+                            {section.id === 'visual-explanations' && lesson.id === 1 && (
+                                <ComplexityLab />
+                            )}
+                            {section.id === 'module-summary-and-mastery' && (
+                                <div className="checkpoint">
+                                    <div>
+                                        <div className="section-kicker">MASTERY CHECKPOINT</div>
+                                        <h3>Can you explain the pattern?</h3>
+                                        <p>
+                                            Mark each statement only when you can explain it without
+                                            looking back.
+                                        </p>
+                                    </div>
+                                    {lesson.checkpoint.map((item, index) => {
+                                        const id = `w${lesson.id}-${index}`;
+                                        return (
+                                            <label className="check-row" key={id}>
+                                                <input
+                                                    type="checkbox"
+                                                    disabled={
+                                                        !progress.ready ||
+                                                        progress.saving ||
+                                                        progress.reloading
+                                                    }
+                                                    checked={progress.completedCheckpoints.includes(id)}
+                                                    onChange={() => setProgress(toggleCheckpoint(id))}
+                                                />
+                                                <span>{item}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
+                    ))}
+                    <nav className="chapter-pagination" aria-label="Adjacent modules">
+                        {lesson.previousModuleId ? (
+                            <Link to={`/app/weeks/${lesson.previousModuleId}`}>← Previous module</Link>
+                        ) : (
+                            <Link to="/app/modules">All modules</Link>
+                        )}
+                        {lesson.nextModuleId && (
+                            <Link to={`/app/weeks/${lesson.nextModuleId}`}>Next module →</Link>
+                        )}
+                    </nav>
+                    <aside className="lesson-right learning-resources">
+                        <div className="section-kicker">RESOURCES</div>
+                        {lesson.resources.length ? (
+                            lesson.resources.map((resource) => (
+                                <a
+                                    className="resource-card"
+                                    href={resource.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    key={resource.title}
+                                >
+                                    <small>{resource.provider}</small>
+                                    <strong>{resource.title}</strong>
+                                    <span>Open reference ↗</span>
+                                </a>
+                            ))
+                        ) : (
+                            <p className="lede">
+                                Relevant lectures and source resources are available inside the
+                                authenticated curriculum.
+                            </p>
+                        )}
+                        <div className="section-kicker challenge-label">CHALLENGE</div>
+                        {lesson.problems.length ? (
+                            <Link className="challenge-card" to={`/app/weeks/${lesson.id}`}>
+                                <small>
+                                    {lesson.problems[0].difficulty.toUpperCase()} ·{' '}
+                                    {lesson.problems[0].topic.toUpperCase()}
+                                </small>
+                                <strong>{lesson.problems[0].title}</strong>
+                                <span>Open challenge →</span>
+                            </Link>
+                        ) : (
+                            <div className="challenge-card">
+                                <small>REVIEW</small>
+                                <strong>Use the practice set</strong>
+                                <span>Complete the exercises and checkpoint in this module.</span>
                             </div>
                         )}
-                        <SectionNotes
-                            moduleId={lesson.id}
-                            sectionId={
-                                lesson.lessons?.find((item) => item.sectionId === section.id)?.id ||
-                                `w${lesson.id}-section-${section.id}`
-                            }
-                            anchor={section.id}
-                            title={section.title}
-                        />
-                    </section>
-                ))}
-                <nav className="chapter-pagination" aria-label="Adjacent modules">
-                    {lesson.previousModuleId ? (
-                        <Link to={`/app/weeks/${lesson.previousModuleId}`}>← Previous module</Link>
-                    ) : (
-                        <Link to="/app/modules">All modules</Link>
-                    )}
-                    {lesson.nextModuleId && (
-                        <Link to={`/app/weeks/${lesson.nextModuleId}`}>Next module →</Link>
-                    )}
-                </nav>
-            </main>
-            <TutorAssistant
-                lesson={lesson}
-                section={
-                    lesson.sections.find((section) => section.id === activeSection) ||
-                    lesson.sections[0]
-                }
-            />
-            <aside className="lesson-right">
-                <div className="section-kicker">RESOURCES</div>
-                {lesson.resources.length ? (
-                    lesson.resources.map((resource) => (
-                        <a
-                            className="resource-card"
-                            href={resource.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            key={resource.title}
-                        >
-                            <small>{resource.provider}</small>
-                            <strong>{resource.title}</strong>
-                            <span>Open reference ↗</span>
-                        </a>
-                    ))
-                ) : (
-                    <p className="lede">
-                        Relevant lectures and source resources are available inside the
-                        authenticated curriculum.
-                    </p>
-                )}
-                <div className="section-kicker challenge-label">CHALLENGE</div>
-                {lesson.problems.length ? (
-                    <Link className="challenge-card" to={`/app/weeks/${lesson.id}`}>
-                        <small>
-                            {lesson.problems[0].difficulty.toUpperCase()} ·{' '}
-                            {lesson.problems[0].topic.toUpperCase()}
-                        </small>
-                        <strong>{lesson.problems[0].title}</strong>
-                        <span>Open challenge →</span>
-                    </Link>
-                ) : (
-                    <div className="challenge-card">
-                        <small>REVIEW</small>
-                        <strong>Use the practice set</strong>
-                        <span>Complete the exercises and checkpoint in this module.</span>
-                    </div>
-                )}
-            </aside>
+                    </aside>
+                </main>
+                <LearningTools
+                    lesson={lesson}
+                    section={lesson.sections.find((section) => section.id === activeSection) || lesson.sections[0]}
+                />
+            </div>
         </div>
     );
 }

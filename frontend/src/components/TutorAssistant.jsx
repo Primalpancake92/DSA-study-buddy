@@ -57,7 +57,7 @@ export function TutorMessage({ role, children, label }) {
     );
 }
 
-export function TutorAssistant({ lesson, section }) {
+export function TutorAssistant({ lesson, section, embedded = false, active = true, onClose }) {
     const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const sectionId =
@@ -73,8 +73,9 @@ export function TutorAssistant({ lesson, section }) {
             title={section.title}
             moduleTitle={lesson.title}
             moduleNumber={lesson.sequence}
-            open={open}
-            setOpen={setOpen}
+            open={embedded ? active : open}
+            setOpen={embedded ? onClose : setOpen}
+            embedded={embedded}
         />
     );
 }
@@ -88,7 +89,8 @@ function TutorPanel({
     moduleTitle,
     moduleNumber,
     open,
-    setOpen
+    setOpen,
+    embedded
 }) {
     const chat = useTutorChat(userId, moduleId, sectionId, open);
     const [message, setMessage] = useState('');
@@ -102,7 +104,7 @@ function TutorPanel({
     const followLatest = useRef(true);
     const courseUrl = `/app/weeks/${moduleId}#${anchor}`;
     useEffect(() => {
-        if (!open) return;
+        if (!open || embedded) return;
         const element = dialog.current;
         const media = window.matchMedia('(max-width: 767px)');
         const display = () => {
@@ -119,7 +121,7 @@ function TutorPanel({
             chat.controller.stop();
             launcher.current?.focus();
         };
-    }, [open, chat.controller]);
+    }, [open, embedded, chat.controller]);
     useEffect(() => {
         const element = history.current;
         if (element && followLatest.current) element.scrollTop = element.scrollHeight;
@@ -188,14 +190,15 @@ function TutorPanel({
             setNotice(error.message);
         }
     }
+    const Panel = embedded ? 'div' : 'dialog';
     const disabled = !chat.loaded || !chat.enabled || chat.loading || chat.sending;
     return (
         <>
-            <TutorLauncher buttonRef={launcher} open={open} onClick={() => setOpen(!open)} />
-            <dialog
+            {!embedded && <TutorLauncher buttonRef={launcher} open={open} onClick={() => setOpen(!open)} />}
+            <Panel
                 id="learning-tutor-panel"
                 ref={dialog}
-                className="tutor-panel"
+                className={`tutor-panel${embedded ? " tutor-embedded" : ""}`}
                 aria-labelledby="tutor-title"
                 onCancel={(event) => {
                     event.preventDefault();
@@ -466,7 +469,7 @@ function TutorPanel({
                         changes your progress.
                     </p>
                 </form>
-            </dialog>
+            </Panel>
         </>
     );
 }
