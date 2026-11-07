@@ -188,24 +188,26 @@ export function LessonPage() {
         <div className="learning-shell">
             <div className="lesson-layout learning-layout">
                 <ModuleNavigation>
-                    <Link className="back-link" to="/app/roadmap">
-                        ← Roadmap
-                    </Link>
-                    <div className="lesson-week">
-                        MODULE {String(lesson.sequence).padStart(2, '0')}{' '}
-                        <span>of {lesson.moduleCount}</span>
-                    </div>
-                    <h2>{lesson.title}</h2>
-                    <div className="lesson-progress">
-                        <div>
-                            <span>MODULE PROGRESS</span>
-                            <strong>{completion.percentage}%</strong>
+                    <div className="module-sidebar-header">
+                        <Link className="back-link" to="/app/roadmap">
+                            ← Roadmap
+                        </Link>
+                        <div className="lesson-week">
+                            MODULE {String(lesson.sequence).padStart(2, '0')}{' '}
+                            <span>of {lesson.moduleCount}</span>
                         </div>
-                        <div className="progress-bar">
-                            <i style={{ width: `${completion.percentage}%` }} />
+                        <h2>{lesson.title}</h2>
+                        <div className="lesson-progress">
+                            <div>
+                                <span>MODULE PROGRESS</span>
+                                <strong>{completion.percentage}%</strong>
+                            </div>
+                            <div className="progress-bar">
+                                <i style={{ width: `${completion.percentage}%` }} />
+                            </div>
                         </div>
                     </div>
-                    <nav className="topic-list" aria-label="Module sections">
+                    <nav className="topic-list module-sidebar-lessons" aria-label="Module sections" tabIndex={0}>
                         {lesson.sections.map((section, index) => (
                             <a
                                 aria-current={activeSection === section.id ? 'location' : undefined}
@@ -215,7 +217,7 @@ export function LessonPage() {
                                 key={section.id}
                             >
                                 <span>{String(index + 1).padStart(2, '0')}</span>
-                                {section.title}
+                                <span className="module-section-title">{section.title}</span>
                             </a>
                         ))}
                     </nav>

@@ -160,11 +160,92 @@
     max-width: 100%;
     max-height: var(--learning-panel-height);
     margin: 0;
-    padding: 4px;
+    padding: 4px 12px 4px 4px;
     border: 0;
-    background: var(--color-surface);
+    background: transparent;
+    backdrop-filter: none;
     color: var(--color-text-secondary);
+    overflow: hidden;
+}
+.module-navigation-panel[open] {
+    display: flex;
+    flex-direction: column;
+    height: var(--learning-panel-height);
+    min-height: 0;
+}
+.module-sidebar-header,
+.module-navigation-panel > button {
+    flex: 0 0 auto;
+}
+.module-sidebar-header {
+    overflow-wrap: anywhere;
+}
+.module-sidebar-header .lesson-week {
+    margin-top: 20px;
+}
+.module-sidebar-header .lesson-progress .progress-bar {
+    margin-bottom: 20px;
+}
+.module-navigation-panel .module-sidebar-lessons {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    min-width: 0;
+    padding: 4px 10px 4px 4px;
     overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-gutter: stable;
+}
+.module-sidebar-lessons::-webkit-scrollbar {
+    width: 6px;
+}
+.module-sidebar-lessons::-webkit-scrollbar-track,
+.module-sidebar-lessons::-webkit-scrollbar-corner {
+    background: transparent;
+}
+.module-sidebar-lessons::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 0;
+    border-radius: 999px;
+}
+.module-sidebar-lessons::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-active);
+}
+.module-sidebar-lessons a {
+    display: grid;
+    grid-template-columns: 2ch minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    flex-shrink: 0;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    background: transparent;
+    line-height: 1.5;
+}
+.module-sidebar-lessons .module-section-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font: inherit;
+    color: inherit;
+}
+.module-sidebar-lessons:focus-visible {
+    outline: 2px solid var(--color-primary-hover);
+    outline-offset: -2px;
+}
+.module-sidebar-lessons a:focus-visible {
+    outline: 2px solid var(--color-primary-hover);
+    outline-offset: 1px;
+}
+@media (forced-colors: active) {
+    .module-navigation-panel .module-sidebar-lessons {
+        scrollbar-color: auto;
+    }
 }
 .module-navigation-panel::backdrop {
     background: var(--color-overlay);
@@ -198,8 +279,11 @@
         position: static;
         width: 100%;
     }
-    .module-navigation-panel {
+    .module-navigation-panel[open] {
         position: fixed;
+        background: var(--color-background);
+        background-image: linear-gradient(var(--color-overlay) 1px, transparent 1px), linear-gradient(90deg, var(--color-overlay) 1px, transparent 1px);
+        background-size: 48px 48px;
         inset: 0 auto 0 0;
         width: min(320px, 100%);
         height: 100dvh;
