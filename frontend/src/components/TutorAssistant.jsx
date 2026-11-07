@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ArrowUp, Bot, MessageCircle, RotateCcw, Square, Trash2, X } from 'lucide-react';
 import { useAuth } from './AuthProvider.jsx';
 import { useTutorChat } from '../hooks/useTutorChat.js';
 import { getSectionNote } from '../services/sectionNotesStore.js';
@@ -7,12 +8,54 @@ import { TutorMarkdown } from './TutorMarkdown.jsx';
 import '../styles/tutor.css';
 
 const actions = [
-    'Explain this concept',
-    'Give me a hint',
-    'Walk me through an example',
-    'Explain the time complexity',
-    'Quiz me on this section'
+    { label: 'Give me a hint', prompt: 'Give me a hint for this section.' },
+    { label: 'Show an example', prompt: 'Walk me through an example in this section.' },
+    { label: 'Explain complexity', prompt: 'Explain the time complexity in this section.' }
 ];
+
+export function TutorLauncher({ open, onClick, buttonRef }) {
+    return (
+        <button
+            ref={buttonRef}
+            type="button"
+            className="tutor-launcher"
+            aria-label={open ? 'Close AI tutor' : 'Ask AI tutor'}
+            aria-expanded={open}
+            aria-controls="learning-tutor-panel"
+            title={open ? 'Close AI tutor' : 'Ask AI tutor'}
+            onClick={onClick}
+        >
+            {open ? (
+                <X size={24} aria-hidden="true" />
+            ) : (
+                <MessageCircle size={26} aria-hidden="true" />
+            )}
+            {!open && (
+                <span className="tutor-launcher-label" aria-hidden="true">
+                    AI
+                </span>
+            )}
+        </button>
+    );
+}
+
+export function TutorMessage({ role, children, label }) {
+    return (
+        <article className={`tutor-message tutor-${role}`}>
+            {role === 'assistant' && (
+                <span className="tutor-avatar" aria-hidden="true">
+                    <Bot size={18} />
+                </span>
+            )}
+            <div className="tutor-message-body">
+                <span className="tutor-sr-only">
+                    {label || (role === 'assistant' ? 'AI tutor' : 'You')}
+                </span>
+                {children}
+            </div>
+        </article>
+    );
+}
 
 export function TutorAssistant({ lesson, section }) {
     const { user } = useAuth();
@@ -29,13 +72,24 @@ export function TutorAssistant({ lesson, section }) {
             anchor={section.id}
             title={section.title}
             moduleTitle={lesson.title}
+            moduleNumber={lesson.sequence}
             open={open}
             setOpen={setOpen}
         />
     );
 }
 
-function TutorPanel({ userId, moduleId, sectionId, anchor, title, moduleTitle, open, setOpen }) {
+function TutorPanel({
+    userId,
+    moduleId,
+    sectionId,
+    anchor,
+    title,
+    moduleTitle,
+    moduleNumber,
+    open,
+    setOpen
+}) {
     const chat = useTutorChat(userId, moduleId, sectionId, open);
     const [message, setMessage] = useState('');
     const [code, setCode] = useState('');
@@ -101,16 +155,9 @@ function TutorPanel({ userId, moduleId, sectionId, anchor, title, moduleTitle, o
     const disabled = !chat.loaded || !chat.enabled || chat.loading || chat.sending;
     return (
         <>
-            <button
-                ref={launcher}
-                type="button"
-                className="button tutor-launcher"
-                aria-expanded={open}
-                onClick={() => setOpen(!open)}
-            >
-                {open ? 'Close AI tutor' : 'Ask AI tutor'}
-            </button>
+            <TutorLauncher buttonRef={launcher} open={open} onClick={() => setOpen(!open)} />
             <dialog
+                id="learning-tutor-panel"
                 ref={dialog}
                 className="tutor-panel"
                 aria-labelledby="tutor-title"
@@ -137,42 +184,26 @@ function TutorPanel({ userId, moduleId, sectionId, anchor, title, moduleTitle, o
                 <header className="tutor-header">
                     <div>
                         <h2 id="tutor-title">AI learning tutor</h2>
-                        <small>
-                            {moduleTitle} · {title}
-                        </small>
+                        <p className="tutor-module-title">
+                            Module {String(moduleNumber || moduleId).padStart(2, '0')} —{' '}
+                            {moduleTitle}
+                        </p>
+                        <small>{title}</small>
                     </div>
+                    <span
+                        className={`tutor-badge${chat.loaded && chat.enabled ? ' is-ready' : ''}`}
+                    >
+                        <span aria-hidden="true" />
+                        {!chat.loaded ? 'Loading' : chat.enabled ? 'AI Tutor' : 'Not configured'}
+                    </span>
                     <button
                         type="button"
                         aria-label="Close AI tutor"
                         onClick={() => setOpen(false)}
                     >
-                        ×
+                        <X size={18} aria-hidden="true" />
                     </button>
                 </header>
-                <p className="tutor-disclaimer">
-                    AI-generated explanations can be wrong. Check them against{' '}
-                    <a href={courseUrl}>this section</a>. Your progress never changes through chat.
-                </p>
-                <div className="tutor-toolbar">
-                    <button
-                        type="button"
-                        disabled={chat.loading || chat.sending}
-                        onClick={() => chat.controller.load()}
-                    >
-                        Reload history
-                    </button>
-                    <button
-                        type="button"
-                        disabled={chat.loading || chat.sending || !chat.messages.length}
-                        onClick={() => {
-                            if (window.confirm('Delete this section’s tutoring conversation?'))
-                                void chat.controller.clear();
-                        }}
-                    >
-                        Clear conversation
-                    </button>
-                    {chat.limits && <small>{chat.limits.remaining} daily requests remaining</small>}
-                </div>
                 <div
                     ref={history}
                     className="tutor-history"
@@ -186,14 +217,16 @@ function TutorPanel({ userId, moduleId, sectionId, anchor, title, moduleTitle, o
                         </p>
                     )}
                     {chat.loaded && chat.enabled && !chat.messages.length && (
-                        <p>
-                            Ask a question about {title}. Start with a hint, or explicitly request a
-                            complete solution when you need one.
-                        </p>
+                        <TutorMessage role="assistant">
+                            <strong>Let’s work through it together.</strong>
+                            <p>
+                                What would you like to understand about {title}? We can start with a
+                                small hint or explore an example.
+                            </p>
+                        </TutorMessage>
                     )}
                     {chat.messages.map((item) => (
-                        <article key={item.id} className={`tutor-message tutor-${item.role}`}>
-                            <strong>{item.role === 'assistant' ? 'AI tutor' : 'You'}</strong>
+                        <TutorMessage key={item.id} role={item.role}>
                             {item.role === 'assistant' ? (
                                 <TutorMarkdown content={item.content} courseUrl={courseUrl} />
                             ) : (
@@ -208,21 +241,20 @@ function TutorPanel({ userId, moduleId, sectionId, anchor, title, moduleTitle, o
                                     Append to My Notes
                                 </button>
                             )}
-                        </article>
+                        </TutorMessage>
                     ))}
                     {chat.pendingQuestion && (
-                        <article className="tutor-message">
-                            <strong>You</strong>
-                            <p>{chat.pendingQuestion}</p>
-                        </article>
+                        <TutorMessage role="user">
+                            <p className="tutor-user-text">{chat.pendingQuestion}</p>
+                        </TutorMessage>
                     )}
                     {chat.partial && (
-                        <article className="tutor-message">
-                            <strong>
-                                AI tutor — {chat.sending ? 'streaming' : 'unfinished; not saved'}
-                            </strong>
+                        <TutorMessage role="assistant">
+                            <small className="tutor-stream-label">
+                                {chat.sending ? 'Writing…' : 'Unfinished · not saved'}
+                            </small>
                             <TutorMarkdown content={chat.partial} courseUrl={courseUrl} />
-                        </article>
+                        </TutorMessage>
                     )}
                     {chat.sending && <p role="status">Thinking / receiving response…</p>}
                 </div>
@@ -239,85 +271,151 @@ function TutorPanel({ userId, moduleId, sectionId, anchor, title, moduleTitle, o
                 <div className="tutor-actions">
                     {actions.map((action) => (
                         <button
-                            key={action}
+                            key={action.label}
                             type="button"
                             disabled={disabled}
                             onClick={() => {
-                                setMessage(`${action} in this section.`);
+                                setMessage(action.prompt);
                                 input.current?.focus();
                             }}
                         >
-                            {action}
+                            {action.label}
                         </button>
                     ))}
-                    <button
-                        type="button"
-                        disabled={
-                            disabled || !chat.messages.some((item) => item.role === 'assistant')
-                        }
-                        onClick={(event) =>
-                            send(
-                                event,
-                                'summary',
-                                'Summarise your last explanation as concise revision notes. Do not save anything automatically.'
-                            )
-                        }
-                    >
-                        Generate revision summary
-                    </button>
                 </div>
                 <form className="tutor-compose" onSubmit={send}>
-                    <label htmlFor="tutor-question">Your question</label>
-                    <textarea
-                        ref={input}
-                        id="tutor-question"
-                        value={message}
-                        maxLength={4000}
-                        rows={3}
-                        disabled={chat.sending}
-                        onChange={(event) => setMessage(event.target.value)}
-                        placeholder="What would you like to understand?"
-                    />
-                    <details>
-                        <summary>Share JavaScript for review (optional)</summary>
-                        <label htmlFor="tutor-code">Only this explicitly shared code is sent</label>
+                    <div className="tutor-input-row">
+                        <label className="tutor-sr-only" htmlFor="tutor-question">
+                            Your question
+                        </label>
                         <textarea
-                            id="tutor-code"
-                            value={code}
-                            maxLength={8000}
-                            rows={5}
+                            ref={input}
+                            id="tutor-question"
+                            value={message}
+                            maxLength={4000}
+                            rows={1}
                             disabled={chat.sending}
-                            onChange={(event) => setCode(event.target.value)}
-                            spellCheck={false}
+                            onChange={(event) => setMessage(event.target.value)}
+                            placeholder="Ask a question about this lesson…"
                         />
-                    </details>
-                    <label className="tutor-optin">
-                        <input
-                            type="checkbox"
-                            checked={includeNotes}
-                            disabled={chat.sending}
-                            onChange={(event) => setIncludeNotes(event.target.checked)}
-                        />
-                        Include saved notes for this section in this request (not unsaved drafts)
-                    </label>
-                    <small>
-                        Sending shares this section, a small progress summary, and recent chat with
-                        the AI provider. Never paste passwords or secrets.
-                    </small>
-                    <div className="tutor-send">
                         <button
-                            className="button"
+                            className="tutor-submit"
                             type="submit"
+                            aria-label="Send question"
                             disabled={disabled || !message.trim()}
                         >
-                            Send
+                            <ArrowUp size={20} aria-hidden="true" />
                         </button>
-                        {chat.sending && (
-                            <button type="button" onClick={() => chat.controller.stop()}>
-                                Stop response
-                            </button>
-                        )}
                     </div>
+                    {chat.sending && (
+                        <button
+                            className="tutor-stop"
+                            type="button"
+                            onClick={() => chat.controller.stop()}
+                        >
+                            <Square size={12} aria-hidden="true" /> Stop response
+                        </button>
+                    )}
+                    <details className="tutor-tools">
+                        <summary>
+                            Context &amp; tools{includeNotes ? ' · notes included' : ''}
+                            {code ? ' · code attached' : ''}
+                        </summary>
+                        <div className="tutor-tools-content">
+                            <div className="tutor-toolbar">
+                                <button
+                                    type="button"
+                                    disabled={chat.loading || chat.sending}
+                                    onClick={() => chat.controller.load()}
+                                >
+                                    <RotateCcw size={13} aria-hidden="true" /> Reload history
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={chat.loading || chat.sending || !chat.messages.length}
+                                    onClick={() => {
+                                        if (
+                                            window.confirm(
+                                                'Delete this section’s tutoring conversation?'
+                                            )
+                                        )
+                                            void chat.controller.clear();
+                                    }}
+                                >
+                                    <Trash2 size={13} aria-hidden="true" /> Clear conversation
+                                </button>
+                                {chat.limits && (
+                                    <small>{chat.limits.remaining} daily requests remaining</small>
+                                )}
+                            </div>
+                            <div className="tutor-toolbar">
+                                {['Explain this concept', 'Quiz me on this section'].map(
+                                    (action) => (
+                                        <button
+                                            key={action}
+                                            type="button"
+                                            disabled={disabled}
+                                            onClick={() => {
+                                                setMessage(`${action} in this section.`);
+                                                input.current?.focus();
+                                            }}
+                                        >
+                                            {action}
+                                        </button>
+                                    )
+                                )}
+                                <button
+                                    type="button"
+                                    disabled={
+                                        disabled ||
+                                        !chat.messages.some((item) => item.role === 'assistant')
+                                    }
+                                    onClick={(event) =>
+                                        send(
+                                            event,
+                                            'summary',
+                                            'Summarise your last explanation as concise revision notes. Do not save anything automatically.'
+                                        )
+                                    }
+                                >
+                                    Generate revision summary
+                                </button>
+                            </div>
+                            <details>
+                                <summary>Share JavaScript for review (optional)</summary>
+                                <label htmlFor="tutor-code">
+                                    Only this explicitly shared code is sent
+                                </label>
+                                <textarea
+                                    id="tutor-code"
+                                    value={code}
+                                    maxLength={8000}
+                                    rows={5}
+                                    disabled={chat.sending}
+                                    onChange={(event) => setCode(event.target.value)}
+                                    spellCheck={false}
+                                />
+                            </details>
+                            <label className="tutor-optin">
+                                <input
+                                    type="checkbox"
+                                    checked={includeNotes}
+                                    disabled={chat.sending}
+                                    onChange={(event) => setIncludeNotes(event.target.checked)}
+                                />
+                                Include saved notes for this section in this request (not unsaved
+                                drafts)
+                            </label>
+                            <small>
+                                Sending shares this section, a small progress summary, and recent
+                                chat with the AI provider. Never paste passwords or secrets.
+                            </small>
+                        </div>
+                    </details>
+                    <p className="tutor-disclaimer">
+                        AI can make mistakes. Check <a href={courseUrl}>your lesson</a>. Chat never
+                        changes your progress.
+                    </p>
                 </form>
             </dialog>
         </>
