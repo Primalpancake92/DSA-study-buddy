@@ -282,7 +282,7 @@
     .module-navigation-panel[open] {
         position: fixed;
         background: var(--color-background);
-        background-image: linear-gradient(var(--color-overlay) 1px, transparent 1px), linear-gradient(90deg, var(--color-overlay) 1px, transparent 1px);
+        background-image: linear-gradient(var(--color-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
         background-size: 48px 48px;
         inset: 0 auto 0 0;
         width: min(320px, 100%);
