@@ -55,6 +55,32 @@ afterEach(() => {
 });
 
 describe('section notes autosave', () => {
+    it('loads persisted content into a fresh controller after a refresh', async () => {
+        let stored = { ...empty };
+        const api = {
+            get: vi.fn(async () => ({ note: stored })),
+            put: vi.fn(async (_module, _section, content, version) => {
+                stored = { content, version: version + 1, exists: true };
+                return { note: stored };
+            })
+        };
+        const first = setup({ api }).controller;
+        await first.load();
+        first.edit('Persisted explanation');
+        await first.save();
+        first.dispose();
+
+        const refreshed = setup({ api }).controller;
+        await refreshed.load();
+        expect(refreshed.getSnapshot()).toMatchObject({
+            content: 'Persisted explanation',
+            savedContent: 'Persisted explanation',
+            exists: true,
+            loaded: true,
+            dirty: false
+        });
+    });
+
     it('debounces edits for one second and saves only the latest text', async () => {
         const { controller, api } = setup();
         await controller.load();

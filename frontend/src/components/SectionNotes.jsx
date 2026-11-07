@@ -15,9 +15,12 @@ export function SectionNotes({ moduleId, sectionId, anchor, title }) {
     const statusId = useId();
     const note = useSectionNotes(moduleId, sectionId, anchor, open);
     const busy = note.loading || note.deleting;
-    let status = note.loaded ? 'Saved' : 'Notes have not been loaded yet.';
-    if (note.loaded && !note.exists && !note.dirty) status = 'No saved note yet.';
-    if (note.dirty) status = 'Unsaved changes';
+    const showEmptyState =
+        note.loaded && !note.loading && !note.exists && note.content.trim().length === 0;
+    let status = note.loaded
+        ? note.exists ? 'Saved' : ''
+        : 'Notes have not been loaded yet.';
+    if (note.dirty) status = showEmptyState ? '' : 'Unsaved changes';
     if (note.saving) status = 'Saving…';
     if (note.deleting) status = 'Deleting…';
     if (note.loading) status = 'Loading…';
@@ -38,12 +41,10 @@ export function SectionNotes({ moduleId, sectionId, anchor, title }) {
             {open && (
                 <div id={panelId} className="section-notes-panel">
                     <label htmlFor={editorId}>Personal notes for {title}</label>
-                    {!note.exists && !note.dirty && !note.loading && (
-                        <p>
-                            Capture an idea, question, or example to revisit. Only you can see these
-                            notes.
-                        </p>
-                    )}
+                    <p>
+                        Capture an idea, question, or example to revisit. Only you can see these
+                        notes.
+                    </p>
                     <textarea
                         id={editorId}
                         value={note.content}
@@ -56,7 +57,7 @@ export function SectionNotes({ moduleId, sectionId, anchor, title }) {
                     />
                     <div className="section-notes-feedback">
                         <p id={statusId} role="status" aria-live="polite">
-                            {status}
+                            {status || (showEmptyState ? 'No saved note yet.' : '')}
                         </p>
                         <small>
                             {note.content.length.toLocaleString()} /{' '}
