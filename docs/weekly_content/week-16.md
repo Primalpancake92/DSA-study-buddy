@@ -1,34 +1,44 @@
 # Week 16 - Interview Consolidation
+<!-- lesson-id:w16-section-chapter-introduction -->
 
-This week, you will be learning how to solve unfamiliar problems by combining the models, invariants, and implementation habits developed across the course. The focus is independent reasoning under time pressure: recognizing a possible pattern, checking its assumptions, and explaining why it works.
+This week, we will practice solving unfamiliar problems with the tools you have built across the course. The goal is independent reasoning under time pressure: recognize a possible approach, check what makes it valid, and explain how its state preserves the answer. A familiar problem title is less useful than an argument you can adapt when the requirements change.
 
-We will start with a repeatable interview workflow, then develop complete solutions for frequency matching, a unique substring, and grid components. You will compare a brute-force oracle with an optimized implementation and practice changing the model when a requirement changes.
+We will use a repeatable interview workflow, then develop complete solutions for matching symbol frequencies, finding a unique substring, and measuring grid components. You will compare an optimized solution with a simpler exhaustive checker, often called an oracle: an implementation used to tell us the expected answer on small inputs.
 
-By the end, you should be able to clarify a contract, derive a baseline, justify an optimization, implement and test it, and communicate time and space costs without relying on a memorized problem title.
+By the end, you should be able to clarify a contract, derive a correct baseline, justify an optimization, implement and test it, and explain its time and space costs. We will also practice identifying which part of a solution must change when the contract changes.
 
-There will be a checklist at the end of this lesson covering Theory, JavaScript, Practice, and Reflection. Use it to record evidence in your progress logs.
+Use the final Theory, JavaScript, Practice, and Reflection checklist to record evidence in your progress logs. Keep traces, counterexamples, and concrete repair actions so that review addresses the actual cause of a failure.
 
 ## Learning Objectives
+<!-- lesson-id:w16-section-learning-objectives -->
 
-- Select algorithms from constraints, output requirements, and preserved invariants.
-- Build a correct baseline before optimizing repeated work.
-- Explain correctness with a loop invariant, induction, or exchange argument.
-- Test edge cases and compare independently derived implementations.
-- Complete timed mocks and turn failures into specific review actions.
+- Select an algorithm from input constraints, required output, and the statements its processing must keep true.
+- Build a correct direct baseline and identify the repeated work an optimization removes.
+- Explain correctness using an invariant, an induction over smaller cases, or an exchange preserving solution quality.
+- Design edge cases that challenge your reasoning and compare independently derived implementations on small inputs.
+- Complete timed mock interviews and turn their failures into specific review tasks.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w16-section-prerequisite-knowledge -->
 
-Review graph modeling in [Week 11](week-11.md), graph assumptions in [Week 12](week-12.md), greedy proofs in [Week 13](week-13.md), DP states in [Week 14](week-14.md), and two-dimensional dependencies and tries in [Week 15](week-15.md). Earlier skills—hashing, two pointers, windows, stacks, binary search, linked lists, recursion, trees, and heaps—remain available. Consolidation means choosing among them, not forcing every problem into the most recent topic.
+Review graph modeling in [Week 11](week-11.md), graph-algorithm assumptions in [Week 12](week-12.md), greedy proofs in [Week 13](week-13.md), DP state design in [Week 14](week-14.md), and two-dimensional dependencies and tries in [Week 15](week-15.md).
+
+Earlier tools remain available too: hashing for indexed lookup, two pointers and windows for controlled scans, stacks, binary search, linked lists, recursion, trees, and heaps. Consolidation means choosing among these tools according to the problem, rather than trying to use whichever topic you studied most recently.
 
 ## Core Theory
+<!-- lesson-id:w16-section-core-theory -->
 
 ### A workflow that produces evidence
 
-Start with the contract. What counts as an element? Are duplicates meaningful? Is mutation allowed? Does “shortest” mean edges, cost, or text length? Must you return a value, indexes, a witness, or all solutions? These are mathematical requirements, not preliminary conversation to rush through.
+Start with the contract, meaning the precise rules an answer must satisfy. What counts as an element: a code unit, a Unicode symbol, or a whole word? Do duplicates represent separate resources? May the function change its input? Does “shortest” mean fewest edges, least cost, or least text length? Must the output be a value, indexes, one supporting solution, or every solution?
 
-Next, construct one ordinary example and one awkward boundary case. Describe a direct baseline that is obviously complete, even if slow. Identify exactly which work repeats. An optimization should remove that repeated work while preserving the answer. Name the invariant or state before coding, then describe initialization, preservation, and termination. Finally, test cases designed to attack that argument and count the dominant operations.
+These are part of the mathematical problem. For example, returning one matching pair and returning every matching pair can have very different output costs even when they share a search idea.
 
-A useful twenty-minute rehearsal allocates about three minutes to contract/examples, four to baseline and reasoning, eight to implementation, and five to tests and complexity. This is a practice aid, not a universal interview rule. If stuck, shrink the instance until you can enumerate answers. A correct baseline and a precise bottleneck provide a better recovery point than random edits to an unjustified optimization.
+Next, make one ordinary example and one awkward boundary case. Describe a direct baseline that is clearly complete, even if it is slow. Then point to exactly which work repeats. An optimization should eliminate that repetition while preserving the requested answer, not merely replace the baseline with a more impressive-looking template.
+
+Name your state or invariant before writing the optimized loop. Explain initialization, why one iteration preserves it, and why termination supplies the answer. Then design tests that attack that argument and count the dominant operations, including preprocessing and output.
+
+For a twenty-minute rehearsal, try three minutes for the contract and examples, four for baseline and reasoning, eight for implementation, and five for testing and complexity. These allocations are a practice aid, not a universal interview rule. If you get stuck, shrink the input until you can enumerate answers. A correct baseline and a precise bottleneck provide a useful place to recover; unexplained edits to a broken optimization do not.
 
 ### Select by structure, not keywords
 
@@ -48,19 +58,28 @@ A useful twenty-minute rehearsal allocates about three minutes to contract/examp
 | Repeated smaller decisions | DP | Is the state sufficient for every future? |
 | Dictionary prefix queries | Trie | Would exact membership alone suffice? |
 
-For example, a sum window on nonnegative numbers can shrink while its sum is too large. Negative values remove that monotonicity: removing a negative number can increase the sum. A problem saying “subarray” is therefore a clue, not permission to paste any window template. Likewise, a binary search on an unsorted array has no elimination proof.
+Treat this table as a set of questions, not an automatic classifier. An invariant is a claim that remains true throughout processing; monotone means changing in only one direction. A technique fits only when the contract supports the claim used to discard candidates.
+
+For example, with nonnegative values, a sum window can shrink while its sum is too large: removing values cannot increase the sum. Negative values break that relationship because removing a negative increases the sum. The word “subarray” suggests contiguity, but does not establish a particular repair rule. Similarly, binary search needs a sorted order or monotone feasibility condition to justify eliminating half the candidates; arbitrary unsorted data provides neither.
 
 ### Costs depend on the whole workload
 
-For one unsorted lookup, a scan is O(n); sorting first costs O(n log n) before binary search can help. For Q queries against unchanged data, sorting plus searches costs O(n log n+Q log n), compared with O(Qn) scans. A hash index can give expected O(n+Q) time with extra memory, but its capabilities differ from sorted range queries. Count preprocessing and describe the expected hash-table assumption.
+For one lookup in an unsorted array, an O(n) scan may be entirely appropriate. Sorting first costs O(n log n) before a binary search can help. For Q lookups against unchanged data, sorting plus searches costs O(n log n+Q log n), compared with O(Qn) repeated scans. Preprocessing can now be worthwhile because many queries share its cost.
 
-Output matters too. Returning all matching pairs can require quadratic output even if finding one pair is linear. A tree can have height n despite its name; a head-index queue retains processed references; a DP table with amount A has pseudo-polynomial cost. These are not footnotes: they determine whether the design fits the constraints.
+A hash index offers expected O(n+Q) construction-plus-query time with extra storage under the usual expected constant-time hash-operation assumption. It does not automatically provide the ordered range queries a sorted structure supports. Compare capabilities as well as one headline cost.
+
+Also count the answer itself. All matching pairs can occupy quadratic output even if finding one pair is linear. A tree can have height n; its name does not promise balance. A head-index queue retains processed references, and a DP table indexed by amount A is pseudo-polynomial in that numeric value rather than its digit count. These details determine whether the whole design fits the constraints.
 
 ## JavaScript Implementations
+<!-- lesson-id:w16-section-javascript-implementations -->
 
 ### Mock A: frequency matching
 
-Contract: case-sensitive Unicode code points, no normalization, and exactly the same multiset of symbols. A sorting baseline compares sorted symbol sequences. The optimized version counts the first string and consumes those counts with the second. A set would lose multiplicity: `aab` and `abb` have the same distinct symbols but are not anagrams.
+We will decide whether two strings contain exactly the same symbols with the same multiplicities. Multiplicity means how many times each symbol occurs. The contract is case-sensitive Unicode code points with no normalization: we do not rewrite visually similar Unicode representations into a common form.
+
+A sorting baseline could compare sorted symbol sequences. Instead, we will count the first string and consume those counts with the second. A set is insufficient: `aab` and `abb` have identical distinct symbols, but different counts.
+
+### Demonstration 1 — Consume symbol occurrences to test anagrams
 
 ```javascript
 function isAnagram(first, second) {
@@ -92,11 +111,17 @@ true false
 true
 ```
 
-After consuming a prefix of the second string, counts represent the still-unused occurrences from the first. A missing occurrence makes equality impossible; finishing with zero remaining proves equal multiplicities. This invariant gives both early rejection and final acceptance. Human-perceived graphemes and canonical Unicode normalization would need an explicitly different contract.
+In **Demonstration 1**, `listen` supplies exactly the occurrences needed by `silent`. For `aab` and `abb`, the first a and b can be consumed, but the second b has no remaining occurrence and returns false. Empty strings consume nothing and match; uppercase A differs from lowercase a. Iteration treats the emoji in `🙂a` as one code point, so its position does not affect the result.
+
+After any processed prefix of the second string, the map records unused occurrences from the first. An unavailable occurrence proves failure immediately. If processing finishes, zero `remaining` proves no extra occurrences remain either. This invariant justifies both early rejection and final acceptance. Human-perceived graphemes and canonical Unicode normalization would require a different explicit contract rather than an unannounced change to this one.
 
 ### Mock B: baseline, window, and a small exhaustive oracle
 
-For this exercise, strings are ASCII. The baseline tries every start, extending until the first duplicate. Any longer substring from that start still contains the duplicate, so stopping there is safe. The optimized version stores the last seen position of each character and a left boundary. It jumps left past a duplicate only when that increases left.
+For this exercise, strings are ASCII, so indexed positions identify characters consistently. The baseline tries each start and extends until its first duplicate. Every longer substring from that start contains that duplicate too, so stopping that extension is safe.
+
+The optimized version remembers each character's last position and the left boundary of a valid contiguous window. When a duplicate is inside the window, jump left past its previous occurrence. When it is outside, keep the existing boundary. We will also enumerate short strings to compare these independently derived methods.
+
+### Demonstration 2 — Compare a unique-character window with a baseline
 
 ```javascript
 function uniqueBaseline(text) {
@@ -153,13 +178,19 @@ console.log(compareSmallInputs(5));
 364
 ```
 
-The window invariant is that `[left,right]` has no repeated character after each update, and left never decreases. The old window was valid; only the newly added symbol can introduce a repeat. Moving past its previous occurrence repairs that repeat, while retaining the existing left boundary avoids resurrecting already discarded characters. Every valid substring ending at right starts at or after this boundary, so its longest candidate is exactly the current window. Taking the maximum over all right endpoints proves the result.
+In **Demonstration 2**, `abba` grows from a to ab, then the second b moves left to index two. The last a previously occurred at zero, outside the active window, so `Math.max` keeps left at two and the valid window becomes ba. Both methods return two. Empty text returns zero; `abcabcbb` has maximum three. The small-input generator reports 364 checked strings.
 
-The generator checks 1+3+9+27+81+243=364 inputs. Agreement is useful evidence, not proof over every string. Keep oracle work separate from the optimized function's runtime. Both implementations deliberately use the same character model; differential testing cannot resolve inconsistent contracts.
+After each update, `[left,right]` has no repeated character and left never decreases. The old window was valid, so only the newly added symbol can cause a repeat. Moving past its previous in-window occurrence repairs that repeat. Keeping the existing boundary when necessary prevents previously discarded duplicates from returning.
+
+Why does this find the longest answer rather than merely some valid windows? Every valid substring ending at right must start at or after the required boundary. The current window is therefore the longest valid candidate for that endpoint. Taking the maximum over all endpoints covers the global optimum.
+
+The generator checks 1+3+9+27+81+243=364 inputs. Agreement on that set is useful evidence, not a proof for all strings. Both functions intentionally use the same character model; differential testing—comparing implementations on the same input—cannot settle a disagreement about what the contract should mean. Keep generator cost separate from solver cost.
 
 ### Mock C: connected regions with an explicit adjacency choice
 
-Contract: rectangular numeric 0/1 grid, four-direction adjacency by default, no mutation. The function returns both component count and largest component size. The optional diagonal rule demonstrates how changing the graph definition changes the answer without changing the traversal invariant.
+We will count connected land regions and find the largest one's size. Supply a rectangular numeric 0/1 grid. Four-direction adjacency is the default, and the grid is preserved. The optional diagonal rule changes which cells connect without changing the discovery invariant.
+
+### Demonstration 3 — Count and measure regions under two neighbor rules
 
 ```javascript
 function regions(grid, diagonal = false) {
@@ -221,13 +252,16 @@ console.log(JSON.stringify(regions([])));
 {"count":0,"largest":0}
 ```
 
-A traversal cannot escape its component because every step follows a legal land edge. It cannot miss reachable land because every discovered cell scans all its legal neighbors. The outer scan starts exactly once per component. This is a complete correctness argument, not merely “DFS visits things.”
+In **Demonstration 3**, opposite-corner land cells have no four-direction path between them, so the result is two regions of size one. Enabling diagonals lets the first traversal discover both, giving one region of size two. Empty input starts no traversal and returns zeros. Each cell is marked when scheduled, so even converging paths cannot place it on the stack twice.
+
+A traversal cannot leave its component because every step follows a legal land edge. It cannot miss reachable land because each discovered cell checks every legal neighbor. The outer scan starts only at unseen land, so it starts exactly once per component. These claims explain both the count and the size calculation; saying only “DFS visits things” would leave those guarantees unstated.
 
 ## Worked Examples
+<!-- lesson-id:w16-section-worked-examples -->
 
-For `aab` versus `abb`, initial counts are a=2,b=1. Consuming a leaves a=1,b=1; consuming b leaves a=1,b=0; the final b requests an unavailable occurrence and fails. The result depends on counts, not on total length alone.
+Trace frequency consumption from **Demonstration 1** in **JavaScript Implementations**. For `aab` against `abb`, counts start a=2,b=1. Consuming a leaves a=1,b=1. Consuming b leaves a=1,b=0. The final b has no available occurrence and fails. Equal total length alone cannot establish equal multiplicity.
 
-Trace the window on `abba`:
+For **Demonstration 2** in **JavaScript Implementations**, follow the window boundaries on `abba`:
 
 | right | character | previous occurrence | left after update | valid window | best |
 | --- | --- | --- | --- | --- | --- |
@@ -236,11 +270,14 @@ Trace the window on `abba`:
 | 2 | b | 1 | 2 | b | 2 |
 | 3 | a | 0 | 2 | ba | 2 |
 
-At the last row, moving left to one would admit `bba`, which is invalid. The previous a lies outside the active window and should not move the boundary backward. This tiny trace explains the purpose of `Math.max` better than memorizing it.
+At the last row, moving left backward to one would admit `bba`, even though the old a lies outside the active window. Keeping left at two retains ba and preserves uniqueness. This trace explains what `Math.max` protects, rather than treating it as a line to memorize.
 
-For the opposite-corner grid, four-direction neighbors never reach the other land cell, so two outer starts occur. With diagonals, the first traversal discovers both cells and the second scan position is already seen. The changed answer is required by the changed contract, not a regression.
+In **Demonstration 3** in **JavaScript Implementations**, four-direction exploration cannot reach the other corner, so two outer starts occur. With diagonal adjacency, the first traversal marks both cells, and the later scan skips the second one. The changed answer follows from a changed graph definition; it is not a traversal regression.
 
 ## Visual Explanations
+<!-- lesson-id:w16-section-visual-explanations -->
+
+The workflow diagram loops back from counterexamples because tests can expose an incorrect model or invariant. In the window sketch, the old a is in the discarded prefix. Its last-seen record remains useful history, but cannot reopen that prefix.
 
 ```text
 Problem-solving flow:
@@ -257,101 +294,120 @@ left stays 2; the earlier a cannot reopen the discarded prefix.
 ```
 
 ## Complexity Analysis
+<!-- lesson-id:w16-section-complexity-analysis -->
 
-Anagram checking takes expected O(n+m) time and O(k) auxiliary space for k distinct symbols in the first string. The baseline substring enumeration is O(n²) worst-case time and O(min(n,alphabet size)) set space. For a fixed tiny alphabet, it may terminate each start early; the general quadratic bound allows a growing alphabet or all-distinct input. The window does O(n) map operations and uses O(k) map storage, under expected constant-time map access. Its map retains last occurrences outside the active window, so count all distinct symbols encountered.
+For lengths n,m and k distinct symbols in the first string, anagram checking takes expected O(n+m) time and O(k) auxiliary space. This assumes expected constant-time map operations. Early failure can process less input, but the stated bound covers a full successful comparison.
 
-The region solver uses O(RC+R) time including shape validation and O(RC) working memory for nonempty grids. Four versus eight neighbor checks changes a constant, not the order. The test generator is exponential in maximum generated length d, visiting `(3^(d+1)−1)/2` strings; an O(d²·3^d) upper bound includes running the baseline on each. That is testing cost, not the production solver's complexity.
+The baseline substring scan has an O(n²) worst-case upper bound and O(min(n,alphabet size)) set storage. A fixed tiny alphabet can force each extension to stop early; the general quadratic analysis allows a growing alphabet or an all-distinct input. The window performs O(n) map operations and keeps O(k) entries for all distinct symbols encountered. Its map retains occurrences outside the current window, so do not count only the active characters.
 
-For interview estimates, name the variables and constraints. “Linear” in a graph means V+E, in a grid means RC, and in coin DP may mean the numeric amount rather than its digit count. Explain whether the bound is worst-case, expected, or dependent on a promised balanced structure.
+The region solver takes O(RC+R) time including row-shape validation and O(RC) working storage for nonempty grids. Four versus eight neighbor checks changes a constant factor, not the growth order.
+
+The generator is exponential in maximum length d and visits `(3^(d+1)−1)/2` strings. An O(d²·3^d) upper bound includes baseline comparisons. This is testing cost, not the optimized window's production runtime.
+
+When giving interview estimates, define your variables. Linear graph work means V+E, grid work means RC, and coin-DP work may depend on the amount's numeric value. State separately whether a bound is worst-case, expected, or relies on a balancing promise. Big O describes an upper growth bound; it is not another name for worst case.
 
 ## Common Mistakes
+<!-- lesson-id:w16-section-common-mistakes -->
 
-- Choosing a pattern before checking direction, contiguity, reuse, or mutation rules.
-- Describing a variable only as “the answer” instead of giving its prefix or state meaning.
-- Treating passing small tests as a proof.
-- Optimizing a function but omitting preprocessing or output cost from the explanation.
-- Reporting a fix as “added Math.max” instead of identifying the violated boundary invariant.
-- Testing only examples that already fit the intuition behind the solution.
+- Check direction, contiguity, reuse, and mutation rules before choosing a pattern. A familiar input shape does not settle the contract.
+- Give each variable a prefix or state meaning. Calling everything “the answer” hides which updates are legal.
+- Treat passing small tests as evidence, while keeping a correctness argument for general inputs.
+- Include preprocessing and output costs when describing an optimized function.
+- Explain the invariant repaired by a change. “Keep left from moving backward” conveys more than “add Math.max.”
+- Test cases that could invalidate the reasoning, not only cases that reinforce your initial intuition.
+
+The deliberately broken update forgets that left must move only forward. Use an earlier duplicate outside the active window to see the failure.
+
+### Demonstration 1 — Broken window boundary that moves backward
 
 ```javascript-bug
 if (last.has(text[right])) left = last.get(text[right]) + 1;
 // On abba, the last a moves left backward from 2 to 1.
 ```
 
+In broken **Demonstration 1**, process `abba`. The second b has already moved left to two. The final a then reads its old index zero and resets left to one, reopening the invalid window bba. Compare the proposed boundary with the existing one and keep the larger. The repair preserves a monotone boundary; it does more than adjust this single example.
+
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w16-section-interview-and-leetcode-pattern-recognition -->
 
-Use the course as a set of arguments you can transfer. Hashing avoids repeated membership scans. A monotonic pointer movement eliminates candidates once. A stack preserves unresolved order. A heap maintains the next priority. DP merges equivalent future questions. A trie merges shared prefixes. Each technique has a reason it saves work and a condition that keeps the saved work safe.
+Use the course as a collection of arguments you can transfer. Hashing avoids repeated membership scans. A pointer that moves only forward can eliminate candidates once. A stack retains unresolved order, while a heap retrieves the next priority. DP reuses equivalent future questions, and a trie shares prefix paths. For each technique, explain both which work it saves and which condition makes saving it safe.
 
-Practice rejecting plausible alternatives aloud. A unique-substring task needs contiguity, so LCS is the wrong model. A weighted route cannot use ordinary BFS unless all weights are equal. An arbitrary negative-number sum constraint may not support a monotone window. A no-reuse board search cannot cache solely by coordinates. That explanation demonstrates understanding even before code appears.
+Practice rejecting plausible alternatives aloud. A unique-substring task requires contiguity, so LCS's gapped subsequences answer a different question. Ordinary BFS minimizes weighted cost only when weights are equal. An arbitrary sum constraint with negative numbers may not support a monotone window. No-reuse board search cannot generally cache solely by coordinates.
 
-During a mock, if an optimization fails, preserve the smallest counterexample and return to the last justified invariant. Report a correct baseline if time runs out, along with its bottleneck. Afterward, separate a modeling failure from a coding error or a communication gap; they need different practice.
+If an optimization fails during a mock, retain the smallest counterexample you can explain and return to the last justified invariant. If time expires, communicate a correct baseline and its bottleneck. Afterward, distinguish a modeling failure, implementation mistake, and communication gap. Each suggests a different next drill; repeating the same problem without diagnosing the cause may repeat the same failure.
 
 ## Practice Exercises
+<!-- lesson-id:w16-section-practice-exercises -->
 
 ### Conceptual
 
-1. Compare one unsorted lookup with a million queries on unchanged data. When do sorting, hashing, and scanning each make sense?
-2. Explain why a graph with unequal nonnegative weights changes the minimum-route algorithm but not the definition of reachability.
+1. Compare one unsorted lookup with a million queries on unchanged data. Explain when scanning, sorting, or hashing is appropriate, including memory and preprocessing.
+2. Explain why unequal nonnegative edge weights change the minimum-route algorithm but not what it means for a vertex to be reachable.
 
 ### Tracing
 
-3. Trace `uniqueWindow('tmmzuxt')`, recording left, right, and best. Explain the final t update.
-4. Trace numeric-grid regions on `[[1,1,0],[0,1,0],[1,0,1]]` with four directions and then eight.
+3. Trace `uniqueWindow('tmmzuxt')`, recording left, right, and best after each character. Explain why the last t does or does not move left.
+4. Trace regions on `[[1,1,0],[0,1,0],[1,0,1]]` using four directions and then eight. Report both count and largest size.
 
 ### Debugging
 
-5. Remove the monotone-left protection and run the small-input oracle. Reduce a failing input by deleting characters while preserving disagreement. Does the first discovered failure have to be the shortest?
+5. Remove the protection against moving left backward in **Demonstration 2** in **JavaScript Implementations** and run its small-input oracle. Delete characters from a failure while preserving disagreement. Must the first failure found be shortest?
 
 ### Implementation
 
-6. Extend the window to return starting index and length, choosing the earliest start on ties. State the indexing model.
-7. Run a twenty-minute mock on an unseen membership, window, or component problem. Before coding, write a baseline, an invariant, three adversarial cases, and expected costs. Afterward, record one concrete repair action.
+6. Return a starting index and length from the window, choosing the earliest start on ties. State your indexing model and distinguish returning indexes from copying text.
+7. Run a twenty-minute mock on an unseen membership, window, or component problem. Before coding, write a baseline, invariant, three adversarial cases, and expected costs. Afterward, record one concrete repair action.
 
 ### LeetCode + HackerRank
 
-- **[Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/)** — Platform: LeetCode. Difficulty: Medium. Concepts: contiguous windows, last-seen positions, monotone boundaries. Why: tests the ability to replace repeated scans with maintained state and defend the `abba` case.
-- **[Hash Tables: Ransom Note](https://www.hackerrank.com/challenges/ctci-ransom-note/problem)** — Platform: HackerRank. Difficulty: Easy. Concepts: frequency maps, multiplicity, case-sensitive word matching. Why: transfers the anagram consumption invariant to whole-word resources with leftover magazine words allowed.
+- **[Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/)** — LeetCode, Medium. Practice contiguous windows, last-seen positions, and boundaries that never move backward. Defend the `abba` case while explaining how maintained state replaces repeated scans.
+- **[Hash Tables: Ransom Note](https://www.hackerrank.com/challenges/ctci-ransom-note/problem)** — HackerRank, Easy. Transfer frequency consumption to case-sensitive whole-word resources. Multiplicity still matters, but unused magazine words are allowed, changing the final acceptance condition.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w16-section-hints-and-worked-solutions -->
 
-1. A single scan avoids unnecessary preprocessing. Repeated exact membership queries can amortize a hash index; sorted storage supports ordered queries and binary search. Include O(n) index memory, expected hashing, and O(n log n) sorting. If the data changes frequently, updates also belong in the workload comparison.
-2. Reachability asks only whether a legal route exists, so DFS/BFS still works. Minimum cost depends on sums of weights; Dijkstra orders tentative cost rather than edge count. Equal positive weights permit BFS and a final scale factor.
-3. Best lengths after each character are 1,2,2,2,3,4,5. Left becomes two at the second m and stays two. At the final t, its old index zero is outside the current window. The longest length is five, for `mzuxt`.
-4. Four directions give three components, largest size three. Eight directions connect the lower corner cells through `(1,1)`, giving one component of size five. The neighbor rule is part of the answer specification.
-5. The generator uses depth-first order, so its first failure need not be globally shortest. Delete symbols while the discrepancy remains; `abba` is a compact explanatory case. Repair the invariant, retain the case as a regression, and rerun the finite oracle. Passing it establishes agreement on that set only.
-6. Track `bestStart` alongside `bestLength`, updating both only when the current length is strictly greater. This preserves the earliest discovered maximum; right endpoints increase, and the boundary never decreases. Returning indexes adds O(1) result storage. Returning a copied substring adds work and output space proportional to its length.
-7. Score modeling, implementation, and explanation separately from zero to two: absent/incorrect, partially justified, independently correct. A useful repair action is “trace a duplicate outside the window before coding,” not “practice more.” Repeat the problem later from a blank editor, then vary one constraint and explain whether the algorithm survives.
+1. A single scan avoids preprocessing for one lookup. Repeated exact-membership queries can share a hash index's construction cost; this sharing is what amortizing preprocessing means here. Sorted storage supports ordered queries and binary search. Include O(n) index memory, expected hashing assumptions, and O(n log n) sorting. If data changes frequently, count update work too.
+2. Reachability asks only whether a legal route exists, so DFS or BFS can still establish it. Minimum cost depends on sums of edge weights, requiring Dijkstra's tentative-cost order for general nonnegative unequal weights. Equal positive weights allow BFS followed by a scale factor.
+3. Best lengths are 1,2,2,2,3,4,5. Left becomes two at the second m and remains two afterward. The final t previously occurred at zero, outside the active window, so it cannot move left backward. The longest window is `mzuxt`, length five.
+4. Four directions give three components with largest size three. With diagonals, both lower corner cells connect through `(1,1)`, yielding one component of size five. The movement rule is part of the specification, so both results are correct for their respective contracts.
+5. The generator explores depth first, so a first failure need not be globally shortest. Keep deleting symbols while disagreement persists; `abba` is a compact explanatory case. Repair the boundary invariant, retain that case as a regression test, and rerun the finite oracle. Agreement establishes only the checked set.
+6. Store `bestStart` with `bestLength` and update both only when the current length is strictly larger. With increasing right endpoints and a left boundary that never decreases, this retains the earliest discovered maximum. For ASCII, character indexes and the implementation's indexed string positions agree. Index output needs O(1) storage; a copied substring adds work and output proportional to its length.
+7. Score modeling, implementation, and explanation independently from zero to two: absent/incorrect, partly justified, and independently correct. A repair action such as “trace an old duplicate outside the window before coding” is more useful than “practice more.” Later, solve again from a blank editor, then change one constraint and explain whether your argument survives.
 
-For Ransom Note, count magazine words, consume note words, and fail on unavailable occurrences. Unlike anagrams, unused magazine words are allowed, so do not require all counts to end at zero. This single contract change is a useful test of whether you understand the invariant rather than copied a final return condition.
+For Ransom Note, count magazine words and consume note words, failing when an occurrence is unavailable. Unlike anagrams, leftover magazine resources are allowed. Do not require all counts to become zero. That single contract change tests whether you understand the consumption invariant instead of copying the final return condition.
 
 ## Sources and Further Reading
+<!-- lesson-id:w16-section-sources-and-further-reading -->
 
-- Canonical scope consulted: [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js). The timed workflow, examples, oracle, and review rubric here are original instructional synthesis.
-- MIT OCW, [BFS lecture notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf): consulted as graph background; it is not a source for the mock timing or review rubric.
-- LeetCode, [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/), and HackerRank, [Hash Tables: Ransom Note](https://www.hackerrank.com/challenges/ctci-ransom-note/problem): official statements consulted to verify practice contracts and destinations. No claim of online submission or editorial review is made.
+- The [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js) define scope. The timing workflow, examples, oracle, and review rubric are original instructional synthesis.
+- MIT OCW's [BFS lecture notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf) were consulted during earlier preparation as graph background, rather than as a source for mock timing or the review rubric.
+- The official [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/) and [Hash Tables: Ransom Note](https://www.hackerrank.com/challenges/ctci-ransom-note/problem) statements were previously consulted to check contracts and destinations. This rewrite claims neither renewed external verification nor online submission or editorial review.
 
 ## Weekly Summary
+<!-- lesson-id:w16-section-weekly-summary -->
 
-Independent problem-solving means connecting a contract to a model, a model to an invariant, and an invariant to code and tests. A baseline supplies a recovery point and sometimes an oracle; an optimization needs a proof that discarded work cannot change the answer. Keep reviewing with counterexamples, changed constraints, and blank-editor reattempts. Use [Week 11](week-11.md) through [Week 15](week-15.md) as targeted references when your review identifies a specific gap.
+Independent problem-solving connects a contract to a model, a model to an invariant, and that invariant to implementation and tests. A baseline gives you a recovery point and can supply an oracle for small inputs. An optimization needs a reason discarded work cannot change the answer.
+
+Review with counterexamples, changed constraints, and later attempts from a blank editor. When you find a specific gap, return to the relevant material from [Week 11](week-11.md) through [Week 15](week-15.md). The purpose is to repair an argument you can reuse, rather than memorize another complete answer.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Choose a pattern from its invariant and reject an unsuitable alternative. <!-- checkpoint:w16-justify-pattern-choice -->
-- [ ] Explain preprocessing, output size, and expected versus worst-case costs. <!-- checkpoint:w16-account-full-workload -->
+- [ ] Choose a pattern by its invariant and explain why a plausible alternative fails. <!-- checkpoint:w16-justify-pattern-choice -->
+- [ ] Account for preprocessing, output, and the distinction between expected and worst-case costs. <!-- checkpoint:w16-account-full-workload -->
 
 ### JavaScript
 
-- [ ] Implement frequency matching, a unique window, and components independently. <!-- checkpoint:w16-implement-core-mocks -->
-- [ ] Compare an optimized solution against a small independent oracle. <!-- checkpoint:w16-run-differential-checks -->
+- [ ] Independently implement frequency matching, a unique-character window, and grid components. <!-- checkpoint:w16-implement-core-mocks -->
+- [ ] Compare an optimized solution with an independently derived small-input oracle. <!-- checkpoint:w16-run-differential-checks -->
 
 ### Practice
 
-- [ ] Complete a timed unseen mock with explicit contract and adversarial tests. <!-- checkpoint:w16-complete-timed-mock -->
-- [ ] Complete both external exercises and explain their differing final conditions. <!-- checkpoint:w16-transfer-counting-invariant -->
+- [ ] Complete a timed unseen mock with an explicit contract and adversarial tests. <!-- checkpoint:w16-complete-timed-mock -->
+- [ ] Finish both external exercises and explain their different final acceptance conditions. <!-- checkpoint:w16-transfer-counting-invariant -->
 
 ### Reflection
 
-- [ ] Record a minimal counterexample, corrected invariant, and concrete next drill. <!-- checkpoint:w16-write-failure-review -->
-- [ ] Reattempt a previous failure from a blank editor and explain one changed constraint. <!-- checkpoint:w16-demonstrate-independent-transfer -->
+- [ ] Record a minimal counterexample, corrected invariant, and specific next drill. <!-- checkpoint:w16-write-failure-review -->
+- [ ] Reattempt a prior failure from a blank editor and explain the effect of one changed constraint. <!-- checkpoint:w16-demonstrate-independent-transfer -->

@@ -12,6 +12,14 @@ export async function loadLesson(weekNumber) {
         ),
         'utf8'
     );
+    return parseLessonMarkdown(weekNumber, markdown);
+}
+
+export function parseLessonMarkdown(weekNumber, markdown) {
+    const legacy = getLesson(weekNumber);
+    if (!legacy) {
+        return null;
+    }
     if (!markdown.startsWith(`# Week ${weekNumber} - ${legacy.title}\n`)) {
         throw new Error(`Chapter ${weekNumber} has invalid identity metadata.`);
     }
@@ -34,6 +42,18 @@ export async function loadLesson(weekNumber) {
             continue;
         }
         if (!fence) {
+            const identity = line.match(/^<!-- lesson-id:(w\d+-section-[a-z0-9-]+) -->$/);
+            if (identity) {
+                if (
+                    current.lessonId ||
+                    !identity[1].startsWith(`w${weekNumber}-section-`) ||
+                    identity[1].length > 120
+                ) {
+                    throw new Error(`Chapter ${weekNumber} has invalid lesson identity metadata.`);
+                }
+                current.lessonId = identity[1];
+                continue;
+            }
             const heading = line.match(/^# Week (\d+) - (.+)$/);
             if (heading && Number(heading[1]) === weekNumber) {
                 title = heading[2];
@@ -68,6 +88,16 @@ export async function loadLesson(weekNumber) {
         title: 'Mastery checkpoint',
         body: ''
     });
+    const readingSections = sections.filter(
+        (section) =>
+            typeof section.markdown === 'string' && section.id !== 'weekly-progress-checklist'
+    );
+    if (
+        readingSections.some((section) => !section.lessonId) ||
+        new Set(readingSections.map((section) => section.lessonId)).size !== readingSections.length
+    ) {
+        throw new Error(`Chapter ${weekNumber} is missing unique stable lesson IDs.`);
+    }
     const { id, concepts, checkpoint, problems, resources } = legacy;
     return {
         id,
@@ -82,22 +112,16 @@ export async function loadLesson(weekNumber) {
         title,
         sourcePath: `docs/weekly_content/week-${String(weekNumber).padStart(2, '0')}.md`,
         sections,
-        lessons: sections
-            .filter(
-                (section) =>
-                    typeof section.markdown === 'string' &&
-                    section.id !== 'weekly-progress-checklist'
+        lessons: readingSections.map((section) => ({
+            id: section.lessonId,
+            sectionId: section.id,
+            title: section.title,
+            category: 'Reading',
+            estimatedMinutes: Math.max(
+                1,
+                Math.ceil(section.markdown.split(/\s+/).filter(Boolean).length / 220)
             )
-            .map((section) => ({
-                id: `w${id}-section-${section.id}`,
-                sectionId: section.id,
-                title: section.title,
-                category: 'Reading',
-                estimatedMinutes: Math.max(
-                    1,
-                    Math.ceil(section.markdown.split(/\s+/).filter(Boolean).length / 220)
-                )
-            })),
+        })),
         readingWords: markdown
             .replace(/<!--[\s\S]*?-->/g, '')
             .split(/\s+/)

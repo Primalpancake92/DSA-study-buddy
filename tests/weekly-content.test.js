@@ -268,6 +268,28 @@ for (const [index, title] of titles.entries()) {
     });
 }
 
+test('archived teaching chapter retains runnable examples and valid resource links', () => {
+    const file = resolve(root, 'docs/weekly_content/archive/week-01-complexity-and-arrays.md');
+    const document = parse(readFileSync(file, 'utf8'));
+    for (const [index, fence] of document.fences.entries()) {
+        if (fence.language !== 'javascript') {
+            continue;
+        }
+        const output = document.fences[index + 1];
+        assert.equal(output?.language, 'output');
+        assert.equal(
+            document.lines.slice(fence.end + 1, output.start).join('\n').trim(),
+            ''
+        );
+        assert.equal(runExample(fence.code).join('\n'), output.code);
+    }
+    for (const match of document.prose.matchAll(
+        /\[[^\]\n]+\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+["'][^\n]*["'])?\s*\)/g
+    )) {
+        checkLink(match[1] || match[2], file);
+    }
+});
+
 test('canonical chapters are not duplicated at the repository root', () => {
     for (let week = 1; week <= 17; week++)
         assert.equal(

@@ -1,58 +1,75 @@
 # Week 15 - Dynamic Programming II and Tries
+<!-- lesson-id:w15-section-chapter-introduction -->
 
-This week, you will be learning two-dimensional dynamic programming and prefix trees. Grid coordinates and pairs of string prefixes require richer states than a single index, while tries organize dictionary words by shared prefixes. These tools matter for route counting, sequence comparison, and incremental text lookup.
+This week, we will learn to name smaller questions with two pieces of information and to share the beginnings of stored words. Two-dimensional dynamic programming uses states such as a grid coordinate or a pair of string-prefix lengths. A prefix is the beginning of a sequence, including possibly the whole sequence or nothing. A trie, also called a prefix tree, stores words along paths that share those beginnings.
 
-We will start with grid paths and obstacles, derive longest common subsequence with reconstruction, then build a trie with exact-word and prefix operations. Finally, Word Search will show why some grid problems require path-dependent backtracking instead of a small DP table.
+We will first count right/down grid routes, including obstacles. Then we will derive longest common subsequence and recover one best answer. A subsequence keeps symbols in order while allowing gaps. After that, we will implement exact-word and prefix lookup in a trie, and use Word Search to examine when a grid question depends on the particular path taken.
 
-By the end, you should be able to explain every table axis, preserve dependencies during row compression, distinguish subsequences from substrings, and implement trie operations without mistaking a prefix for a complete word.
+By the end, you should be able to explain both axes of a table, preserve old dependencies when compressing rows, and distinguish a complete stored word from an existing prefix path. You should also be able to recognize when a small DP state omits necessary history.
 
-There will be a checklist at the end of this lesson covering Theory, JavaScript, Practice, and Reflection. Use it to record evidence in your progress logs.
+Use the final Theory, JavaScript, Practice, and Reflection checklist to record evidence in your progress logs. Hand traces of compressed values and shared word paths are especially useful here.
 
 ## Learning Objectives
+<!-- lesson-id:w15-section-learning-objectives -->
 
-- Derive grid recurrences from legal predecessor cells and obstacle rules.
-- Define LCS state over two prefix lengths and reconstruct one optimum.
-- Explain the old-above, new-left, and old-diagonal values in compressed DP.
-- Implement trie insertion, exact search, and prefix search.
-- Identify when a visited path is necessary state and must be undone.
+- Derive grid updates from the cells that can legally precede an arrival, including the effect of obstacles.
+- Define longest common subsequence (LCS) state using two prefix lengths and recover one optimal sequence.
+- Explain which compressed values mean old-above, new-left, and old-diagonal before overwriting anything.
+- Insert trie words and distinguish exact lookup from prefix lookup.
+- Identify path-dependent restrictions, retain the cells used by a candidate path, and undo their marks before trying alternatives.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w15-section-prerequisite-knowledge -->
 
-Review state definitions, bases, and evaluation order in [Week 14](week-14.md), and implicit grid graphs in [Week 11](week-11.md). You need nested arrays, `Map`, and recursive choose/explore/undo reasoning. The code treats strings as Unicode code points using iteration or `Array.from`; this is not grapheme segmentation, so a combined visual emoji can contain several symbols.
+Review state meanings, base cases, and dependency order in [Week 14](week-14.md), together with coordinate-generated graph neighbors in [Week 11](week-11.md). You will use nested arrays, `Map`, and recursive choose/explore/undo reasoning. That last pattern is backtracking: try a choice, explore what it permits, then restore the prior state for another choice.
+
+The string examples use Unicode code points through iteration or `Array.from`. A code point is a Unicode symbol value, not necessarily one visual character. A combined emoji can contain several code points. Grouping them into human-perceived characters is grapheme segmentation, which these examples do not perform.
 
 ## Core Theory
+<!-- lesson-id:w15-section-core-theory -->
 
 ### Grid paths form a directed dependency graph
 
-Let paths(r,c) count routes from the top-left cell to `(r,c)` using only right and down moves. An arrival comes from above or left. These cases are disjoint, so add their counts. The start has one route, the empty route; an out-of-bounds predecessor contributes zero. A blocked cell has zero routes regardless of the values around it. Row-major evaluation works because both legal predecessors have already been computed.
+Let paths(r,c) count routes from the top-left cell to `(r,c)` using only right and down moves. To arrive, the final move must come from above or left. Those cases do not overlap because one route has only one final move, so add their counts.
 
-A full R×C table makes dependencies easy to see. A compressed row is a representation change, not a new recurrence: before updating column c, dp[c] is the previous row's value from above, while dp[c−1] has already become this row's value from the left. Therefore left-to-right updates are essential. A blocked cell must reset dp[c] to zero or an old above-route will leak through it.
+Seed the start with one route, the empty route requiring no moves. A predecessor outside the board contributes zero. A blocked cell contributes zero regardless of nearby counts, since no legal route can end there. Row-major evaluation—finish one row from left to right, then move to the next—works because above and left have already been computed.
+
+A full R×C table makes this dependency pattern visible. Compressing it to one row changes storage, not the recurrence. Before column c is updated, dp[c] still holds the previous row's value from above. Meanwhile dp[c−1] has already become the current row's value from the left. We must therefore update left to right. At an obstacle, reset dp[c] to zero so an old route from above cannot leak through the blocked cell.
 
 ### Two prefixes define a subsequence question
 
-A subsequence preserves order but permits gaps; a substring is contiguous. “ace” is a subsequence of “abcde”, but not its substring. Define dp(i,j) as the LCS length for the first i symbols of A and first j symbols of B. If either prefix is empty, the answer is zero.
+A subsequence preserves order but permits gaps; a substring must be contiguous, with no gaps. For example, “ace” is a subsequence of “abcde”, but not a substring. Define dp(i,j) as the LCS length for the first i symbols of A and the first j symbols of B. If either prefix is empty, the length is zero.
 
-When the final symbols match, an optimum can include that shared final symbol: use dp(i−1,j−1)+1. When they differ, an optimum cannot use both final symbols as its final matched pair, so skip one endpoint and take max(dp(i−1,j),dp(i,j−1)). This exhausts the alternatives. Induction over prefix lengths proves the table. More generally, MIT's [string-DP notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf) illustrate the use of string subproblems and dependency tables; the LCS derivation here is specific to this chapter.
+When the final symbols match, an optimum can include that shared final symbol. Retain an optimum for the two shorter prefixes and extend it: dp(i−1,j−1)+1. When the symbols differ, they cannot both form the final matched pair. Skip one endpoint and compare max(dp(i−1,j),dp(i,j−1)). These alternatives cover every possible optimal answer. Induction over prefix lengths proves that the table stores the claimed lengths.
 
-Reconstruction follows the choices backward. On a match, record the symbol and move diagonally. On a mismatch, move to a neighbor carrying the retained optimum. Ties can yield different valid subsequences, so test optimal length and membership in both inputs rather than one arbitrarily preferred string.
+MIT's [string-DP notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf) discuss string subproblems and dependency tables more generally. The LCS derivation here is specific to this chapter.
+
+To recover an actual subsequence, follow retained choices backward. A match records a symbol and moves diagonally. A mismatch moves to a neighbor carrying the same optimum. If neighbors tie, either direction can produce a valid optimum. Test both optimal length and membership as a subsequence of each input; comparing only against one preferred output string would wrongly reject other correct answers.
 
 ### A trie shares paths, not just complete keys
 
-Each trie edge consumes one symbol; each node stores outgoing symbol-to-child mappings and an end-of-word flag. Inserting “cart” creates a path c→a→r→t. That path also contains the prefix “car”, but “car” is not a stored word until its node is marked. Exact search requires both an existing path and an end marker. Prefix search requires only the path. The root represents the empty prefix; it becomes an empty stored word only after explicit insertion.
+A trie stores a word one symbol per edge. Each node keeps a mapping from outgoing symbols to children and a flag saying whether a complete word ends there. Inserting “cart” creates c→a→r→t. Its path contains “car”, but that does not mean “car” was inserted as a word.
 
-Tries are useful for repeated prefix queries or dictionary-guided traversal. A `Set` is usually simpler for exact membership alone. CMU's [string-algorithm lecture](https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf) discusses tries as shared string paths; the sparse JavaScript `Map` representation below avoids allocating an entire alphabet array at every node.
+Exact search requires both an existing path and a marked endpoint. Prefix search requires only the path. The root represents the empty prefix, so prefix lookup for an empty string succeeds even in a new trie. Exact empty-word lookup succeeds only after explicitly marking the root by inserting the empty word.
+
+A trie is useful for repeated prefix queries or dictionary-guided exploration. If you only need exact membership, a `Set` is usually simpler. CMU's [string-algorithm lecture](https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf) discusses shared string paths. Our sparse `Map` representation stores only existing outgoing symbols instead of allocating a whole alphabet-sized child array at every node.
 
 ### Not every grid search is grid DP
 
-Word Search forbids reusing a board cell within one candidate word. Two visits to the same `(row,column,index)` can have different legal futures because earlier cells used on their paths differ. Memoising only that triple merges incompatible histories. Backtracking keeps a path-specific set, marks before exploration, and unmarks before returning. A trie can prune dictionary prefixes when searching many words, but it does not eliminate the no-reuse constraint.
+Word Search asks whether a word can be traced without reusing a board cell within that candidate path. The same `(row,column,index)` can be reached after using different earlier cells. One history may leave a needed neighbor free while another has already used it. They therefore have different legal futures.
+
+Memoising only that triple incorrectly treats those futures as equivalent. Backtracking keeps a set specific to the current path, marks before exploring continuations, and removes the mark before returning. A trie can reject dictionary prefixes early when searching for many words, but does not remove the no-reuse restriction. History still matters even when prefix lookup becomes faster.
 
 ## JavaScript Implementations
+<!-- lesson-id:w15-section-javascript-implementations -->
 
 ### Grid paths, with and without obstacles
 
-Dimensions are nonnegative integers. Obstacle grids are rectangular arrays with zero for open and one for blocked. Counts must remain safe integers for exact `Number` answers; use consistent `BigInt` values for larger exact counts.
+We will first expose every grid answer in a full table. Dimensions are nonnegative integers. Obstacle grids are rectangular arrays, with numeric zero for open and one for blocked. Counts must remain safe integers for exact `Number` answers; use consistent `BigInt` values for larger exact counts.
 
-Start with a full table before compressing it. Imagine filling cell `(1,2)` in a three-column grid. Its routes come from `(0,2)` above and `(1,1)` to the left. A route cannot belong to both groups because its final move has only one direction. That is why we add rather than take a maximum. The top-left cell is seeded separately because it has no predecessor: reaching it requires no moves, and there is exactly one such empty route.
+Imagine computing `(1,2)` in a three-column grid. Arrivals come from `(0,2)` or `(1,1)`. A route cannot have both final directions, so add the counts rather than taking their maximum. The source is different: it has no predecessor, but one empty route reaches it.
+
+### Demonstration 1 — Make every right/down grid subproblem visible
 
 ```javascript
 function gridPathTable(rows, columns) {
@@ -85,9 +102,13 @@ console.log(JSON.stringify(gridPathTable(0, 3)));
 []
 ```
 
-Read the loops as a schedule for answering subproblems. At the beginning of a row, the row above is complete. Within the row, every cell to the left is complete. Neither dependency points forward, so a computed value never needs revision. Allowing moves upward or leftward would destroy this simple ordering and could create cycles; you could not keep the same recurrence and assume a single pass remained valid. This full-table version returns O(RC) cells, uses O(1) extra loop state, and takes O(RC) time for nonempty dimensions.
+In **Demonstration 1**, the three-by-three table starts with one at `(0,0)`. The first row and column stay one because there is only one legal approach along a boundary. Interior `(1,1)` becomes two, `(1,2)` becomes three, and the bottom-right becomes six. A one-row grid has one route to each cell; a zero dimension returns no table.
 
-The next implementation retains only the previous/current row because older rows are never read again. On the first row, every open cell has one route. Later updates combine the still-old value at the current column with the already-new value at the preceding column. The obstacle variant starts more cautiously with only the source seeded and clears a column whenever it encounters a blocked cell.
+Read the loops as an evaluation schedule. At each cell, the row above is complete and the current row's left cells are complete. Neither dependency points forward. Allowing upward or leftward moves would remove this simple order and could introduce cycles; the same single-pass recurrence would no longer be justified. For nonempty dimensions, the function takes O(RC) time and returns O(RC) cells, with O(1) additional loop state.
+
+Next we will retain only the values the next row can need. The unobstructed version can initialize every first-row value to one. The obstacle version must seed only the source and clear blocked columns, because an obstacle can invalidate boundary routes.
+
+### Demonstration 2 — Compress grid rows and clear blocked arrivals
 
 ```javascript
 function uniquePaths(rows, cols) {
@@ -134,15 +155,19 @@ console.log(pathsWithObstacles([[1]]), pathsWithObstacles([]));
 0 0
 ```
 
-The unobstructed first row and column each have one route. The obstacle version cannot prefill every boundary with one: an obstacle on the first row blocks later cells until another route can enter from below, which right/down motion does not allow on that row.
+In **Demonstration 2**, `uniquePaths(3,3)` begins with `[1,1,1]`, becomes `[1,2,3]`, then `[1,3,6]`. Each update adds the old above value to the new left value. With a blocked center, the rows instead become `[1,1,1]`, `[1,0,1]`, and `[1,1,2]`, yielding two. A blocked start clears the seed itself, and empty input returns zero.
+
+Do not prefill every obstacle-grid boundary with one. On the first row, a blocked cell cuts off all later cells because there is no incoming route from above. Only later rows can gain new routes from their own left or above. The obstacle reset makes that distinction emerge from the same update rules.
 
 ### Full LCS table and reconstruction
 
-Independent row allocation prevents accidental aliasing. Prefix lengths range from zero through the input length, so character indexes use i−1 and j−1.
+We will retain a full table so we can recover one sequence as well as its length. Allocate each row independently to avoid sharing one mutable array. Prefix lengths include zero, so the final symbols of prefixes i and j are at character indexes i−1 and j−1.
 
-For a match, the diagonal represents both prefixes before their final symbols. Extending that answer consumes one symbol from each string exactly once. For a mismatch, moving up ignores the final symbol of the first prefix; moving left ignores the final symbol of the second. We take a maximum because these are competing candidate subsequences, not disjoint sets of routes to count. Adding the two neighboring lengths would combine possibly overlapping matches and can claim an impossible answer.
+On a match, the diagonal contains both shorter prefixes; extending it consumes one symbol from each input. On a mismatch, moving up discards the first prefix's final symbol and moving left discards the second's. Take the maximum because these are competing answers, not disjoint route counts. Adding lengths can double-count overlapping matches and claim a subsequence longer than either prefix supports.
 
-The extra zero row and column represent an empty prefix explicitly. This lets a match at the first characters use the same diagonal formula as any later match. During reconstruction, a diagonal move records a real match, whereas an up or left move merely discards an unused endpoint. At every step the retained table value remains achievable by the remaining prefixes.
+The extra zero row and column explicitly represent empty prefixes. Even a first-character match can then use the ordinary diagonal rule. Reconstruction preserves an achievable optimum while discarding unused endpoints or recording a genuine matched pair.
+
+### Demonstration 3 — Build an LCS table and recover its matched symbols
 
 ```javascript
 function longestCommonSubsequence(first, second) {
@@ -192,9 +217,13 @@ console.log(JSON.stringify(longestCommonSubsequence('', 'abc')));
 {"length":0,"sequence":""}
 ```
 
+In **Demonstration 3**, `abcde` and `ace` retain a, c, and e in order, producing length three. Reconstruction starts at the final prefixes, records matches backward, then reverses them. For `ab` and `ac`, the final b/c mismatch moves toward a neighbor of length one rather than erasing the earlier a. Empty input uses the zero border and returns an empty sequence.
+
 ### Compress LCS only when length is enough
 
-Unlike grid counting, LCS needs the old diagonal as well as above and left. Save above before overwriting; after the update, that saved value becomes the next column's old diagonal.
+LCS needs three dependencies: old above, new left, and old diagonal. Unlike grid addition, the diagonal would be lost if we overwrite without saving. Store above before writing; after the update, that saved value is the old diagonal needed by the next column.
+
+### Demonstration 4 — Save LCS diagonal history during a row update
 
 ```javascript
 function lcsLength(first, second) {
@@ -226,13 +255,15 @@ console.log(lcsLength('', 'abc'));
 0
 ```
 
-The second test catches using the newly updated left value as the diagonal: one “a” must not match twice. Compression removes the full decision history; use the full table for the simple reconstruction above.
+In **Demonstration 4**, `abcde` versus `ace` still returns three, but only lengths remain. The test `a` versus `aa` is especially useful: after the first match, new-left is one, yet the next old-diagonal is still zero. Using new-left as diagonal would falsely match the single a twice and return two. For simple sequence reconstruction, keep the full table from **Demonstration 3** instead of assuming compression preserved its decisions.
 
 ### Trie insertion, search, and prefix lookup
 
-There are two separate questions at the end of a query: did every character edge exist, and was this exact endpoint marked as a word? Keep those questions separate in the implementation. `findNode` handles the shared traversal. `search` additionally checks the endpoint's `end` flag. `startsWith` needs only a successful traversal. The node itself does not need to store the entire prefix: its position in the tree already identifies that prefix.
+We will separate reaching a path endpoint from deciding whether that endpoint is a stored word. `findNode` performs shared traversal. `search` additionally checks the `end` flag; `startsWith` needs only a successful traversal. A node's position already identifies its prefix, so it does not need a copy of the whole prefix string.
 
-Insertion creates a child only when an edge is missing, then advances to that child. After every character has been consumed, it marks the final node. Marking every node on the way would wrongly insert every prefix as a word. Inserting “cart” should not silently insert “c”, “ca”, or “car”. Conversely, a marked node is allowed to have children: “car” and “cart” can both be words.
+Insertion creates a child only when that symbol edge is absent and then advances to it. Mark only after consuming the entire word. Marking along the way would silently insert “c”, “ca”, and “car” when we intended only “cart”. Conversely, an end-marked node may have children: both “car” and “cart” can be stored.
+
+### Demonstration 5 — Distinguish a stored word from its shared prefix
 
 ```javascript
 class TrieNode {
@@ -294,11 +325,15 @@ false true
 true false
 ```
 
-Duplicate insertion is idempotent for membership. A contact-counting application needs an additional count and an explicit policy for duplicate names. Deleting “car” should clear its end marker without removing the branch to “cart”; prune a node only if it is not an ending and has no children.
+In **Demonstration 5**, inserting `cart` creates the `car` path but leaves its endpoint unmarked. Exact `car` search is false while prefix search is true. Inserting `car` then marks the existing node without duplicating the path. Repeating the insertion changes no membership result. The empty prefix exists at the root before an empty word is inserted; inserting that word marks the root. Missing `cat` fails when its edge is absent.
+
+Repeated insertion is idempotent for membership: doing it again has the same effect as doing it once. Counting contacts needs an extra counter and an explicit policy for duplicate names. Deleting “car” must clear its marker while retaining the branch to “cart”. Only a node with no children and no ending can safely be pruned, meaning removed as unnecessary.
 
 ### Word Search with path-local marking
 
-Board cells contain single code-point symbols. Empty word returns true; empty board with a nonempty word returns false. The board is preserved. The path set is undone even on a successful branch before returning.
+We will explore candidate paths while preserving the board. Each cell contains a single code-point symbol. The empty word returns true, but a nonempty word on an empty board returns false. The path set is restored before a successful marked branch returns, just as it is after unsuccessful exploration.
+
+### Demonstration 6 — Undo used-cell marks between candidate word paths
 
 ```javascript
 function wordExists(board, word) {
@@ -358,11 +393,14 @@ false false
 true
 ```
 
+In **Demonstration 6**, A→B→D spells `ABD` using legal right/down connections on the sample board. A→B→A fails because A is already in the current path, and A→D fails because diagonal moves are excluded. The empty word succeeds even on an empty board. `used.delete(key)` restores a marked cell before returning, so another branch can use it. The final matching cell returns before being marked because it has no continuation to explore.
+
 ## Worked Examples
+<!-- lesson-id:w15-section-worked-examples -->
 
-For the 3×3 obstacle grid with the middle blocked, the compressed state starts `[1,0,0]`. After row zero it is `[1,1,1]`; after row one, `[1,0,1]`; after row two, `[1,1,2]`. Resetting the middle column erases the route from above but allows later rows to receive new routes from their left.
+For **Demonstration 2** in **JavaScript Implementations**, start the three-by-three obstacle grid with `[1,0,0]`. Row zero yields `[1,1,1]`; row one yields `[1,0,1]`; row two yields `[1,1,2]`. Clearing the center removes an old above-route, while later rows may receive fresh routes from their left.
 
-For A=`ab`, B=`ac`, the LCS table is:
+For A=`ab` and B=`ac`, inspect the prefix table used by **Demonstration 3** in **JavaScript Implementations**:
 
 | Prefix | empty | a | ac |
 | --- | --- | --- | --- |
@@ -370,11 +408,16 @@ For A=`ab`, B=`ac`, the LCS table is:
 | a | 0 | 1 | 1 |
 | ab | 0 | 1 | 1 |
 
-At `(2,2)`, b differs from c, so retain the maximum of the neighbors. Reconstruction can move upward to `(1,2)`, left to `(1,1)`, then record a and move diagonally. The mismatch does not erase the earlier match.
+At `(2,2)`, b differs from c, so retain the maximum neighboring length. Reconstruction can move up to `(1,2)`, left to `(1,1)`, then record a and move diagonally. A mismatch does not erase a previously established match.
 
-For trie insertion, “cart” creates four edges and marks only t. Searching “car” reaches r, but r is not initially an end. Inserting “car” changes only its flag. No second c→a→r chain is allocated. In Word Search, A→B→D succeeds, A→B→A fails because A is still on the path, and A→D fails because diagonal edges were never legal.
+In **Demonstration 5** in **JavaScript Implementations**, “cart” creates four edges and marks only t. Searching “car” reaches r, but initially finds no ending. Inserting “car” only changes that flag; it does not allocate a second c→a→r chain.
+
+For **Demonstration 6** in **JavaScript Implementations**, compare A→B→D, A→B→A, and A→D. They distinguish a valid path, forbidden reuse, and forbidden diagonal adjacency. A failed path tells you which rule prevented continuation, not simply that the letters were absent.
 
 ## Visual Explanations
+<!-- lesson-id:w15-section-visual-explanations -->
+
+Read the path grids by adding above and left, treating X as zero. In the compressed LCS sketch, notice that three different moments of state meet at one update. In the trie, stars mark complete words independently of whether more edges continue.
 
 ```text
 Unobstructed paths:      Obstacle paths:
@@ -394,99 +437,114 @@ root --c--> node --a--> node --r--> node* --t--> node*
 ```
 
 ## Complexity Analysis
+<!-- lesson-id:w15-section-complexity-analysis -->
 
-Grid algorithms take O(RC) arithmetic operations and O(C) row storage for nonempty dimensions. Rectangle validation adds O(R) work, including zero-column grids. LCS on lengths m,n uses O((m+1)(n+1)) full-table time and space, including initialization; reconstruction adds O(m+n) traversal and O(L) output for L matched symbols. For positive lengths this is conventionally O(mn). The compressed version uses O(n) DP storage, but its `Array.from` symbol arrays add O(m+n) total auxiliary storage. Do not claim total O(n) space while ignoring those copies.
+For nonempty dimensions, grid algorithms perform O(RC) arithmetic operations; row compression uses O(C) stored values. Rectangle validation adds O(R) work, which matters even when each row has zero columns.
 
-Trie insertion and lookup use expected O(L) time for L query code points under expected constant-time `Map` access. Lookup keeps O(1) traversal state; insertion may allocate O(L) nodes. Across S inserted symbols, node count is O(S+1). Enumerating all completions is not O(prefix length): it must also traverse/output matches. Per-node object and map overhead can be substantial in practice.
+For input lengths m,n, full LCS initialization and evaluation take O((m+1)(n+1)) time and space. Reconstruction adds O(m+n) backward traversal and O(L) output for L matched symbols. For positive lengths the conventional table bound is O(mn). The compressed version uses O(n) DP values, but `Array.from` also allocates O(m+n) symbol arrays. Include those copies before claiming a total auxiliary-space bound.
 
-For a word of length L, Word Search has a loose O(RC·4^L) branching bound plus O(L+R) conversion/validation work. Its path set and recursion stack are O(min(L,RC)); the explicit letters array adds O(L). Recursion may overflow on very long paths. Numeric path counts assume safe-integer arithmetic; exact large counts need a different arithmetic-cost analysis.
+With expected constant-time `Map` access, trie insertion and lookup take expected O(L) time for L query code points. Lookup keeps O(1) traversal state; insertion can allocate O(L) nodes. Across S inserted symbols, at most O(S+1) nodes are needed. Enumerating completions also requires traversing and producing matches, so its cost is not merely prefix length. Objects and per-node maps can have significant practical overhead.
+
+For word length L, a loose Word Search branching bound is O(RC·4^L), plus O(L+R) conversion and validation. The path set and recursive stack use O(min(L,RC)); the explicit letters array adds O(L). Very deep paths can overflow JavaScript's call stack. Grid path counts assume safe-integer arithmetic; exact large counts require accounting for the growing costs of larger numeric operands.
 
 ## Common Mistakes
+<!-- lesson-id:w15-section-common-mistakes -->
 
-- Confusing a subsequence with a substring and setting LCS mismatches to zero.
-- Reusing one row object throughout a 2D table.
-- Updating a compressed grid row right-to-left while still claiming above-plus-current-left dependencies.
-- Forgetting to save LCS's old diagonal.
-- Returning true for any trie path without checking an end marker.
-- Keeping Word Search's visited marks across sibling branches or starting cells.
+- A subsequence permits gaps, so a mismatch does not reset LCS to zero. That would discard matches belonging to shorter prefixes.
+- Allocate independent table rows. Repeating one array reference creates apparent rows that change together.
+- Update a compressed grid row left to right when its recurrence needs the new left value and old above value.
+- Save LCS's old diagonal before overwriting it. A new left value answers a different prefix question.
+- Exact trie lookup must inspect the endpoint marker, not merely report that a path exists.
+- Undo Word Search marks between sibling branches and starting cells. A cell used by one candidate is not permanently unavailable to all others.
+
+The deliberately broken table allocation creates only one row object and repeats its reference. We want independent subproblem storage instead.
+
+### Demonstration 1 — Broken allocation that aliases every DP row
 
 ```javascript-bug
 const dp = Array(3).fill(Array(3).fill(0));
 dp[1][1] = 7; // All apparent rows now have 7 in column 1.
 ```
 
+In broken **Demonstration 1**, assigning seven to the cell at row one, column one also changes the apparent column-one value in rows zero and two. All three slots refer to the same inner array. Use a factory to allocate each row independently, then verify that writing one row leaves the others unchanged. The recurrence cannot repair shared storage that misrepresents its states.
+
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w15-section-interview-and-leetcode-pattern-recognition -->
 
-Two strings often suggest two prefix indexes; monotonic grid moves suggest an acyclic dependency order. Dictionary prefixes suggest a trie. A grid plus “no reuse in the current path” suggests backtracking, not automatically DP. Ask what information makes two future subproblems truly equivalent.
+Two strings often suggest a pair of prefix lengths. Right/down grid moves suggest dependencies without cycles and therefore a natural table order. Repeated dictionary-prefix queries suggest a trie. But a board plus “do not reuse cells in the current path” suggests backtracking rather than automatically implying DP.
 
-Unique Paths counts routes; Longest Common Subsequence maximizes matched length; Word Search asks whether one history-dependent route exists. Contacts asks how many stored names share a prefix, which needs counts beyond the Boolean trie shown above. These distinctions are more useful than recognizing the input's rectangular shape.
+Ask what makes two future subproblems equivalent. Unique Paths counts arrivals without needing route history. LCS maximizes matched length over two prefixes. Word Search asks whether a path exists under history-dependent restrictions. Contacts asks how many names share a prefix, requiring counts beyond Boolean membership. Input shape is less informative than the information needed for the answer.
 
 ## Practice Exercises
+<!-- lesson-id:w15-section-practice-exercises -->
 
 ### Conceptual
 
-1. Explain why `(row,column,index)` is insufficient as a general memo key for no-reuse Word Search.
-2. Explain why exact lookup of “car” can be false while prefix lookup is true.
+1. Explain why `(row,column,index)` is generally an insufficient memo key for no-reuse Word Search. Describe what two histories with that key may disagree about.
+2. Explain how exact lookup of “car” can be false while prefix lookup is true, including which node flag settles the difference.
 
 ### Tracing
 
-3. Trace obstacle rows for `[[0,1,0],[0,0,0]]`. Then block the starting cell and recompute.
-4. Fill the LCS table for `abc` and `ac`, and reconstruct one answer.
+3. Trace obstacle-row updates for `[[0,1,0],[0,0,0]]`. Then block the source and recompute, explaining how the seed disappears.
+4. Fill the LCS table for `abc` and `ac`, including empty-prefix borders, and reconstruct one sequence.
 
 ### Debugging
 
-5. Repair shared row allocation. Separately, show why a newly updated LCS left value cannot replace the old diagonal, using `a` and `aa`.
+5. Repair broken **Demonstration 1** in **Common Mistakes**. Separately, use `a` and `aa` to explain why new-left cannot replace old-diagonal in compressed LCS.
 
 ### Implementation
 
-6. Add prefix counts to a trie. Specify whether duplicate insertion increases the count; keep exact membership behavior consistent with that policy.
-7. Add a single-word deletion operation that preserves longer words sharing the prefix.
+6. Add prefix counts to a trie. Specify whether duplicate insertion increases them, and keep exact membership consistent with your policy.
+7. Delete a single stored word while preserving longer words sharing its prefix. Explain when a node can be removed and when only its flag should change.
 
 ### LeetCode + HackerRank
 
-- **[Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/)** — Platform: LeetCode. Difficulty: Medium. Concepts: two-prefix DP, skip/match transitions, subsequence order. Why: tests whether you can derive a 2D state and distinguish gaps from contiguity.
-- **[Contacts](https://www.hackerrank.com/challenges/contacts/problem)** — Platform: HackerRank. Difficulty: Medium. Concepts: tries, prefix counts, incremental insertion. Why: extends Boolean prefix existence into an aggregate that can be updated along each insertion path.
+- **[Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/)** — LeetCode, Medium. Practice two-prefix state, skip/match transitions, and preserved order with gaps. Derive the table rather than treating all two-string questions as the same recurrence.
+- **[Contacts](https://www.hackerrank.com/challenges/contacts/problem)** — HackerRank, Medium. Extend trie prefix existence into prefix counts, updating an aggregate along insertion paths. State the duplicate policy before designing counter updates.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w15-section-hints-and-worked-solutions -->
 
-1. Two histories reaching the same cell and letter index may have used different earlier cells. A future move can be legal in one and forbidden in the other. Include the used-set state or retain backtracking; a smaller key needs a separate proof of equivalence.
-2. Inserting “cart” creates the “car” path but marks only the node after t. Search must inspect the flag at r. The empty prefix similarly exists even before the empty word is inserted.
-3. Row zero becomes `[1,0,0]`: the obstacle blocks the only route along that row. Row one becomes `[1,1,1]`, so the answer is one. With a blocked start, all states remain zero.
-4. With an empty border, rows are `[0,0,0]`, `[0,1,1]`, `[0,1,1]`, `[0,1,2]`. Record c, then a while walking backward; reverse to get `ac`.
-5. Allocate rows with a factory. For compressed LCS, save `above=dp[j]` before the write and then set `diagonal=above`. Using new left on `a` versus `aa` would incorrectly build length two from one source symbol.
-6. Store a count on each node and increment along each accepted insertion path. If duplicates count as separate contacts, increment every insertion; if they are a set, first avoid repeated complete words. A prefix query walks its symbols then returns that node's count. State the policy before designing deletion.
-7. Record the traversed parent/edge pairs. If the word does not exist, do nothing. Otherwise clear its ending and walk backward, removing only child nodes that have no children and no end flag. Deleting “car” must leave the t branch for “cart”. This takes O(L) expected time and O(L) stored path space.
+1. Two paths can reach the same cell and letter index after using different cells. A needed future neighbor may be free on one path and forbidden on the other. A sound memo key must include that used-set information, or you can retain backtracking. Omitting history requires a separate equivalence proof.
+2. Inserting “cart” creates the path ending at r but marks only t. Exact “car” lookup must inspect r's flag and initially fails. The empty prefix similarly exists at the root before the empty word is explicitly inserted.
+3. Row zero becomes `[1,0,0]` because the obstacle interrupts its only incoming route. Row one becomes `[1,1,1]`, giving one route to the destination. Blocking the start clears the only seed, so every state remains zero.
+4. With the empty border, the rows are `[0,0,0]`, `[0,1,1]`, `[0,1,1]`, `[0,1,2]`. Walking backward records c, then a. Reversing those recorded symbols produces `ac`.
+5. Allocate rows through a factory. In compressed LCS, save `above=dp[j]` before writing and then set `diagonal=above`. For `a` against `aa`, using new-left instead would extend a length-one match into length two despite having only one source symbol.
+6. Store a count on each node and increment it along every accepted insertion path. If duplicate names represent separate contacts, increment on every insertion. If names form a set, avoid repeated complete-word insertions first. Prefix lookup walks to its node and returns the count. Decide the same policy before adding deletion.
+7. Record parent/edge pairs while locating the word. If exact membership is absent, do nothing. Otherwise clear the ending and walk backward, removing only nodes with neither children nor an ending. Deleting “car” must keep the t branch for “cart”. Expected time is O(L), with O(L) space for the saved path.
 
-For external work, compare your LCS result against a tiny exhaustive subsequence generator only on small strings. For Contacts, trace `add car`, `add cart`, `find car`, `find cat`: under distinct names the counts are two and zero. These are practice expectations, not claims of online judge submission.
+For small strings, compare LCS results with a tiny exhaustive subsequence generator; enumeration is a testing tool, not the scalable solution. For Contacts, trace `add car`, `add cart`, `find car`, `find cat`: distinct names give counts two and zero. These are practice expectations, not claims of online judge submission.
 
 ## Sources and Further Reading
+<!-- lesson-id:w15-section-sources-and-further-reading -->
 
-- Canonical scope: [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js).
-- MIT OCW, [Lecture 21 string-DP notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf): opened for string-subproblem and DP context, not as a source of this chapter's LCS code.
-- CMU, [15-451/651 Lecture 26](https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf): opened and consulted for trie/shared-prefix context. The sparse-map implementation and exercises are independently written.
-- LeetCode, [Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/), and HackerRank, [Contacts](https://www.hackerrank.com/challenges/contacts/problem): official statements and displayed difficulty verified; no editorials consulted.
+- The [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js) supply the chapter's course scope.
+- MIT OCW's [Lecture 21 string-DP notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf) were opened during earlier preparation for string-subproblem and DP context, rather than as a source for this LCS code.
+- CMU's [15-451/651 Lecture 26](https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf) was previously consulted for shared-prefix trie context. The sparse-map implementation and exercises are independently written.
+- The official [Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/) and [Contacts](https://www.hackerrank.com/challenges/contacts/problem) statements and displayed difficulties were verified during earlier preparation, without editorials. This rewrite does not claim a new external-link check.
 
 ## Weekly Summary
+<!-- lesson-id:w15-section-weekly-summary -->
 
-Two dimensions name two independent pieces of state. Grid and string recurrences become reliable when each dependency has a clear meaning and update order. Tries reuse prefix paths while end markers preserve complete-word membership. Word Search demonstrates the limit of small-state reuse: path history can matter. [Week 16](week-16.md) combines these distinctions into independent problem-solving practice.
+Two dimensions identify two pieces of state, such as coordinates or prefix lengths. Make each dependency meaningful before choosing its storage or update order. Tries share paths for common prefixes, while end markers retain exact membership. Word Search shows why reuse has limits: different path histories can leave different legal continuations. In [Week 16](week-16.md), you will combine these distinctions while solving unfamiliar problems independently.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Define grid and two-prefix states in complete sentences. <!-- checkpoint:w15-define-two-dimensional-state -->
-- [ ] Explain why path history prevents naive Word Search memoisation. <!-- checkpoint:w15-distinguish-path-history -->
+- [ ] Define grid and two-prefix state meanings in full sentences. <!-- checkpoint:w15-define-two-dimensional-state -->
+- [ ] Explain which path history naive Word Search memoisation would lose. <!-- checkpoint:w15-distinguish-path-history -->
 
 ### JavaScript
 
-- [ ] Implement obstacle paths and LCS with reconstruction. <!-- checkpoint:w15-implement-grid-and-lcs -->
-- [ ] Implement trie insertion, exact search, and prefix lookup. <!-- checkpoint:w15-implement-trie -->
+- [ ] Build obstacle-path counting and recover an LCS from a full table. <!-- checkpoint:w15-implement-grid-and-lcs -->
+- [ ] Insert trie words and distinguish exact search from prefix search. <!-- checkpoint:w15-implement-trie -->
 
 ### Practice
 
-- [ ] Trace old-above, new-left, and old-diagonal values. <!-- checkpoint:w15-trace-compressed-dependencies -->
-- [ ] Complete LCS and prefix-count exercises. <!-- checkpoint:w15-complete-external-practice -->
+- [ ] Trace old-above, new-left, and old-diagonal values before each compressed write. <!-- checkpoint:w15-trace-compressed-dependencies -->
+- [ ] Complete the LCS and prefix-count practice tasks. <!-- checkpoint:w15-complete-external-practice -->
 
 ### Reflection
 
-- [ ] Record when compression or memoisation loses necessary information. <!-- checkpoint:w15-review-state-loss -->
+- [ ] Record a case where compression or memoisation discards information the future still needs. <!-- checkpoint:w15-review-state-loss -->

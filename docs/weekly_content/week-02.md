@@ -1,77 +1,92 @@
 # Week 2 - Hash Maps and Sets
+<!-- lesson-id:w2-section-chapter-introduction -->
 
-This week, you will be learning how hash maps and sets replace repeated searching with remembered information. We will study hashing, collisions, frequency counting, and JavaScript's Map and Set, then use them to solve duplicate, complement, and anagram problems.
+Suppose you receive another event identifier and need to know whether you have handled it already. You could search your entire history again. This week, we will learn how to remember just enough information to avoid that repeated search. JavaScript's Set remembers which values have appeared; Map connects each key with information such as a count or an index. We will explain how hashing supports these collections, what happens when keys share a storage location, and how those ideas help with duplicates and rearranged words.
 
-We will start by deciding what information a problem needs us to remember: presence, a count, an index, or a group. From there we will examine key equality and API behavior, build small working implementations, and trace how each stored entry relates to the input already processed.
+Our starting question will be “what must we remember?” Sometimes we only need presence: whether a value exists. Other tasks need its occurrence count, its earlier position, or the group it belongs to. We will connect those choices to key equality, the collection methods you call, and small implementations you can trace by hand. At every step, we will say what a stored entry tells us about the input we have already read.
 
-By the end, you should be able to choose Map versus Set, justify an expected-time complexity claim, and design a useful key without losing information. You should also be able to explain why checking presence is different from testing a retrieved value's truthiness.
+By the end, you should be able to choose between Map and Set and explain the assumptions behind an expected-time cost: a cost averaged under a stated model of hashing, rather than guaranteed for every possible operation. You will also design keys that preserve the distinctions your task needs. In particular, you will see why asking whether a key exists differs from asking whether its stored value behaves like true in a condition.
 
-There will be a checklist at the end of the module to complete your progress logs. Use its Theory, JavaScript, Practice, and Reflection categories after attempting the exercises, and record the smallest counterexample that helped you correct a mistaken assumption.
+After you attempt the exercises, use the final checklist to update your progress logs under Theory, JavaScript, Practice, and Reflection. Record a small input that exposed a mistaken assumption, too. A two-element example that explains a bug is often more useful to revisit than a large test that only tells you something failed.
 
 ## Learning Objectives
+<!-- lesson-id:w2-section-learning-objectives -->
 
-- Explain a hash function, bucket, collision, load factor, and resizing in a generic hash-table model.
-- Separate expected and amortized costs from unconditional worst-case guarantees.
-- Choose membership, frequency, index, or grouping state to match a problem's contract.
-- Use Map and Set without confusing object identity, key presence, stored values, or insertion order.
-- Implement first-duplicate detection, frequency counting, Two Sum, Valid Anagram, and Group Anagrams.
-- Compare brute-force, sorting, and table-based approaches, including signature construction and output space.
+- Explain how a generic hash table chooses a storage bucket, handles different keys that land together, measures crowding, and grows its capacity.
+- Tell apart expected costs, costs spread across a sequence of operations, and guarantees for the most expensive possible case.
+- Choose what to remember—membership, counts, indexes, or groups—from the problem's contract, meaning its input requirements and promised result.
+- Use Map and Set while distinguishing the same object from equal-looking objects, an existing key from its value, and insertion order from sorted order.
+- Build first-duplicate detection, frequency counting, Two Sum, Valid Anagram, and Group Anagrams, explaining what each stored entry means.
+- Compare trying all candidates, sorting, and using a table; include the work of constructing grouping keys and storing the returned answer.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w2-section-prerequisite-knowledge -->
 
-Review [Algorithm Complexity](week-01.md) for auxiliary space and [Arrays](week-17.md) for references and traversal if those foundations still feel uncertain. We will rely on the idea that a variable can hold an object reference and that two different objects can contain identical fields. We also use destructuring in `for (const [key, value] of map)`; each iteration supplies one key/value pair.
+If you need a refresher, [Algorithm Complexity](week-01.md) explains auxiliary space—the extra working storage an algorithm allocates—and [Arrays](week-17.md) covers references and visiting entries. A reference identifies a particular object; two objects can have identical fields without being that same object. We will also unpack pairs with `for (const [key, value] of map)`. This syntax is called destructuring: each iteration gives us a pair, and the two names receive its key and value separately.
 
-The examples use finite numbers for arithmetic problems. Text examples treat strings as sequences of Unicode code points unless a lowercase ASCII restriction is explicitly stated. Code points are not always human-perceived characters: a visible symbol may consist of several code points. Case, spaces, punctuation, and accent normalization remain significant unless a contract says otherwise.
+For arithmetic problems, assume finite numbers. For text, we usually work with Unicode code points, the numbered units used to represent text, unless an example explicitly restricts input to lowercase ASCII letters. A code point is not necessarily a whole visible character: one displayed symbol can combine several code points. We do not silently ignore case, spaces, punctuation, or different accent representations. Those differences remain meaningful unless the stated contract explicitly removes them.
 
-Remember that an optimized algorithm must preserve the baseline's meaning. “Return whether any duplicate exists,” “return the earliest repeated occurrence,” and “return all repeated values” are three different tasks. A collection type cannot decide that meaning for you.
+Before improving a simple solution, write down exactly what its answer means. “Return whether any duplicate exists,” “return the earliest repeated occurrence,” and “return all repeated values” demand different results. We will call the simple reference solution a baseline. An optimization must preserve that baseline's contract; choosing a convenient collection does not give us permission to change the question.
 
 ## Core Theory
+<!-- lesson-id:w2-section-core-theory -->
 
 ### Store the answer to the repeated question
 
-Imagine receiving event identifiers and rejecting repeats. Searching all earlier events for every arrival costs `0 + 1 + ... + (n−1)` comparisons when identifiers are distinct. What repeats is the question “have I already seen this identifier?” A Set stores exactly the evidence required to answer it. If the question changes to “how many times have I seen it?”, you need a count associated with each key, so use a Map.
+Imagine checking event identifiers as they arrive. With no remembered membership information, you search every earlier event again, making `0 + 1 + ... + (n−1)` comparisons when all identifiers differ. The repeated question is simply “have I already seen this identifier?” A Set keeps the evidence needed to answer that question directly. If you instead need to know how many times it appeared, presence alone loses information. A Map can associate each identifier with its count.
 
-The most useful design step is a sentence defining stored state. For duplicates, `seen` contains all values in the processed prefix. For Two Sum, `indexes` maps a previously encountered value to one of its earlier indexes. For anagrams, a count describes unmatched supply. A good state definition tells you both what to store and when to update it.
+Write one sentence defining your state, meaning the information carried from one iteration to the next. For duplicates, `seen` contains the values in the processed prefix: the part before our current position. For Two Sum, `indexes` connects a previously encountered value with one of its earlier indexes. For anagrams, counts record occurrences still available to match. These sentences also tell us when to update. If a collection is meant to describe earlier positions, inserting today's position before querying changes its meaning.
 
 ### What hashing contributes
 
-In a generic hash table, a hash function converts a key into a number used to select a bucket. Equal keys must follow a consistent lookup path. Different keys can land in the same bucket; this is a collision, not proof that they are equal. An implementation must still distinguish the keys, for example by storing a chain of entries or probing alternative positions.
+A hash table is a collection that uses a computed number to narrow down where it searches. The computation is a hash function, and the selected storage region is a bucket. Equal keys must follow a consistent lookup path so we can find what we inserted. Different keys can select the same bucket; we call that a collision. Sharing a bucket does not make the keys equal. The table still compares keys, perhaps within a chain of entries or by trying alternative storage positions, a process called probing.
 
-Suppose a deliberately simple teaching function sums letter codes and takes the remainder modulo five. It sends both `ab` and `ba` to bucket zero because their sums agree. A table can still store both strings separately by comparing the actual keys inside the bucket. A grouping algorithm that uses the sum itself as its canonical key, however, would mistakenly merge many non-anagrams too. A hash collision handled by a table and an ambiguous application signature are different problems.
+For a deliberately simple example, add letter codes and take the remainder after division by five, also called modulo five. Both `ab` and `ba` reach bucket zero because the sums agree. A correct table can keep both original strings in that bucket and compare them during lookup.
 
-The load factor is roughly entries divided by buckets. More crowded buckets generally mean more collision work. Resizing creates more capacity and redistributes entries, so one insertion can be expensive even when a long sequence of insertions is cheap on average per operation. Geometric growth supports an amortized analysis. Expected collision behavior depends on assumptions about hashing and key distribution; it is a separate argument.
+Now suppose our application throws the strings away and uses only that sum as its grouping key. It will merge some words that are not rearrangements of each other. The table cannot repair information we discarded before insertion. Keep this distinction clear: internal collision handling compares original keys, whereas an ambiguous application signature has already replaced different meanings with the same key.
 
-For interview algorithms we normally assume expected O(1) Map and Set operations. JavaScript's observable contract requires average sublinear access rather than a particular hash-table layout or unconditional constant time. In a generic pathological hash table, a lookup can scan Θ(n) colliding entries and n operations can become quadratic. Do not turn the convenient expected-time model into a language guarantee.
+We describe crowding with the load factor, roughly entries divided by buckets. More entries per bucket generally mean more collision work. Resizing means allocating more capacity and redistributing existing entries. The insertion that triggers this can be expensive even if many insertions together are cheap per operation.
+
+When capacity grows by a repeated multiplicative factor, geometric growth lets us spread that copying cost across the sequence. That is amortized analysis. Expected collision cost asks a different question about hashing assumptions and how keys are distributed. One argument concerns accumulated resizing work; the other concerns collision behavior. Neither should stand in for the other.
+
+In interview analysis, we normally model Map and Set operations as expected O(1). Here O gives a growth upper bound, and “expected” identifies the cost model being bounded; it does not promise that each lookup takes a fixed amount of work. JavaScript requires average sublinear access—access that grows more slowly than scanning the whole collection—without prescribing a particular hash-table layout or unconditional constant time. A generic table with badly colliding keys can scan Θ(n) entries for one lookup, making n operations quadratic. State the useful conventional assumption without presenting it as a language guarantee.
 
 ### Equality and presence are part of correctness
 
-Map can distinguish number `1` from string `'1'`. An ordinary object's property keys are strings or symbols, so using numeric and string keys as properties can conflate them. Ordinary objects can also inherit properties; `Object.create(null)` removes that prototype concern but does not give object properties arbitrary-key identity semantics.
+Map keeps number `1` separate from string `'1'`. Ordinary object properties work differently: their keys are strings or symbols, so numeric and string property access can reach the same property. Objects may also inherit properties through their prototype, the object they look to for inherited behavior. `Object.create(null)` removes that inheritance concern. It still does not turn object properties into a Map with arbitrary keys compared by identity.
 
-Object keys in a Map are compared by identity. Two separate `{ id: 1 }` objects are different keys. Map and Set use SameValueZero equality: NaN equals NaN for membership, and positive and negative zero are treated alike. Iteration follows insertion order, not numerical or alphabetical order. Updating an existing key changes its value without moving it to a new insertion position; deleting and adding it again creates a new insertion position.
+For object keys, identity means “this particular object,” rather than “an object with these fields.” Two separately created `{ id: 1 }` objects therefore occupy different Map entries. The equality rule used by Map and Set is called SameValueZero. Its notable numeric cases are that NaN matches NaN for membership and positive and negative zero are treated alike.
 
-`has` asks whether a key exists. `get` retrieves its value, which might legitimately be `undefined`, zero, false, or an empty string. Therefore `if (map.get(key))` is not a general presence test. Logical OR substitutes a fallback for every falsy value, while nullish coalescing substitutes only for null or undefined. Neither is a substitute for `has` when explicit undefined is valid data.
+When you iterate, you get insertion order, the order in which entries were added, rather than numeric or alphabetical order. Updating an existing key keeps its position. Deleting that key and adding it again gives it a new insertion position. This matters when a result depends on first encounter order.
 
-Use `set` and `get` for Map entries. Assigning `map.name = value` attaches an ordinary property to the Map object rather than inserting an entry. The property can be visible to normal property access while `map.size` and `map.has('name')` ignore it. This is a particularly confusing error because the object appears to remember something, just through the wrong interface.
+Use `has` to ask whether a key exists and `get` to retrieve its stored value. A legitimate value may be `undefined`, zero, false, or an empty string. These behave like false in a condition and are called falsy values, so `if (map.get(key))` can reject a key that is present.
+
+Logical OR supplies a fallback for any falsy value. Nullish coalescing supplies one only for null or undefined, so it preserves zero and false. But if explicit undefined is meaningful stored data, neither fallback operator answers the presence question. You need `has` to distinguish that entry from an absent key.
+
+Map entries must go through `set` and `get`. Writing `map.name = value` adds an ordinary object property; it does not insert a Map entry. You may read that property successfully and think insertion worked, yet `map.size` and `map.has('name')` ignore it. When debugging this, check which interface performed the write, rather than assuming that anything attached to the Map object belongs to its entries.
 
 ### Counts, complements, and canonical keys
 
-A frequency table records multiplicity. The inputs `aab` and `abb` have the same set of distinct letters but different counts, so a Set cannot decide whether they are anagrams. A Map can add supply from one string and consume it with the other. If a requested character has no remaining supply, failure is proved immediately. If supply remains afterward, the strings also fail to match.
+A frequency table stores how many times each value occurs; that number of occurrences is its multiplicity. Anagrams are strings made from exactly the same characters with exactly the same counts, possibly in a different order. `aab` and `abb` have the same distinct letters, but their counts differ, so a Set cannot decide this question. We can count one string as supply, then consume an occurrence for each character in the other. A missing supply proves failure immediately. Leftover supply at the end also proves failure: matching requires equality in both directions.
 
-Two Sum changes the question from “which earlier value should I try?” to “does the one needed value exist?” At current value `x`, its complement is `target − x`. A value-to-index Map answers that question while preserving original positions. Query before inserting the current position; otherwise a singleton could pair with itself.
+For Two Sum, we want two distinct positions whose values add to the target. Instead of trying every earlier partner, calculate the one value we need. At current value `x`, that needed partner, called its complement, is `target − x`. A Map from values to earlier indexes can find it while preserving original positions. Query first and insert the current position afterward. Otherwise a one-element array could appear to pair its only position with itself.
 
-Grouping requires a canonical key: two items should have the same key exactly when they belong together. Sorting a word's characters produces one canonical sequence for its multiset. A count vector is another option when the alphabet is fixed. Both require construction work, which belongs in the complexity analysis. A table lookup cannot undo an expensive key-building step.
+To group words, choose a standard representation, called a canonical key, that is equal exactly when the words belong together. A multiset remembers values and their counts while ignoring order. Sorting a word's characters gives a standard sequence for that multiset. With a fixed alphabet, we can instead use a count vector: an ordered list with one count per allowed letter. Both representations take work to construct. Include that work in your complexity analysis; a quick lookup does not make key construction free.
 
 ### Top K Frequent Elements: invert the frequency table
 
-After counting occurrences, Top K Frequent Elements asks which k distinct values have the largest counts. A clear baseline sorts the d frequency entries by descending count, taking expected O(n) counting plus O(d log(d+1)) comparison work. Sorting input values instead does not rank their frequencies; the comparison must use counts.
+Once we have occurrence counts, Top K Frequent Elements asks for the k distinct values with the highest counts. A straightforward baseline sorts the d frequency entries from largest count to smallest. Counting takes expected O(n), and sorting adds O(d log(d+1)) comparison work. Be careful about what you sort: ordering the original values numerically does not order their frequencies. Your comparison must inspect counts.
 
-We can avoid comparison sorting because a frequency is an integer between 1 and n. Create buckets indexed by frequency, put each distinct value in its count's bucket, then visit buckets from n down to 1 until k values have been collected. Before entering bucket f, every uncollected value has frequency at most f. That invariant makes each next choice safe. Buckets here are application-level groups by exact count, not the internal collision buckets of a hash table.
+We can use the fact that every frequency is an integer between 1 and n. Make an array of groups indexed by frequency, place each distinct value in the group for its count, and scan from n down to 1 until we have k values. Before entering bucket f, every uncollected value has frequency at most f. This statement stays true as we move downward; it is an invariant, a fact preserved throughout the loop, and it explains why each next choice is safe. These buckets group values by exact occurrence count in our application. They serve a different purpose from the hash table's internal collision buckets.
 
 ## JavaScript Implementations
+<!-- lesson-id:w2-section-javascript-implementations -->
 
 ### Map and Set operations in context
 
-This example separates key type, identity, presence, and stored value. Serializing entries makes insertion order visible. The final clear operations deliberately empty both structures.
+Let's check these rules in a small collection you can inspect completely. We will distinguish key types and object identity, then ask separately about presence and value. Converting entries to JSON text makes their iteration order visible. At the end we deliberately clear both collections, so their final sizes should be zero.
+
+### Demonstration 1 — Observe Map keys and Set membership
 
 ```javascript
 const record = { id: 1 };
@@ -100,9 +115,13 @@ true 3
 0 0
 ```
 
+In **Demonstration 1**, `record` is one particular object. After `map.set(record, undefined)`, `has(record)` is true even though `get(record)` returns undefined. The newly created `{ id: 1 }` in the next query is a different object, so that query fails. Updating numeric key 1 preserves its original entry position. For the Set input `[NaN, NaN, 0, -0, 2]`, the duplicate NaN and signed-zero pair each collapse to one member, leaving size three before later changes.
+
 ### First repeated occurrence and frequency counting
 
-Here “first duplicate” means the value whose repeated occurrence arrives earliest. For `[5, 8, 8, 5]`, the answer is 8, even though 5 appeared first originally. A tagged result avoids confusing “no duplicate” with a duplicate value of null. The brute-force equality helper matches Set's membership semantics for these examples.
+We mean “first duplicate” in arrival order: which value has the earliest repeated occurrence? For `[5, 8, 8, 5]`, that is 8, even though 5 made its original appearance first. We return an object with a `found` field, called a tagged result, so a duplicate null stays distinguishable from no duplicate. The pair-scanning baseline uses an equality helper that matches Set membership, including NaN. We will also count every occurrence to show what changes when presence is no longer enough.
+
+### Demonstration 2 — Find the first repeated arrival and count occurrences
 
 ```javascript
 function sameValueZero(a, b) {
@@ -147,11 +166,15 @@ console.log(JSON.stringify([...frequencies('banana')]));
 [["b",1],["a",3],["n",2]]
 ```
 
-The canonical guide uses null as a no-match sentinel. The tagged result here deliberately broadens that contract to unrestricted values. The algorithmic idea is unchanged, but a caller must inspect `found`. When adapting a lesson to an external problem, match its required return shape rather than copying this local API blindly.
+In **Demonstration 2**, follow `[5, 8, 8, 5]`: the first two queries fail and insert their values; the third query finds 8 and returns before the last 5. The nested-loop baseline reaches the same arrival because `right` chooses repeated positions in order. For `banana`, `(counts.get(value) ?? 0) + 1` starts an absent character at one and increments an existing count, giving a:3 by the end.
+
+The canonical guide uses null as a no-match sentinel, a special value indicating failure. Our tagged result broadens the contract to unrestricted values, including null itself, so callers must inspect `found`. The remembered-state idea stays the same. When you adapt it to an external problem, return the shape that problem requests rather than assuming our local interface is universal.
 
 ### Two Sum: lookup before insertion
 
-The baseline scans all unordered pairs. The optimized version stores only earlier indexes. It returns any valid pair or null; it does not promise the lexicographically smallest pair when several answers exist. Overwriting an earlier index for the same value is therefore acceptable.
+Let's compare trying every unordered pair—each pair of distinct positions once—with remembering earlier indexes. Both functions may return any valid pair, or null when none exists. They do not promise the lexicographically smallest pair, meaning the pair that comes first when you compare first indexes and then second indexes. Because that ordering is not required, overwriting an earlier index for the same value is acceptable here.
+
+### Demonstration 3 — Find Two Sum partners before storing the current index
 
 ```javascript
 function twoSumBrute(values, target) {
@@ -183,11 +206,13 @@ console.log(JSON.stringify(twoSum([3], 6)));
 null
 ```
 
-The different first two outputs are intentional: both pairs sum to 11. A test that demands identical index pairs would incorrectly reject a valid implementation. Compare the contract—distinct indexes and correct sum—rather than an incidental discovery order.
+In **Demonstration 3**, target 11 with `[4, 9, 2, 7]` makes the Map version store 4 at index 0 and 9 at index 1. At index 2, `wanted` is 9, so `has` succeeds and the result is `[1,2]`. The baseline finds `[0,3]` first. Both pairs sum to 11, so a test demanding identical pairs would reject a correct answer. Test distinct indexes and the required sum. Also trace `[3]`: querying its empty Map before insertion prevents the only index from being used twice.
 
 ### Valid Anagram: sorting versus consuming supply
 
-Sorting is a useful baseline because equivalent multisets sort identically. The count version avoids sorting and deletes exhausted keys so an empty Map signals exact consumption. Empty strings are valid anagrams under this local contract.
+We can check anagrams by sorting both character collections, because equal multisets produce equal sorted sequences. The counting alternative avoids that sorting: each occurrence in the second string consumes one from the first. We delete a character when its supply reaches zero, making an empty Map a useful final test for exact consumption. Under our local contract, two empty strings are valid anagrams.
+
+### Demonstration 4 — Compare sorted anagrams with counted supply
 
 ```javascript
 function validAnagramSorted(first, second) {
@@ -221,9 +246,13 @@ false
 true
 ```
 
+In **Demonstration 4**, `'aab'` creates supply a:2,b:1. Against `'abb'`, the first a leaves one a, the first b exhausts b, and the second b fails `has`. Against a shorter string such as `'ab'` for supply `'abc'`, no request fails, but the final Map still contains c. This is why we need both the early presence test and the final emptiness check. `Array.from` and string iteration keep the emoji example on the same code-point model.
+
 ### Group Anagrams: build the right key
 
-The key below serializes a sorted code-point array. Serialization preserves element boundaries, and identical multisets produce identical keys. The output retains input order within each group and first-encounter order among groups. Those are useful deterministic local conventions even when an external problem accepts any group order.
+We will turn each sorted code-point array into JSON text to use as its grouping key. This conversion, called serialization, preserves the boundaries between array elements, so equal multisets get the same key without losing those boundaries. Within a group we preserve input order; groups themselves appear in first-encounter order. These conventions make our local output predictable even if an external problem accepts groups in any order.
+
+### Demonstration 5 — Group words by their sorted character key
 
 ```javascript
 function groupAnagrams(words) {
@@ -245,7 +274,11 @@ console.log(JSON.stringify(groupAnagrams([])));
 []
 ```
 
-For a validated lowercase English alphabet, a 26-count signature replaces sorting with a scan. Separators prevent ambiguous concatenation of counts. The validation is part of the implementation rather than a silent assumption about incoming data.
+In **Demonstration 5**, `'arc'` first creates a group with the sorted key for a,c,r. `'car'` produces that same key, so `groups.get(key).push(word)` appends to the existing array. `'rat'` creates a different key and a second group. The `has` check creates each group only once, while spreading `groups.values()` returns the group arrays in encounter order. Two empty words share one empty-character key and stay together.
+
+If we validate that every character is a lowercase English ASCII letter, we can replace sorting with 26 counts. Each letter gets a known position. Separators between counts prevent different count sequences from becoming the same text. Notice that validation belongs to the implementation: we do not quietly assume incoming text respects this narrower alphabet.
+
+### Demonstration 6 — Group validated lowercase words with 26 counts
 
 ```javascript
 function lowercaseSignature(word) {
@@ -278,9 +311,13 @@ false
 [["arc","car"],["rat"]]
 ```
 
+In **Demonstration 6**, `'aab'` increments slot zero twice and slot one once. `'aba'` reaches the same counts, whereas `'abb'` does not. Subtracting 97 converts a lowercase ASCII character code to its slot. The range and length checks reject characters that cannot occupy those slots; for example, `'Arc'` throws rather than becoming an invalid signature. `join(',')` preserves count boundaries when we turn the array into a Map key.
+
 ### Top K Frequent Elements with frequency buckets
 
-This version accepts integer k from zero through the number of distinct values, returning an empty array for zero and throwing for an invalid k. It breaks equal-frequency ties by first encounter order, a deterministic local convention; the external problem guarantees a unique top-k set and permits any answer order. Each bucket must be a separate array, so use a factory rather than filling every slot with one shared array.
+Our local function accepts an integer k between zero and the number of distinct values. Zero requests no results; an invalid k throws an error. Equal-frequency values are selected in first-encounter order here. The external task instead guarantees a unique top-k set and accepts any answer order. We also need a genuinely separate array for every frequency bucket. A factory, a function called to create each array independently, avoids sharing one array among all slots.
+
+### Demonstration 7 — Select frequent values by descending count buckets
 
 ```javascript
 function topKFrequent(values, k) {
@@ -311,45 +348,49 @@ console.log(JSON.stringify(topKFrequent([], 0)));
 []
 ```
 
+In **Demonstration 7**, `[4, 2, 4, 3, 2, 4]` yields counts 4:3, 2:2, and 3:1. Iterating those entries places 4 in bucket 3 and 2 in bucket 2. The descending loop skips empty buckets, emits 4, then emits 2 and returns immediately because k is two. That early return matters when a tied bucket contains more entries than we need. `Array.from(..., () => [])` creates separate bucket arrays, so adding to one frequency cannot affect another.
+
 ## Worked Examples
+<!-- lesson-id:w2-section-worked-examples -->
 
 ### Example 1: the duplicate's second occurrence determines the answer
 
-For `[5, 8, 8, 5]`, begin with an empty Set. The first 5 is absent and gets inserted. The first 8 is also absent. The next 8 is already present, so return it immediately. The last 5 is irrelevant because the earliest repeated arrival has already been found. An outer loop that picks the earliest original position first could return 5 instead; that would solve a different “first” contract.
+Take `[5, 8, 8, 5]` and say the Set contents before each arrival. Before 5 it is empty; we insert 5. Before the first 8 it contains only 5; we insert 8. Before the next 8 it already contains 8, so we return immediately. We never need the last 5. If an outer loop started with the earliest original position and searched for its later match, it could return 5 instead. That traversal answers a different meaning of “first.”
 
-The Set invariant holds before every query: it contains exactly the values before the current position. Adding before querying breaks that invariant by including the position being tested. Returning a tagged result also lets `[null, null]` represent a real duplicate without colliding with the no-answer case.
+The fact we preserve before every query is exact: the Set contains the values before the current position. Inserting first would include the very position we are testing and make every arrival look repeated. Keep the result contract equally precise. On `[null, null]`, the tagged object reports a genuine duplicate through `found`, so null does not collide with the representation of no answer.
 
 ### Example 2: count banana one character at a time
 
-After `b`, the table is `b→1`. After `ba`, it is `b→1, a→1`; after `ban`, add `n→1`. The next a updates its existing count to 2, the next n updates its count to 2, and the final a reaches 3. Insertion order remains b, a, n even though a was updated most recently.
+Read banana one character at a time. After `b`, store `b→1`. After `ba`, store `b→1, a→1`; after `ban`, add `n→1`. The next a changes an existing count to 2 rather than adding another key. The next n also reaches 2, and the final a reaches 3. Updating a most recently does not move it: key iteration still follows the original insertion order b, a, n.
 
-Every update reads one old count and writes one new count. Six characters produce six updates, but only three distinct keys remain. That distinction gives O(n) expected time and O(d) state, with `d` the number of distinct keys. Constant-time access does not imply constant total memory.
+Each arrival reads one old count and writes one new count. Six characters therefore cause six updates, while the final table has only three keys. For n arrivals and `d` distinct keys, that gives O(n) expected time and O(d) stored state. Keep those measurements separate: an expected constant-time operation may be repeated many times, and the collection it accesses may still grow with the input.
 
 ### Example 3: preserve the right temporal boundary in Two Sum
 
-For `[4, 9, 2, 7]` and target 11, index 0 wants 7 and saves `4→0`. Index 1 wants 2 and saves `9→1`. Index 2 wants 9 and finds index 1, so the answer is `[1,2]`. Because every saved index is smaller than the current index, the two positions are automatically distinct.
+On `[4, 9, 2, 7]` with target 11, index 0 needs 7. It is absent, so save `4→0`. Index 1 needs 2; that is absent too, so save `9→1`. At index 2, value 2 needs 9 and finds it at index 1, returning `[1,2]`. Every saved position comes from an earlier iteration. That temporal relationship, rather than an extra inequality check on the result, guarantees distinct indexes.
 
-On `[3]` with target 6, 3 is not in the initially empty Map, so the function saves it and finishes with null. On `[3,3]`, the second occurrence can use the first. This pair of tests isolates update-order errors better than a long random array.
+Contrast `[3]` and `[3,3]` for target 6. In the singleton, the initial Map is empty, so the query fails; inserting 3 afterward does not create a later query, and the function returns null. With two entries, the second 3 may use the first. These two tiny tests isolate whether query and insertion respect “earlier,” making an update-order error easier to understand than a failure buried in a long random input.
 
 ### Example 4: anagram failure exposes missing supply
 
-For `aab` versus `abb`, the initial supply is `a→2, b→1`. Consuming a leaves `a→1, b→1`; consuming b deletes b; the final b finds no supply and proves failure. Comparing Sets would have reported the same distinct characters and missed the problem.
+Compare `aab` with `abb`. The first string provides `a→2, b→1`. Consuming a leaves `a→1, b→1`. Consuming b exhausts that key, so we delete it. The final b has no remaining supply and proves failure. Both strings still have the same distinct letters, so comparing Sets would miss the different occurrence counts. The count table preserves exactly the information that membership loses.
 
-For `abc` versus `ab`, no requested character fails, but c remains at the end. This is why the final `counts.size === 0` check matters. Early failure detects excess demand; the final check detects unused supply. Both directions are required for equality.
+Now compare `abc` with `ab`. Every request in the second string can be supplied, so no early test fails. But c remains unused at the end. The final `counts.size === 0` check catches this opposite mismatch. Early failure detects demand that exceeds supply; the final check detects supply that exceeds demand. Equality requires both directions, even when one input is merely a shorter prefix of the other.
 
 ### Example 5: group membership is a key-design problem
 
-For `arc`, sorting creates the sequence `[a,c,r]`. `car` produces the same sequence and joins the existing group. `rat` produces `[a,r,t]`, creating another group; `tar` and `art` join it. Sorting every word is extra work, but it avoids comparing each new word against every previous group representative.
+Sorting `arc` gives `[a,c,r]`, which creates the first group. Sorting `car` gives the same sequence, so it joins that group. `rat` instead gives `[a,r,t]` and creates a second group; `tar` and `art` later produce that same second key. We pay to sort each word, but afterward a lookup replaces comparing the word with representatives from every existing group.
 
-A naive grouping baseline might have Θ(w²) representative comparisons for w unrelated words. If each comparison itself sorts strings of length m, that repeated work is expensive. A canonical key computes the expensive representation once per word. The count-vector variant removes sorting only because it can assign each allowed letter a known slot.
+With w unrelated words, a naive grouping baseline may perform Θ(w²) comparisons against group representatives. If every comparison also sorts m-character strings, it repeats expensive preparation. A canonical key moves that preparation to one computation per word. The fixed-count variant avoids sorting only because each allowed letter has a known slot. Without a validated alphabet, we cannot simply assume that 26-slot representation applies.
 
 ### Example 6: rank counts without sorting values
 
-For `[4,2,4,3,2,4]`, counting gives 4→3, 2→2, and 3→1. Buckets 6, 5, and 4 are empty; bucket 3 contains 4, bucket 2 contains 2, and bucket 1 contains 3. To return two values, scan down until collecting 4 and 2, then stop. The output is values, not their counts and not their original indexes.
+Count `[4,2,4,3,2,4]` to obtain 4→3, 2→2, and 3→1. The descending scan first sees empty buckets 6, 5, and 4. Bucket 3 supplies value 4, then bucket 2 supplies value 2. If k is two, stop there without visiting bucket 1 for another result. We return the values 4 and 2 themselves. Counts explain their rank; original indexes are irrelevant to this task's answer.
 
-For `[8,9]` and k=1, both values occupy bucket 1. Our first-encounter tie convention chooses 8. A different tie convention could choose 9 and still satisfy an unrestricted top-k task; tests must respect the contract. Do not concatenate whole buckets after already collecting k entries, because a tied bucket may contain more values than the answer needs.
+For `[8,9]` with k=1, both values belong to bucket 1. Our local first-encounter convention chooses 8. A task permitting arbitrary tie choices could also accept 9, so tests must respect the stated tie contract. Emit entries individually and stop exactly at k. Concatenating an entire tied bucket can return too many values even if every value in that bucket has the same frequency.
 
 ## Visual Explanations
+<!-- lesson-id:w2-section-visual-explanations -->
 
 ```text
 Generic table, illustrative bucket selection only:
@@ -361,7 +402,7 @@ Same bucket does not imply same key.
 Same application signature must imply the equivalence you intend.
 ```
 
-The distinction prevents a common misunderstanding: collisions do not inherently make a correctly implemented Map lose entries. An incorrect signature can merge entries before the Map ever has a chance to distinguish them.
+Follow the arrows to the real-key comparisons in the diagram. That comparison is why a collision does not make a correct Map lose an entry. If we instead replace two different meanings with the same application signature, the Map receives identical keys from us. It has no remaining information with which to separate them.
 
 | Current index | Current value | Needed for 11 | Map before query | Action |
 | --- | --- | --- | --- | --- |
@@ -369,11 +410,12 @@ The distinction prevents a common misunderstanding: collisions do not inherently
 | 1 | 9 | 2 | 4→0 | Store 9→1 |
 | 2 | 2 | 9 | 4→0, 9→1 | Return indexes 1 and 2 |
 
-The map represents the strict past. The current value belongs to the future of that map until its query finishes. This temporal interpretation is often more useful than remembering a particular line order.
+Read each table row before performing its action. At index 2, the Map contains indexes 0 and 1, so finding 9 proves that a distinct earlier partner exists. The current position joins that history only after a failed query. Thinking of the Map as “the strict past” explains the line order instead of leaving you to memorize it.
 
 ## Complexity Analysis
+<!-- lesson-id:w2-section-complexity-analysis -->
 
-Let n be the number of values, d the number of distinct keys, a and b two string lengths in code points, w the number of words, and m the maximum word length. Table operations use the expected O(1) model unless stated otherwise.
+We need several size measures because these tasks process different inputs. Let n count values, d count distinct keys, a and b measure the two strings in code points, w count words, and m be the maximum word length. Unless a row says otherwise, assume expected O(1) table operations. These bounds describe costs under that model; the symbols themselves do not choose best or worst input cases.
 
 | Algorithm | Time | Additional storage |
 | --- | --- | --- |
@@ -389,13 +431,16 @@ Let n be the number of values, d the number of distinct keys, a and b two string
 | Grouping by sorted signature | O(wm log(m+1) + w) under the usual model | O(wm+w), plus sorting workspace |
 | Grouping by fixed 26 counts | O(total characters + 26w) under word-operation model | O(26w+w) key/count units |
 
-The `+1` in logarithms avoids awkward notation for empty words. A precise grouping expression sums each word's own sorting and serialization costs rather than pretending every word has maximum length. Sorting workspace depends on the engine. Output arrays contain references to existing immutable strings; the implementation does not clone the characters of every original word merely by pushing a word reference.
+The logarithms include `+1` so empty words do not create awkward notation. For a sharper grouping estimate, add the sorting and serialization cost of each word using its own length. Using m for all words is a convenient upper bound, not a claim that every word is that long. The engine determines sorting workspace. Also distinguish group references from copied text: pushing an existing immutable string into an output array does not clone all its characters.
 
-String signatures still cost space and time. The 26-count estimate treats each count as a machine-sized word; serialized decimal counts take more characters as counts grow. If analyzing bit complexity rather than the usual interview model, count digit lengths and key hashing explicitly. A fixed alphabet can make a single frequency table constant-sized, but the number of groups and output references can still grow with w.
+A signature is still data that must be built, stored, and hashed. The 26-count estimate assumes each count fits in a machine-sized word, a fixed-size numeric storage unit in the usual model. Decimal serialization uses more characters for larger counts. If you analyze individual bits rather than ordinary interview operations, include those digit lengths and the work of hashing keys. A fixed alphabet bounds one frequency table's size, but it does not bound the number of groups or output references as w grows.
 
 ## Common Mistakes
+<!-- lesson-id:w2-section-common-mistakes -->
 
-Using a retrieved index as a boolean discards index zero. This intentionally broken function fails on the most ordinary Two Sum answer:
+An index of zero is a valid answer, but it behaves like false in a condition. Let's make that mistake deliberately so you can see which evidence it throws away. This is a broken Two Sum implementation, provided for debugging rather than reuse.
+
+### Demonstration 1 — Broken Two Sum rejects an earlier index of zero
 
 ```javascript-bug
 function brokenTwoSum(values, target) {
@@ -410,74 +455,79 @@ function brokenTwoSum(values, target) {
 console.log(JSON.stringify(brokenTwoSum([2, 7], 9)));
 ```
 
-It incorrectly prints `null`; the valid earlier index zero was treated as false.
+In **Demonstration 1**, `[2, 7]` with target 9 first stores 2 at index zero. When 7 arrives, `get` correctly retrieves zero, but `if (previous)` rejects it. The function incorrectly prints `null`. Lookup succeeded; the boolean interpretation of its result caused the failure.
 
-The repair is `has`, not an arbitrary alternate sentinel. Another frequent error is using `get(key) || 99` in a cache whose value zero is meaningful. Nullish coalescing preserves zero and false, but still replaces explicit undefined. Use a presence check when that distinction matters.
+Repair the presence question with `has`. Choosing another arbitrary failure value only shifts the ambiguity. The same mistake appears in a cache when `get(key) || 99` replaces a meaningful zero. Nullish coalescing preserves zero and false, but it still replaces explicitly stored undefined. Whenever that distinction affects the contract, ask about presence separately from value.
 
-Do not use a Set when multiplicity matters, or object identity when the task means equality by a field such as an identifier. Conversely, serializing arbitrary objects to make keys can introduce ordering and type issues; choose a deliberate domain-specific key. Finally, a sorted output is not implied by Map iteration. If the caller needs ordering, budget for an explicit ordering step.
+Check what equality and counting mean before selecting your collection. A Set loses multiplicity, and object identity will not merge separate records that share an identifier. If identifiers define equality, store those identifiers. Serializing arbitrary objects is not an automatic fix: property order and types can make the resulting key unsuitable. Choose a key designed for your data. Likewise, Map iteration preserves insertion order, so a caller requiring sorted output needs an explicit ordering step and its cost.
 
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w2-section-interview-and-leetcode-pattern-recognition -->
 
-Look for repeated membership questions, occurrence counts, complements, grouping, or “first seen” language. Then decide what each key needs to remember. Membership alone suggests Set; a count, index, or group suggests Map. If input is already sorted and memory is restricted, [Week 3's two-pointer technique](week-03.md) may solve a pair problem without storing every value.
+When a problem repeatedly asks whether something appeared, how often it appeared, which partner is needed, or where it belongs, investigate remembered state. Decide what goes with each key before choosing a collection. Presence alone points toward Set; counts, indexes, and groups point toward Map. Also inspect the constraints. With already sorted input and limited memory, [Week 3's two-pointer technique](week-03.md) may find a pair without retaining every value.
 
-For an unfamiliar task, say the invariant before naming the container. “This Map stores unmatched required occurrences” is an explanation. “I'll use hashing” is only a proposed tool. Also discuss whether preprocessing is allowed: sorting a copy may be acceptable for boolean existence but complicates original-index answers and changes arrival order.
+In an interview, explain what your stored entries mean before announcing the container. “This Map stores unmatched required occurrences” gives the interviewer a correctness argument to examine. “I'll use hashing” names a tool without explaining why it helps. Ask whether preprocessing—work performed before the main scan—is allowed, too. Sorting a copy can preserve a boolean existence question while complicating original-index answers and replacing arrival order.
 
-Use the external problems to practice constraints as well as patterns. Valid Anagram and Group Anagrams specify lowercase English letters on the verified pages, so a count-vector solution is justified there. The broader code-point solutions in this chapter deliberately handle a wider local input contract.
+Use the external assignments to practice reading constraints. The preparation notes for the previously verified Valid Anagram and Group Anagrams pages specify lowercase English letters, which justify 26-count keys for those tasks. Our general code-point implementations deliberately support a broader local contract. Choose the representation for the contract you are actually solving; these source notes do not claim a fresh verification of those pages.
 
 ## Practice Exercises
+<!-- lesson-id:w2-section-practice-exercises -->
 
 ### Conceptual
 
-1. Explain why a collision does not imply equality, and why expected O(1) lookup is not a guaranteed worst-case language property.
-2. Choose Set, Map, or a fixed count array for visited IDs, ID-to-latest-timestamp, lowercase letter frequencies, and arbitrary object keys. Explain each choice.
-3. Explain what `has` tells you that `get` cannot when a Map stores undefined, zero, or false.
+1. Explain how a table can keep two colliding keys distinct. Then explain the assumptions behind expected O(1) lookup and why it is not a worst-case JavaScript guarantee.
+2. For visited IDs, ID-to-latest-timestamp, lowercase letter frequencies, and arbitrary object keys, choose Set, Map, or a fixed count array. State the information each choice preserves.
+3. Suppose a Map stores undefined, zero, or false. Explain which presence question `has` answers and why retrieving the value with `get` does not answer it by itself.
 
 ### Tracing
 
-4. Trace the Set for `[7, 2, 4, 2, 7]`, stopping at the earliest repeated occurrence.
-5. Trace every count in `banana`, then consume `anaban` and decide whether it is an anagram.
-6. Trace Two Sum on `[0, 4, 0]` with target 0. State exactly when index 0 becomes available.
+4. Write the Set before each arrival in `[7, 2, 4, 2, 7]`. Stop when you find the earliest repeated occurrence and explain why later entries cannot change that answer.
+5. Record every count update while reading `banana`. Consume `anaban` from that supply one character at a time and decide whether the strings are anagrams.
+6. Work through Two Sum on `[0, 4, 0]` with target 0. Show each needed complement and identify the exact moment index 0 becomes available to later queries.
 
 ### Debugging
 
-7. Repair the index-zero bug above. Then explain why inserting before querying introduces a different bug.
-8. A cache stores `attempts→0`, `enabled→false`, and `loaded→undefined`. Predict `get(key) || 99`, `get(key) ?? 99`, and `has(key)` for each and for an absent key.
-9. Explain why adding letter codes is not a valid anagram signature. Find two different multisets with equal sums, and explain why count separators also matter.
+7. Repair **Demonstration 1** in **Common Mistakes** so index zero remains usable. Separately explain the error you would introduce by inserting the current position before querying.
+8. For a cache containing `attempts→0`, `enabled→false`, and `loaded→undefined`, predict `get(key) || 99`, `get(key) ?? 99`, and `has(key)`. Include an absent key and explain each fallback decision.
+9. Find two different character multisets with equal letter-code sums to disprove that anagram signature. Then explain how omitting separators can make distinct count sequences ambiguous too.
 
 ### Implementation
 
-10. Implement firstDuplicate with the tagged contract and test null, repeated object references, and two distinct equal-looking objects.
-11. Implement frequency counting and Valid Anagram without sorting. Explain early failure and the final leftover check.
-12. Implement both Group Anagrams variants. Test empty words, duplicate words, distinct groups, and rejection of uppercase input by the lowercase variant.
+10. Write firstDuplicate using the tagged result contract. Test a repeated null, repeated references to one object, and two separate objects with equal-looking fields; explain the expected identity behavior.
+11. Write frequency counting and Valid Anagram without sorting. In your explanation, justify both an early missing-supply failure and the final test for unused supply.
+12. Build both Group Anagrams variants. Include empty words, repeated words, several distinct groups, and uppercase input that the lowercase-only implementation must reject.
 
 ### External
 
-The upstream assignment is Two Sum, Valid Anagram, Group Anagrams, and Top K Frequent Elements. Contains Duplicate below is a review exercise from Week 1.
+The upstream assignment includes Two Sum, Valid Anagram, Group Anagrams, and Top K Frequent Elements. We also retain Contains Duplicate as Week 1 review. For each task, explain why your stored state answers the requested question before comparing runtimes.
 
-13. [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** membership, Set, expected complexity. **Relevance:** reinforces the processed-prefix invariant; compare with the Week 1 baseline.
-14. [Valid Anagram](https://leetcode.com/problems/valid-anagram/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** multiplicity, frequency tables, alphabet restrictions. **Relevance:** tests whether your state retains enough information to distinguish equal Sets with unequal counts.
-15. [Group Anagrams](https://leetcode.com/problems/group-anagrams/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** canonical keys, grouping Maps, signature cost. **Relevance:** extends pairwise equivalence checking into efficient classification of many words.
+13. [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** Set membership and expected complexity. **Relevance:** practice explaining that the Set contains the processed prefix. Compare the work with the Week 1 pair-scanning baseline and account for the extra remembered values.
+14. [Valid Anagram](https://leetcode.com/problems/valid-anagram/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** occurrence counts, frequency tables, and restricted alphabets. **Relevance:** explain why two equal Sets may still describe strings with unequal multiplicities, and choose state that preserves those counts.
+15. [Group Anagrams](https://leetcode.com/problems/group-anagrams/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** canonical keys, Maps of groups, and signature construction costs. **Relevance:** turn checking two equivalent words into classifying many words, explaining why equal keys mean precisely the same group.
 
-16. [Two Sum](https://leetcode.com/problems/two-sum/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** complements, value-to-index Map, distinct positions. **Relevance:** practices query-before-insertion and handling index zero. Adapt the local implementation to the site's guaranteed-answer contract.
-17. [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** frequency counting, frequency buckets, ranking. **Relevance:** uses a bounded count range to avoid sorting all frequency entries. Trace the buckets, implement a sorted-count baseline, and explain why `Array(n).fill([])` would break the bucket implementation.
+16. [Two Sum](https://leetcode.com/problems/two-sum/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** needed complements, value-to-index Maps, and distinct positions. **Relevance:** query before insertion and preserve index zero as a valid answer. Adapt our local no-answer behavior to the site's guaranteed-answer contract.
+17. [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** counting occurrences, frequency buckets, and ranking. **Relevance:** exploit the bounded range of possible counts to avoid sorting all count entries. Trace bucket placement, implement a sorted-count baseline, and explain how shared arrays from `Array(n).fill([])` would invalidate the bucket implementation.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w2-section-hints-and-worked-solutions -->
 
 ### Hints
 
-For 1–3, separate the structure's internal bucket choice from the key's meaning in your application. For 4–6, write the table before each query, not only afterward. For 7–9, choose the smallest possible inputs: a valid index of zero, a singleton complement, and two two-letter words. For 10–15, make empty input and multiplicity part of the contract before implementation.
+For 1–3, draw two stages: choosing an internal bucket and deciding whether application keys mean the same thing. For 4–6, show the collection before the query so you can see whether it describes the strict past. For 7–9, shrink the counterexample: an answer using index zero, a singleton needing itself, or two two-letter words often suffices. For 10–15, decide empty-input behavior and multiplicity requirements before implementing anything.
 
 ### Solutions 1–6
 
-A collision means the hash function selected the same bucket; an equality check still separates different keys. Under a generic collision chain, a bad distribution can require scanning many entries. The expected-time model is useful but conditional. Use Set for visited IDs, Map for timestamps and arbitrary object keys, and a 26-slot array for validated lowercase counts. A Map's presence remains true even when its stored value is undefined.
+For questions 1–3, remember that bucket selection only narrows the search. Equality checking still separates different keys inside a shared bucket. A bad distribution in a generic chained table may force a long scan, so expected-time analysis needs its assumptions. Visited IDs need only Set membership; timestamps and arbitrary object keys need Map entries; validated lowercase counts fit 26 array slots. An entry storing undefined is still present, which is why `has` remains true for it.
 
-The repeated-arrival trace stores 7, then 2, then 4; the next 2 is found, so return 2 before reaching the final 7. Banana ends with b:1, a:3, n:2. Consuming `anaban` uses those counts exactly, so it is an anagram. In `[0,4,0]`, the first zero fails its query and is saved at index 0. The 4 does not help. The last zero finds the earlier zero and returns `[0,2]`.
+For question 4, insert 7, then 2, then 4. The next 2 is already present, so return 2 without reaching the final 7. For question 5, banana provides b:1, a:3, n:2. Reading `anaban` consumes a, n, a, b, a, n, exhausting those exact counts and proving an anagram. For question 6, the first zero in `[0,4,0]` fails its query, then becomes available at index 0. The 4 supplies no zero partner. The final zero retrieves index 0 and returns `[0,2]`.
 
 ### Solutions 7–9: distinguish state from truthiness
 
-Query `indexes.has(wanted)` and only then retrieve the index. Querying after inserting would let `[3]` satisfy target 6 using index 0 twice. The complete Two Sum implementation above fixes both errors.
+Ask `indexes.has(wanted)` before retrieving the stored index, so zero is accepted as a valid position. Keep insertion after that query. Otherwise `[3]` with target 6 could use index 0 twice. **Demonstration 3** in **JavaScript Implementations** supplies the complete Two Sum repair and shows how the two decisions work together.
 
-For the cache, OR returns 99 for zero, false, undefined, and absence. Nullish coalescing preserves zero and false, but returns 99 for undefined and absence. `has` returns true for all three stored keys and false for the absent one. Here is an executable check of that distinction:
+For the cache question, OR substitutes 99 for zero, false, undefined, and an absent entry. Nullish coalescing keeps zero and false, but substitutes 99 for undefined and absence. Only `has` separates the three stored keys from the absent key. Let's run those cases alongside the two key-construction mistakes so the lost distinctions are visible in the output.
+
+### Demonstration 1 — Check cache presence and expose ambiguous signatures
 
 ```javascript
 const cache = new Map([['attempts', 0], ['enabled', false], ['loaded', undefined]]);
@@ -500,58 +550,62 @@ absent 99 99 false
 1,11 11,1
 ```
 
-`ad` and `bc` have equal code sums and different multisets. Concatenating counts without separators similarly loses boundaries. Both errors occur in the application key, so even a perfectly correct Map cannot recover the lost information.
+In **Demonstration 1**, the `attempts` row shows OR changing zero to 99 while nullish coalescing preserves it. The `loaded` and `absent` rows retrieve the same value, yet `has` distinguishes them. Next, `ad` and `bc` both sum to 197 despite having different multisets. Finally, joining `[1, 11]` and `[11, 1]` without separators produces the same text, while commas preserve the boundaries. These errors discard information in the application key; no correct Map implementation can reconstruct what we removed.
 
 ### Solutions 10–15: implementation and evaluation
 
-The firstDuplicate, frequencies, validAnagram, and grouping implementations above are worked solutions. Repeated references to the same object are duplicates; distinct objects with matching fields are not. If the desired equality is by ID, store the ID instead and state that altered contract. Empty input returns no duplicate, an empty frequency table, or no groups. Two empty strings are anagrams, and two empty words form one group together.
+Use **Demonstrations 2, 4, 5, and 6** in **JavaScript Implementations** as the worked answers for firstDuplicate, frequencies, validAnagram, and the grouping variants. Test identity deliberately: two references to one object repeat, whereas separate objects with matching fields do not. If the task defines equality by ID, store IDs and explain that changed contract. Empty collections produce no duplicate, an empty count table, or no groups as appropriate. Two empty strings are anagrams, and two empty words belong to one shared group.
 
-The lowercase grouping variant should throw for `Arc` rather than silently index outside its count array. For performance comparison, count key construction: sorting each m-character word costs O(m log m) under the usual model, while a fixed alphabet permits O(m+26) work. For external grouping, compare groups as collections rather than insisting on an order the problem does not require. No external judge execution is claimed by these local worked examples.
+The lowercase-only function must throw for `Arc`; silently writing outside the intended count slots would hide invalid input. In your cost explanation, include building the key. Sorting an m-character word costs O(m log m) in the usual model, while fixed-alphabet counting permits O(m+26) work. For external grouping, compare group membership without requiring an order the task leaves unspecified. These local worked examples support your reasoning; they do not claim an external judge run.
 
 ### Solutions 16–17: complements and frequency ranking
 
-For Two Sum, use the complete lookup-before-insertion implementation above; the external contract guarantees one pair, whereas our local function also defines the no-answer case. For Top K, first count values, then either sort the entries by descending count or invert the table into frequency buckets. The trace returns `[4,2]` because their frequencies are three and two. Allocating and scanning n+1 bucket slots is O(n), distributing d distinct values is O(d), and no value is emitted more than once. Expected time is O(n+d) and auxiliary space O(n+d), with O(k) output. Filling with one empty array would alias every bucket, mixing different frequencies and invalidating the ordering proof.
+For Two Sum, **Demonstration 3** in **JavaScript Implementations** gives the complete lookup-before-insertion solution. The external task guarantees a pair, while our function additionally defines the no-answer result. For Top K, **Demonstration 7** in **JavaScript Implementations** first counts values and then groups them by frequency; sorting count entries is the baseline alternative. The example returns `[4,2]` because their counts are three and two.
+
+Allocating and scanning n+1 bucket slots costs O(n), and distributing d distinct entries costs O(d). Each value is emitted at most once. We therefore get expected O(n+d) time and O(n+d) auxiliary space, plus O(k) output. Filling every slot with the same empty array would create aliases, multiple references to one array. Every insertion would then affect every bucket, mixing frequencies and destroying the descending-order argument.
 
 ## Sources and Further Reading
+<!-- lesson-id:w2-section-sources-and-further-reading -->
 
-The [canonical curriculum](../../shared/curriculum.js) and [Weeks 1–4 textbook](../../shared/textbook/weeks01to04.js) define the scope, including collision reasoning, first duplicates, frequency counts, Two Sum, and both anagram strategies. The explanations, traces, and exercises here expand that material.
+Use the [canonical curriculum](../../shared/curriculum.js) and [Weeks 1–4 textbook](../../shared/textbook/weeks01to04.js) to locate the syllabus behind this chapter: collisions, first duplicates, frequencies, Two Sum, and both anagram strategies. Our explanations and exercises develop that scope into reasoning you can practice. The source history recorded during preparation is retained here; restyling this chapter did not involve checking those external pages again.
 
-- [MDN Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map): consulted to verify key identity, insertion order, and the average-sublinear requirement. It does not promise unconditional O(1) lookup.
-- [MDN Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set): consulted to verify membership equality, including NaN and signed zero.
-- The five LeetCode pages in Practice Exercises were opened to verify statements, input restrictions, and difficulty. Editorials and community solutions were not used.
-- [Upstream Week 2](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/02.md): fetched through the GitHub connector to verify the four assigned problems. The original teaching here extends the assignment with a frequency-bucket derivation.
+- [MDN Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map): the preparation record cites this for key identity, insertion order, and average-sublinear access. Read that requirement carefully: it does not promise unconditional O(1) lookup.
+- [MDN Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set): the preparation record cites its membership equality rules, including NaN and signed zero.
+- The five LeetCode pages linked in Practice Exercises were checked during original preparation for statements, restrictions, and difficulty. That work did not use editorials or community solutions.
+- [Upstream Week 2](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/02.md): the preparation record reports a GitHub connector fetch to confirm the four assigned problems. The frequency-bucket derivation expands that assignment with original teaching.
 
-Links were verified on 7 November 2026. No engine-specific hashing implementation was audited, no adversarial timing experiment is claimed, and the displayed solutions were not submitted to an external judge. The complexity discussion states its conventional table-operation and string-cost assumptions.
+The existing preparation record dates link verification to 7 November 2026; this rewrite does not claim a new verification. It also records no audit of engine-specific hashing, no timing experiment with deliberately difficult keys, and no external judge submissions. Read the complexity claims with their stated conventional table-operation and string-cost assumptions.
 
 ## Weekly Summary
+<!-- lesson-id:w2-section-weekly-summary -->
 
-Hash-based solutions become understandable when the stored information has a precise meaning. Set remembers membership; Map associates a key with the count, index, or group needed by the next question. Query order can enforce distinct positions, and key design can turn equivalence into direct grouping.
+When you can explain exactly what each stored entry means, a hash-based solution stops looking like a trick. Set remembers membership. Map connects a key with the count, earlier index, or group needed by the next question. Querying before insertion enforces distinct positions, while a carefully chosen canonical key lets equivalent inputs find the same group directly. Both choices are correctness decisions before they are performance decisions.
 
-Carry two habits into [Week 3 — Two Pointers](week-03.md): define the state before writing the loop, and justify every update. The next chapter often replaces stored evidence with evidence supplied by ordering, reducing memory when its preconditions hold.
+Take two habits into [Week 3 — Two Pointers](week-03.md): say what your state means before writing the loop, and explain why every update preserves that meaning. Ordered input can sometimes supply evidence that we otherwise needed to store, reducing memory when the required preconditions hold. You will use the same reasoning habits even though the data structure changes.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] I can explain hashing, collisions, load factor, and resizing. <!-- checkpoint:w2-hash-table-model -->
-- [ ] I can distinguish expected access from amortized insertion and worst-case guarantees. <!-- checkpoint:w2-complexity-assumptions -->
-- [ ] I can choose membership, frequency, index, or grouping state. <!-- checkpoint:w2-state-selection -->
+- [ ] I can explain bucket selection by hashing, collision handling, load factor, and why resizing redistributes entries. <!-- checkpoint:w2-hash-table-model -->
+- [ ] I can separate expected lookup assumptions, insertion costs spread across a sequence, and worst-case guarantees. <!-- checkpoint:w2-complexity-assumptions -->
+- [ ] I can justify remembering presence, occurrence counts, earlier indexes, or groups for a specific contract. <!-- checkpoint:w2-state-selection -->
 
 ### JavaScript
 
-- [ ] I can use Map and Set methods without confusing properties and entries. <!-- checkpoint:w2-map-set-api -->
-- [ ] I can explain identity, SameValueZero, and insertion order. <!-- checkpoint:w2-key-equality -->
-- [ ] I can preserve zero, false, and undefined with explicit presence checks. <!-- checkpoint:w2-presence-checks -->
-- [ ] I can implement lookup-before-insertion Two Sum. <!-- checkpoint:w2-two-sum-order -->
+- [ ] I can use the Map and Set interfaces and explain why ordinary object properties are not collection entries. <!-- checkpoint:w2-map-set-api -->
+- [ ] I can trace object identity, SameValueZero membership, and the iteration order produced by insertion. <!-- checkpoint:w2-key-equality -->
+- [ ] I can distinguish an absent key from one storing zero, false, or undefined by checking presence explicitly. <!-- checkpoint:w2-presence-checks -->
+- [ ] I can write Two Sum and explain why its query must precede insertion of the current index. <!-- checkpoint:w2-two-sum-order -->
 
 ### Practice
 
-- [ ] I traced duplicates, frequencies, and anagram consumption. <!-- checkpoint:w2-state-traces -->
-- [ ] I completed the debugging and implementation exercises. <!-- checkpoint:w2-local-exercises -->
-- [ ] I attempted the anagram assignments and duplicate review, explaining key construction costs. <!-- checkpoint:w2-external-practice -->
-- [ ] I completed the assigned Two Sum and Top K tasks and explained bucket allocation. <!-- checkpoint:w2-top-k-and-two-sum -->
+- [ ] I traced repeated arrivals, count updates, and consumption of anagram supply one step at a time. <!-- checkpoint:w2-state-traces -->
+- [ ] I attempted and checked every local debugging and implementation exercise. <!-- checkpoint:w2-local-exercises -->
+- [ ] I attempted the anagram assignments and duplicate review and included key-building work in my analysis. <!-- checkpoint:w2-external-practice -->
+- [ ] I completed Two Sum and Top K, including an explanation of independent bucket allocation. <!-- checkpoint:w2-top-k-and-two-sum -->
 
 ### Reflection
 
-- [ ] I recorded a counterexample to an incorrect key or presence test. <!-- checkpoint:w2-counterexample-reflection -->
-- [ ] I can explain when sorting or a fixed array is preferable to a Map. <!-- checkpoint:w2-tradeoff-reflection -->
+- [ ] I recorded a small input showing why an incorrect signature or presence test loses required information. <!-- checkpoint:w2-counterexample-reflection -->
+- [ ] I can explain a contract for which sorting or fixed-alphabet counts are a better choice than a Map. <!-- checkpoint:w2-tradeoff-reflection -->

@@ -1,65 +1,74 @@
 # Week 9 - Binary Trees
+<!-- lesson-id:w9-section-chapter-introduction -->
 
-This week, you will be learning binary trees: structures in which every node can lead to a left and a right subtree. Trees model hierarchy, from menus to expression syntax, and give recursion a natural shape to follow.
+A menu can contain submenus, and an expression can contain smaller expressions. A tree represents that kind of hierarchy by connecting parent objects to children. This week we will study binary trees, where each node has at most a left child and a right child. Each child begins a smaller tree, making recursion a natural way to describe the work.
 
-We will start with tree vocabulary and the three depth-first orders, then compute maximum depth, mirror a tree, and visit complete levels with breadth-first search. We will compare implementations on both narrow chains and broad trees.
+First we will name the parts of a tree and learn three ways to visit a parent relative to its descendants. Then we will calculate the longest downward path, mirror the child relationships, and visit one complete level at a time. We will compare narrow chains with broad trees because shape changes memory needs even when the node count stays the same.
 
-By the end, you will be able to choose a traversal order, define what a subtree call returns, implement recursive and iterative traversals, and report space in terms of height, width, and retained output.
+By the end, you should be able to choose an order for visiting nodes—a traversal—and state exactly what each smaller-subtree call returns. You will implement visits with both recursive calls and explicit containers. When discussing storage, you will distinguish the longest active path, the widest level, and the results retained after the traversal finishes.
 
-There will be a checklist at the end to help you track your progress. Use it after drawing traversals and testing your implementations, and keep examples of confusing traversal orders in your progress logs.
+Use the final checklist after drawing traversal orders and testing your own implementations. Save an uneven tree in your progress logs whenever an order surprises you. Include the point where a parent resumes after a child returns; that is often the missing step in understanding a traversal.
 
 ## Learning Objectives
+<!-- lesson-id:w9-section-learning-objectives -->
 
-- Define root, child, leaf, subtree, height, depth, and width.
-- Produce preorder, inorder, and postorder traversals and explain their uses.
-- Derive maximum depth from child answers using a consistent convention.
-- Implement iterative DFS and level-by-level BFS.
-- Invert a tree while stating the mutation contract.
-- Distinguish O(h) recursion space, O(w) frontier space, and O(n) retained arrays.
+- Explain the starting node, children, leaves, smaller subtrees, and the height, depth, and width measures we use.
+- Produce preorder, inorder, and postorder sequences and relate each visit position to useful work.
+- Calculate maximum depth from child answers without mixing node-count and edge-count conventions.
+- Build depth-first visits with an explicit stack and breadth-first visits grouped into levels.
+- Mirror existing child links and tell callers that the original tree changes.
+- Separate O(h) waiting-call storage, O(w) current-level storage, and O(n) arrays retained as results or queue history.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w9-section-prerequisite-knowledge -->
 
-Review object references in [Week 7](week-07.md), call frames in [Week 8](week-08.md), and stacks/queues in [Week 5](week-05.md). A node will be an object with `value`, `left`, and `right`, with missing children set to `null`. Examples assume a finite tree with no cycles and no child shared by different parents. Arbitrary graphs need the visited-state machinery of [Week 11](week-11.md).
+Review references to objects in [Week 7](week-07.md), waiting-call frames in [Week 8](week-08.md), and newest-first versus oldest-first containers in [Week 5](week-05.md). Our nodes contain `value`, `left`, and `right`; a missing child is explicitly `null`. Inputs must be finite trees: they cannot loop back, and two parents cannot share a child object. Otherwise a traversal may revisit nodes forever or count them repeatedly. More general connected structures need the remembered-visited-state techniques of [Week 11](week-11.md).
 
 ## Core Theory
+<!-- lesson-id:w9-section-core-theory -->
 
 ### A tree contains smaller trees
 
-The root is the starting node. Each child roots a subtree, and a leaf has no children. A binary tree has at most two children per node; it does not require both. Nor does it impose numeric order. A root 4 with left child 9 is a valid binary tree. The search-order promise belongs to binary search trees in [Week 10](week-10.md).
+The **root** is where we begin. A node's **children** are the nodes reached by its left and right links, and each child together with its descendants forms a **subtree**. A **leaf** has no children. Binary means at most two children, not exactly two. It also says nothing about numeric order: root 4 with left child 9 is a perfectly valid binary tree. The additional search-order rule belongs to binary search trees in [Week 10](week-10.md).
 
-We count maximum depth in nodes: an empty tree has depth zero and a leaf has depth one. Let h be the number of nodes on the longest root-to-leaf path. Some references instead define height using edges, giving a leaf height zero. Translate the convention explicitly rather than mixing base cases. Width w is the maximum number of nodes on any one level. A chain can have h=n and w=1; a complete tree can have h=Θ(log n) and w=Θ(n).
+Depth describes how far downward a path reaches; a level groups nodes at the same distance from the root. We count maximum depth in nodes: empty input has depth zero and a leaf alone has depth one. Let h count nodes on the longest root-to-leaf path. Some references call the longest downward measure height and count edges instead, making a leaf height zero. Translate explicitly between those conventions before borrowing a base case.
 
-The MIT [binary-tree lecture notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf) separate tree navigation from the meaning assigned to traversal order. That distinction helps prevent the common assumption that every inorder traversal is sorted.
+**Width** w is the largest number of nodes on a single level. A chain of n nodes can have h=n and w=1. A complete tree, whose levels fill from the top and whose final level fills left to right, can have h=Θ(log n) and w=Θ(n). These describe very different storage pressures despite the same node count.
+
+Keep the mechanics of moving through links separate from any meaning assigned to the values. The MIT [binary-tree lecture notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf) make that distinction too. It prevents a common mistake: expecting an inorder traversal to sort a tree that never promised search order in the first place.
 
 ### DFS order tells you when to handle the parent
 
-Depth-first search follows one subtree before the next. In **preorder**, handle the parent before its left and right subtrees. This suits recording a parent before descendants. In **inorder**, handle left subtree, parent, then right subtree. It produces sorted values only when the tree also obeys BST order. In **postorder**, handle both children before their parent, which suits calculations needing completed child answers.
+**Depth-first search**, or DFS, explores one subtree before moving to the next. We have three useful moments to handle the current parent. In **preorder**, handle it before either child, useful when recording parents before descendants. In **inorder**, handle the left subtree, then the parent, then the right subtree; values are sorted only if the tree also obeys binary-search-tree order. In **postorder**, finish both children first, useful when the parent's calculation needs their answers. The names describe the parent's visit position, not a different shape of tree.
 
-The recursive call stack remembers the unfinished work. After returning from the left subtree, execution continues with the current parent's next statement; it does not restart from the root. A traversal's names describe where the visit occurs relative to those two child calls.
+The recursive stack remembers where each parent paused. After the left-subtree call returns, execution continues at the current parent's next statement. It does not restart at the root. To trace an order, place the parent's visit before, between, or after its two child calls and then follow ordinary call-and-return behavior.
 
 ### A subtree answer can be much smaller than a traversal
 
-For maximum depth, a call needs to return only a number. If the left child reports L and the right child reports R, any longest path through this node chooses one child, so return `1 + max(L,R)`. The empty subtree returns zero. Adding both child depths would count work in separate branches rather than the length of a single path.
+For maximum depth, we do not need to save a traversal at all: each call can return one number. Suppose the left child reports L and the right reports R. A downward path can choose only one child, so return `1 + max(L,R)`, counting the current node too. Empty children report zero. Adding L and R would combine separate branches, which measures something other than the length of one path.
 
-Correctness follows by structural induction: the empty answer is correct; assuming each smaller subtree reports its correct depth, selecting the larger and adding the current node gives the correct result for the whole subtree. This is a useful proof technique whenever the input itself is recursively defined.
+We can prove this by first checking the empty tree, then explaining why correct answers for the smaller pieces give a correct answer for their parent. This reasoning is **structural induction**. Zero is correct for empty input. Assuming both child depths are correct, choosing the larger and adding the current node produces the correct whole-subtree depth. The proof follows the same smaller-tree structure as the code.
 
-For inversion, the contract is different: mirror each child subtree and exchange their positions. The operation changes the original tree. Save references before overwriting them so neither subtree is lost. Inverting twice restores the original structure, making that a useful test.
+To **invert** a tree means to mirror it: mirror both smaller subtrees and exchange their left and right positions. Here the contract changes the original objects rather than returning a clone. Save the old references before overwriting fields so neither child is lost. Mirroring twice should restore every original link, giving you a useful check on the mutation.
 
 ### Iteration must remember the work recursion remembered
 
-An explicit DFS stack can store a node together with its depth. Remove a frame, update the best depth, and add child frames. Push right before left if you want left processed first: LIFO reverses insertion order. This avoids the engine's recursion-depth limit, though it still needs memory for pending work.
+We can replace waiting calls with a stack we manage ourselves. For depth, store a node and its current depth together as a frame. Pop a frame, update the best depth seen, and push its children with depth increased by one. Push right before left when you want to process left first, because the stack removes the newest addition. This avoids the engine's call-depth limit, but still allocates memory for pending frames.
 
-For inorder, the pending work is subtler. Descend left while pushing ancestors. When there is no left child, pop the nearest waiting ancestor, visit it, and move to its right subtree. Each node is pushed and popped once. The stack represents nodes whose left side is being explored or has finished, but whose own visit is still pending.
+For inorder, the stack must remember parents whose own visit is waiting. Walk left and push each ancestor. When you reach null, pop the nearest waiting ancestor, visit it, and continue from its right child. Each node is pushed once and popped once. The saved nodes are precisely those whose left side is underway or complete but whose own value has not yet been visited.
 
 ### BFS freezes a level before expanding it
 
-Breadth-first search visits nearer levels before deeper ones. A FIFO queue works because children are added after already-discovered nodes. For grouped output, an especially clear implementation uses a current frontier and a next frontier. Process every node in the current frontier, collect its values, and append children to the next one. Only then advance the level.
+**Breadth-first search**, or BFS, finishes nearer levels before deeper ones. An oldest-first queue achieves this because children join after nodes already discovered. For grouped answers, use a **frontier**, meaning all nodes on the current level, and a separate next frontier for their children. Read every current node, collect its value, and append its children to next. Advance only after the whole current frontier is finished.
 
-This avoids an easy bug: looping against a queue length that grows while children are appended can consume later levels as part of the current one. With separate frontiers, each iteration has one unambiguous level. It also makes retained-memory analysis more honest than keeping one growing array of every node ever enqueued.
+Separate frontiers make a level's membership fixed while you process it. If you instead loop against a queue length that grows as children arrive, you may accidentally consume later levels inside the current level. Separate arrays also stop traversal history from accumulating in one never-shortened queue, which matters when we claim a width-based memory bound.
 
 ## JavaScript Implementations
+<!-- lesson-id:w9-section-javascript-implementations -->
 
-### All three recursive DFS orders
+We will record each parent at three moments to make preorder, inorder, and postorder directly comparable.
+
+### Demonstration 1 — Record three depth-first visit orders
 
 ```javascript
 function node(value, left = null, right = null) { return { value, left, right }; }
@@ -85,9 +94,11 @@ console.log(JSON.stringify(traversals(null)));
 {"preorder":[],"inorder":[],"postorder":[]}
 ```
 
-The three pushes occupy three different moments in one call. If you need only one order, keep only that push and result array. Empty children return immediately and never add phantom values.
+In **Demonstration 1**, A enters preorder before visiting B. B visits D, then enters inorder, visits E, and only then enters postorder. A similarly enters inorder after B and postorder after C. The three pushes belong to different moments of the same call. If you need just one traversal, retain only its push and array. Null children immediately return, so empty input produces three empty arrays rather than phantom node values.
 
-### Maximum depth, recursively and iteratively
+We will calculate depth both from returned child answers and from explicit node/depth frames.
+
+### Demonstration 2 — Compute maximum depth with calls or a stack
 
 ```javascript
 function node(value, left = null, right = null) { return { value, left, right }; }
@@ -118,9 +129,11 @@ console.log(maximumDepth(node(8)));
 1
 ```
 
-Both functions visit every node. The iterative one stores depth explicitly instead of relying on call nesting, so it can handle chains too deep for ordinary JavaScript recursion. It also avoids treating a numeric value of zero as an absent node: existence tests apply to node references.
+In **Demonstration 2**, node 7 reports depth one, its parent 9 reports two, and root 4 chooses that longer side to report three. The iterative version reaches the same answer by carrying depths 1, 2, and 3 in frames. Both visit every node; the explicit stack avoids failing on chains too deep for ordinary recursive calls. Check references against null rather than testing the truthiness of values, because a real node may legitimately contain zero.
 
-### Inorder with an explicit stack
+We will visit a tree that is not a search tree, preserving inorder without relying on recursive calls.
+
+### Demonstration 3 — Resume inorder visits from saved ancestors
 
 ```javascript
 function inorder(root) {
@@ -150,9 +163,11 @@ console.log(JSON.stringify(inorder(null)));
 []
 ```
 
-The outer condition must allow either a current node or saved ancestors. Stopping as soon as current becomes null would abandon the stack just when it is needed.
+In **Demonstration 3**, push 4 and 9 while walking left. At null, pop and visit 9, then walk to its right child 7. After 7 finishes, 4 is still waiting and must be visited before 2. That gives `[9,7,4,2]`, which is deliberately unsorted. The outer loop must continue when either current exists or the stack is nonempty. Reaching null is the signal to use a saved ancestor, not to abandon the traversal.
 
-### Mirror the tree in place
+We will mirror the original objects, verify the returned root's identity, and mirror again to restore the structure.
+
+### Demonstration 4 — Invert a tree while preserving its objects
 
 ```javascript
 function node(value, left = null, right = null) { return { value, left, right }; }
@@ -187,9 +202,11 @@ true
 null
 ```
 
-Returning the same root demonstrates mutation rather than cloning. The saved old-left reference prevents the second assignment from accidentally reusing the newly assigned left subtree.
+In **Demonstration 4**, root 1 initially visits as `[1,2,4,3]`. Mirroring moves 3 to the left and the mirrored 2 subtree to the right, giving `[1,3,2,4]`. `invert(root) === root` is true because the existing root object changes. `oldLeft` keeps the original 2 subtree reachable while left is overwritten; without it, the second assignment could reuse the newly assigned child. A second inversion restores `[1,2,4,3]`.
 
-### Level-order traversal using frontiers
+We will freeze each level's nodes before collecting the next level, including a valid zero-valued root.
+
+### Demonstration 5 — Visit complete levels with separate frontiers
 
 ```javascript
 function node(value, left = null, right = null) { return { value, left, right }; }
@@ -220,17 +237,19 @@ console.log(JSON.stringify(levelOrder(node(0))));
 [[0]]
 ```
 
-Left children are appended before right children, preserving left-to-right order. The current and next frontiers coexist briefly, but each contains at most w nodes, so their combined reference storage is O(w). The result arrays accumulate separately.
+In **Demonstration 5**, frontier begins `[1]`, then becomes `[2,3]`, then `[4,5,6]`. Processing 2 adds 4 and 5 to next without visiting them; processing 3 adds 6 after them. Appending left before right preserves left-to-right order. Current and next arrays coexist, but each holds at most w nodes, so together they need O(w) temporary references. Saved level arrays accumulate separately. The final call shows that a node holding zero produces `[[0]]` rather than being mistaken for absence.
 
 ## Worked Examples
+<!-- lesson-id:w9-section-worked-examples -->
 
-On the A/B/C/D/E tree, entering A records preorder A and suspends A while visiting B. Entering B records B and visits D. D is a leaf, so it enters all three orders before returning. B then enters inorder, visits E, and only after E finishes does B enter postorder. A resumes next, enters inorder, processes C, and finally enters postorder. The trace explains why postorder B follows both D and E.
+Walk through the A/B/C/D/E tree while keeping a finger at each paused call. Enter A, record preorder A, and pause it to visit B. Enter B, record preorder B, and visit D. D has no children, so all three of its visits finish before it returns. B resumes, records inorder B, visits E, then records postorder B. A resumes after B, records inorder A, processes C, and finally records postorder A. In particular, postorder B must follow both D and E because its push comes after both child calls.
 
-For maximum depth on root 4 with left 9, right 2, and 9's right child 7: null children report zero; 7 reports one; 9 reports two; 2 reports one; 4 reports three. The left/right recursive calls visit disjoint subtrees, so there is no exponential recomputation.
+For root 4 with left 9, right 2, and 9's right child 7, begin at the leaves. Null children return zero, so 7 returns one; 9 takes the larger child depth and returns two. Node 2 returns one, and root 4 returns three. Although each call makes two child calls, those subtrees share no nodes. We visit different pieces of the input, so the branching syntax does not imply exponential recomputation.
 
-The BFS frontiers are `[1]`, then `[2,3]`, then `[4,5,6]`. Processing 2 adds 4 and 5 to next, but does not visit them immediately. Processing 3 adds 6 after them. That ordering is the entire FIFO argument expressed as levels.
+For BFS, write the frontiers `[1]`, `[2,3]`, and `[4,5,6]` on separate lines. While processing 2, append 4 and 5 to next but keep working on the current line. Processing 3 appends 6 after them. Only then move to that next line. This is FIFO reasoning expressed through whole levels: earlier discovered nodes stay ahead of later children.
 
 ## Visual Explanations
+<!-- lesson-id:w9-section-visual-explanations -->
 
 ```text
         A                  4
@@ -252,11 +271,12 @@ full tree:      1              h=3, w=4
            4  5 6  7
 ```
 
-The horizontal chain is shorthand for repeated single-child links, not an array. Which shape makes recursive DFS expensive in stack space? Which makes BFS expensive in frontier space?
+Read the horizontal chain as repeated single-child links, not as an array layout. In that shape, recursive DFS must remember a long path, while BFS holds only one level node. In the broad full tree, many nodes share a level and BFS needs a large frontier. Use the two shapes to explain which measure, h or w, controls each working container.
 
 ## Complexity Analysis
+<!-- lesson-id:w9-section-complexity-analysis -->
 
-Let n be node count, h node-based maximum depth, and w maximum level width.
+For the table, let n count all nodes, h count nodes on the longest root-to-leaf path, and w count nodes on the widest level. Working space means temporary storage in addition to the input and the separately reported saved result.
 
 | Implementation | Time | Working space | Stored result |
 | --- | --- | --- | --- |
@@ -267,21 +287,26 @@ Let n be node count, h node-based maximum depth, and w maximum level width.
 | In-place inversion | Θ(n) | O(h) recursive frames | existing tree reused |
 | Frontier level order | Θ(n) | O(w) frontier references | Θ(n) values and level arrays |
 
-Each non-null node is visited once, and there are only O(n) null-child checks. Recursive depth follows one active root-to-node path. In explicit DFS, each ancestor can contribute at most one deferred sibling, giving O(h); on a single-child chain the particular depth implementation actually has O(1) pending entries. O(h) is an upper bound, not always a tight bound.
+Every non-null node is visited once, and the number of missing-child checks is O(n), so traversal time is Θ(n). Recursive frames follow one active root-to-node path. In explicit DFS, each ancestor can leave at most one sibling waiting, giving O(h) pending frames. Yet the particular iterative depth algorithm holds only O(1) pending entries on a single-child chain. An upper bound need not be tight on every shape. Also keep bounds separate from cases: O describes an upper growth bound, not automatically a worst-case input category.
 
-The frontier version's O(w) claim refers to reachable temporary data under a standard garbage-collected memory model. The language does not guarantee immediate physical reclamation of old arrays. It does make old frontier arrays unreachable after reassignment, unlike a never-compacted head-index queue.
+The frontier version's O(w) claim counts temporary data still reachable under the usual garbage-collected memory model. Once frontier is reassigned, the old array has no retained reference from this traversal. JavaScript does not promise immediate physical reclamation, but the program no longer keeps that array alive. A head-index queue that never compacts has a different retention pattern.
 
-If you instead use `queue=[root]` and only advance head while appending children, traversal time is still Θ(n), but that array retains n indexed entries and node references by the end. The active suffix may be O(w); the retained array is O(n). Clearing old slots releases its references but still leaves O(n) slots unless you compact. Also, the input root itself may continue to reference the entire tree regardless of the queue. Report additional traversal storage separately from the input and output.
+Suppose you use `queue=[root]`, append children, and remove work only by advancing head. Time remains Θ(n), but by the end the array retains n indexed entries and node references. Its active suffix may be O(w), yet its retained storage is O(n). Clearing old slots removes those references, but only compaction shortens the retained indexed region. The input root may itself continue to reach the entire tree; that is input storage, separate from the additional traversal container and returned output. State which quantity your memory claim counts.
 
 ## Common Mistakes
+<!-- lesson-id:w9-section-common-mistakes -->
 
-- Assuming inorder is sorted for every binary tree.
-- Returning one for an empty tree while using node-based depth elsewhere.
-- Adding left and right depths instead of taking their maximum.
-- Checking `node.value` for truthiness and dropping nodes whose value is zero.
-- Appending children to the same dynamically sized “current level” loop.
-- Saying every DFS uses logarithmic memory without checking tree height.
-- Claiming width-bounded BFS storage for an array that retains every processed entry.
+- Check search-tree order before expecting inorder to be sorted; binary shape alone is insufficient.
+- Keep empty depth zero when counting nodes, so leaves correctly produce one.
+- Choose the larger child depth for one longest path; adding branches counts different work.
+- Test whether a node reference is null, not whether its stored value is truthy, or zero-valued nodes disappear.
+- Freeze current-level membership before appending children, keeping deeper nodes out of this level's output.
+- Inspect actual height before claiming logarithmic DFS memory; a chain has linear height.
+- Inspect retained queue history before claiming width-bounded BFS storage; the active suffix alone is not the whole array.
+
+This broken depth routine combines both branches by addition. Use a branching tree to see why that measures a different quantity.
+
+### Demonstration 1 — Broken depth calculation adds separate paths
 
 ```javascript-bug
 function depth(node) {
@@ -290,50 +315,55 @@ function depth(node) {
 }
 ```
 
-This computes node count, not maximum depth. It may look correct on a chain because both quantities coincide there.
+In broken **Demonstration 1**, a root with two leaf children returns `1 + 1 + 1`, or three. Its longest downward path has only two nodes. The routine actually counts all nodes. A chain conceals the bug because its node count equals its maximum depth, so include branching input when testing the contract.
 
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w9-section-interview-and-leetcode-pattern-recognition -->
 
-“Levels,” “nearest leaf,” and “first depth satisfying a property” suggest BFS. “Combine child answers,” “subtree,” and “height” suggest postorder reasoning. “Parent before descendants” suggests preorder. Sorted inorder is useful only after confirming BST order.
+Prompts about levels, the nearest leaf, or the first depth meeting a condition suggest BFS because it finishes shallower work first. Combining child answers, subtree calculations, and height suggest postorder reasoning. Recording a parent before descendants suggests preorder. Sorted inorder can help only after you establish binary-search-tree order. Choose the visit moment based on what information the task needs.
 
-State the shape assumptions: a cyclic object graph will make these traversals repeat forever. When an input can be a chain with hundreds of thousands of nodes, choose an explicit stack or queue instead of relying on JavaScript recursion. For an ordinary tree, a visited Set is unnecessary because each non-root node has exactly one parent.
+Say what shape the input guarantees. A cyclic object graph can make these traversals repeat forever. A proper tree needs no visited Set because every non-root node has exactly one parent and cannot be reached by competing paths. If the tree may be a chain hundreds of thousands of nodes long, use an explicit stack or queue so the runtime's recursion limit does not stop an otherwise correct traversal.
 
 ## Practice Exercises
+<!-- lesson-id:w9-section-practice-exercises -->
 
 ### Conceptual Questions
 
-1. Is a root 4 with left child 9 a valid binary tree? Is it a strict BST? Explain the distinction.
-2. Compare BFS and recursive DFS working space on a 100,000-node chain and on a complete tree.
+1. Draw root 4 with left child 9. Decide separately whether it satisfies binary-tree shape and strict binary-search-tree order, explaining each requirement.
+2. Compare temporary storage for BFS and recursive DFS on a 100,000-node chain and on a complete tree. Name the shape measure behind each bound.
 
 ### Code Tracing
 
-3. For root 4, left 9, right 2, and 9's right child 7, list all DFS orders and each returned depth.
-4. Trace frontier and next after processing each node in the level-order example.
+3. For root 4, left 9, right 2, and 9's right child 7, write all three DFS sequences. Then record the depth returned by every non-null subtree call.
+4. Trace **Demonstration 5** in “JavaScript Implementations,” recording frontier and next after each processed node. Identify when an array becomes the new current level.
 
 ### Debugging Exercises
 
-5. Give the smallest tree where the broken depth function differs from maximum depth. Repair it and name what the original computes.
-6. Explain why an inorder loop conditioned only on `current !== null` loses pending work.
+5. Find the smallest tree exposing broken **Demonstration 1** in “Common Mistakes.” Repair the recurrence and explain what the original addition actually calculates.
+6. Trace an inorder loop whose outer condition is only `current !== null`. Show which saved ancestor gets abandoned when current first reaches null.
 
 ### Implementation Exercises
 
-7. Implement iterative maximum depth and verify it on a deep chain without recursive helpers.
-8. Implement `leafCount(root)` using a subtree contract. Define the empty-tree result, and test a node with only one child.
+7. Build iterative maximum depth and test a deep chain. Construct and inspect the test input without recursive helpers so they cannot fail before the algorithm under test.
+8. Implement `leafCount(root)`, first stating what one subtree call promises. Define the empty result and test a parent with only one child, which must not count as a leaf.
 
 ### LeetCode and HackerRank Practice
 
-9. **[Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/)** — Platform: LeetCode. Official difficulty: Medium. Concepts: BFS, frozen levels, FIFO order. Why: it tests whether you preserve level boundaries while expanding children. The official page was verified; no HackerRank page was consulted. Follow with the syllabus tasks Maximum Depth of Binary Tree and Invert Binary Tree using the local implementations as worked references.
+9. **[Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/)** — LeetCode lists this as Medium. Practice BFS, fixed level membership, and FIFO ordering. Explain why children discovered while processing one level cannot belong to that same output group. The existing record reports prior official-page verification and no HackerRank consultation; no fresh verification occurred for this rewrite. Continue with the syllabus tasks Maximum Depth of Binary Tree and Invert Binary Tree, using the local demonstrations as worked references.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w9-section-hints-and-worked-solutions -->
 
-1. It is a binary tree because each node has at most two children, but it violates strict BST order because a left descendant exceeds the root.
-2. A chain has width one and recursive depth n; frontier BFS uses O(1) temporary references while recursive DFS uses O(n) frames. A complete tree has logarithmic height and potentially linear width, reversing that comparison. The shown explicit-stack depth traversal is also O(1) pending space on a chain.
-3. Preorder is `[4,9,7,2]`, inorder `[9,7,4,2]`, postorder `[7,9,2,4]`. Depths returned by 7,9,2,4 are 1,2,1,3.
-4. After processing root, next is `[2,3]`. During the following level it becomes `[4,5]` after 2, then `[4,5,6]` after 3. None of those new nodes belongs to the level currently being output.
-5. A root with two leaf children has depth two but node count three. Replace addition of the child results with `Math.max`.
-6. Reaching a null left child is precisely when a saved ancestor must be popped. The condition must allow a nonempty stack as well.
-7. Use the iterative implementation above. Construct the chain with a loop; a recursive constructor would fail before testing the iterative algorithm.
-8. A leaf contributes one; an empty subtree contributes zero; every other node sums its children's leaf counts.
+1. The drawing is a binary tree because no node has more than two children. It fails strict BST order because its left descendant 9 is larger than root 4. Shape and value order are separate requirements.
+2. A chain has width one and depth n. Frontier BFS uses O(1) temporary references, while recursive DFS retains O(n) frames. A complete tree has logarithmic height and potentially linear width, reversing the comparison. The explicit-stack depth traversal in this chapter also keeps only O(1) pending entries on a chain, so distinguish it from recursive DFS.
+3. The sequences are preorder `[4,9,7,2]`, inorder `[9,7,4,2]`, and postorder `[7,9,2,4]`. Nodes 7,9,2,4 return depths 1,2,1,3 respectively. Inorder is unsorted because no search-order promise was made.
+4. Processing root builds next `[2,3]`. On the next level, processing 2 builds `[4,5]` and processing 3 extends it to `[4,5,6]`. Those newly discovered children wait until the following iteration rather than entering the level being output now.
+5. Three nodes—a root with two leaves—are enough: node count is three but maximum depth is two. Replace addition of child results with `Math.max`, keeping the added one for the parent.
+6. At a null left child, you need to resume the nearest saved ancestor. Therefore the outer condition must allow a nonempty stack even when current is null. Otherwise the traversal stops at precisely its first required return step.
+7. Rebuild **Demonstration 2** in “JavaScript Implementations” and construct a deep chain with a loop. A recursive test constructor could hit the call limit before your iterative algorithm even starts, invalidating the intended test.
+8. Promise to return the number of leaves in the supplied subtree. An empty subtree contributes zero, a node with no children contributes one, and any other node adds its children's counts. Here addition is appropriate because both branches contribute separate leaves.
+
+### Demonstration 1 — Count leaves with a subtree return contract
 
 ```javascript
 function leafCount(root) {
@@ -356,38 +386,40 @@ console.log(leafCount(null));
 0
 ```
 
-This uses Θ(n) time and O(h) frames. The one-child node 3 is not itself a leaf; only its descendant 4 contributes.
-9. The frontier traversal is the worked solution. Test empty input, a zero-valued root, an uneven tree, and a chain. If converting to a queue implementation, freeze the current live queue size at each level and re-evaluate retained memory.
+In **Demonstration 1**, node 2 contributes one leaf and node 4 contributes one. Node 3 has a child, so it returns that child's count without adding another leaf for itself. Root returns two; the subtree rooted at 3 returns one; null returns zero. Every node is visited once, giving Θ(n) time and O(h) waiting frames.
+9. Use **Demonstration 5** in “JavaScript Implementations” as the worked level-order solution. Test empty input, a zero-valued root, uneven shape, and a chain. If you convert it to a queue, freeze the live queue size at each level and analyze retained memory again; changing the container can change the space claim.
 
 ## Sources and Further Reading
+<!-- lesson-id:w9-section-sources-and-further-reading -->
 
-Consulted on 2026-11-07. Chapter code, traces, and space comparisons are original and follow the repository syllabus.
+The existing source record dates consultation to 2026-11-07. We preserve that history without claiming a new external-link check. Code, traces, and storage comparisons are original teaching material following the repository syllabus.
 
-- [MIT 6.006: Binary Trees, Part 1](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf) — read the notes' tree-navigation and traversal-order discussion; distinguish their conventions from the node-based depth used here.
-- [LeetCode: Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/) — read the official left-to-right, level-by-level output contract and difficulty. No editorial was consulted.
+- [MIT 6.006: Binary Trees, Part 1](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf) — the prior reading informed tree navigation and traversal-order discussion. Compare its conventions explicitly with our node-based depth before translating formulas.
+- [LeetCode: Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/) — the prior reading established the official left-to-right, level-grouped result contract and difficulty. The record reports no editorial consultation.
 
 ## Weekly Summary
+<!-- lesson-id:w9-section-weekly-summary -->
 
-Tree algorithms become manageable when each subtree has a precise contract. DFS orders differ in when they process the parent; BFS preserves complete levels. Depth and width describe different memory pressures, and the actual container implementation determines whether that theoretical bound is achieved. [Week 10](week-10.md) adds ordering promises for search and priority selection.
+You can now approach a tree by deciding what one smaller-subtree call must accomplish. DFS orders place the parent before, between, or after child work; BFS groups visits by complete levels. Track depth for waiting paths, width for frontiers, and actual retained containers for the final storage claim. [Week 10](week-10.md) builds on these shapes by adding value-order promises for search and priority selection.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Explain all three DFS orders and the tree/BST distinction. <!-- checkpoint:w9-traversal-theory -->
-- [ ] Derive maximum depth from a subtree contract. <!-- checkpoint:w9-subtree-contract -->
+- [ ] Produce all three DFS sequences and explain why binary shape does not establish BST order. <!-- checkpoint:w9-traversal-theory -->
+- [ ] Derive maximum depth from correct child answers and a stated empty-tree convention. <!-- checkpoint:w9-subtree-contract -->
 
 ### JavaScript
 
-- [ ] Implement recursive and explicit-stack maximum depth. <!-- checkpoint:w9-depth-implementations -->
-- [ ] Implement inversion and frontier-based level order. <!-- checkpoint:w9-inversion-and-bfs -->
+- [ ] Build maximum depth using both waiting recursive calls and explicit node/depth frames. <!-- checkpoint:w9-depth-implementations -->
+- [ ] Mirror existing links and collect complete levels with separate frontiers. <!-- checkpoint:w9-inversion-and-bfs -->
 
 ### Practice
 
-- [ ] Trace an uneven tree and test a zero-valued node. <!-- checkpoint:w9-uneven-tree-practice -->
-- [ ] Solve level-order traversal and implement leaf counting. <!-- checkpoint:w9-level-and-leaf-practice -->
+- [ ] Trace an uneven shape and verify that zero-valued nodes remain in the results. <!-- checkpoint:w9-uneven-tree-practice -->
+- [ ] Complete level-order traversal and derive a working leaf-count implementation. <!-- checkpoint:w9-level-and-leaf-practice -->
 
 ### Reflection
 
-- [ ] Compare retained queue storage with active frontier size. <!-- checkpoint:w9-retained-storage-reflection -->
-- [ ] Choose a safe traversal for a deep chain and explain why. <!-- checkpoint:w9-shape-reflection -->
+- [ ] Explain why retained queue history can exceed the active level frontier. <!-- checkpoint:w9-retained-storage-reflection -->
+- [ ] Choose a traversal for a very deep chain and justify its behavior at JavaScript's recursion limit. <!-- checkpoint:w9-shape-reflection -->

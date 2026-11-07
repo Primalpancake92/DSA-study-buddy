@@ -15,6 +15,7 @@ import {
     markLessonStarted,
     toggleCheckpoint
 } from '../services/progressStore.js';
+import { completeLesson } from '../services/progressStore.js';
 import { moduleProgress } from '../hooks/useLearningData.js';
 
 const legacySectionAliases = {
@@ -38,10 +39,14 @@ function LessonCompletionButton({ item, weekId, progress }) {
         <button
             className="button dark"
             type="button"
-            disabled={!progress.ready || progress.saving || done}
-            onClick={() => toggleCheckpoint(item.id)}
+            disabled={!progress.ready || progress.saving || progress.reloading || done}
+            onClick={() => completeLesson(item.id)}
         >
-            {done ? 'Lesson completed ✓' : 'Mark lesson complete'}
+            {done
+                ? 'Lesson completed ✓'
+                : progress.pendingId === item.id
+                  ? 'Saving…'
+                  : 'Mark lesson complete'}
         </button>
     );
 }
@@ -122,10 +127,23 @@ export function LessonPage() {
     }, [location.hash, lesson]);
     useEffect(() => {
         const selected = lesson?.lessons?.find((item) => item.sectionId === activeSection);
-        if (selected && progress.ready && !progress.saving && !progress.error) {
+        if (
+            selected &&
+            progress.ready &&
+            !progress.saving &&
+            !progress.reloading &&
+            !progress.error
+        ) {
             void markLessonStarted(selected.id);
         }
-    }, [lesson, activeSection, progress.ready, progress.saving, progress.error]);
+    }, [
+        lesson,
+        activeSection,
+        progress.ready,
+        progress.saving,
+        progress.reloading,
+        progress.error
+    ]);
     if (error)
         return (
             <div className="page">
@@ -204,16 +222,29 @@ export function LessonPage() {
                 <div className="checkpoint-save-status" aria-live="polite">
                     {progress.saving
                         ? 'Saving checkpoint…'
-                        : !progress.ready && !progress.error
-                          ? 'Loading saved progress…'
-                          : ''}
+                        : progress.reloading
+                          ? 'Reloading saved progress…'
+                          : !progress.ready && !progress.error
+                            ? 'Loading saved progress…'
+                            : ''}
                 </div>
                 {progress.error && (
                     <div className="form-error" role="alert">
                         {progress.error}{' '}
-                        <button type="button" onClick={() => loadProgressFromApi()}>
-                            Reload saved progress
+                        <button
+                            type="button"
+                            disabled={progress.saving || progress.reloading}
+                            onClick={() => loadProgressFromApi()}
+                        >
+                            {progress.reloading ? 'Reloading…' : 'Reload saved progress'}
                         </button>
+                        {progress.sessionExpired && (
+                            <Link
+                                to={`/login?next=${encodeURIComponent(location.pathname + location.hash)}`}
+                            >
+                                Sign in again
+                            </Link>
+                        )}
                     </div>
                 )}
                 <p className="lede">
@@ -293,7 +324,11 @@ export function LessonPage() {
                                         <label className="check-row" key={id}>
                                             <input
                                                 type="checkbox"
-                                                disabled={!progress.ready || progress.saving}
+                                                disabled={
+                                                    !progress.ready ||
+                                                    progress.saving ||
+                                                    progress.reloading
+                                                }
                                                 checked={progress.completedCheckpoints.includes(id)}
                                                 onChange={() => setProgress(toggleCheckpoint(id))}
                                             />

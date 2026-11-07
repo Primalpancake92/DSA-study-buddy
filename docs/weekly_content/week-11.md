@@ -1,50 +1,71 @@
 # Week 11 - Graph Foundations
+<!-- lesson-id:w11-section-chapter-introduction -->
 
-This week, you will be learning graph modeling, adjacency lists, visited sets, BFS, DFS, and connected components. These skills matter whenever routes converge, relationships cross, or a connection leads back to somewhere you have already been.
+This week, we will learn to describe connected things precisely enough that a program can explore them. A graph is a collection of things and the connections between them: cities and roads, people and friendships, or cells you can move between on a board. Unlike a tree, those connections can meet again or lead you back to your starting point. Our program needs to remember where it has been.
 
-We will start by deciding what vertices and edges represent, then implement component traversal and shortest unweighted routes. Grids and graph cloning will show how the same ideas apply when no ordinary edge list is supplied.
+We will first name the things and connections, formally called vertices and edges. Then we will store neighbors in adjacency lists, remember discoveries in a visited set, and explore with breadth-first search (BFS) and depth-first search (DFS). You will use those tools to find connected groups and routes with the fewest steps. A grid and a graph made of linked objects will help you recognize the same problem in different clothing.
 
-By the end, you should be able to explain why traversal terminates, reconstruct a shortest unweighted route, count disconnected groups, and preserve object identity while cloning a graph.
+By the end, you should be able to explain why exploration stops, recover an actual shortest route when every edge has equal cost, and count groups that cannot reach each other. You should also be able to copy a graph while preserving which references point to the same object, even when two objects happen to contain equal values.
 
-There will be a checklist at the end of this lesson covering Theory, JavaScript, Practice, and Reflection. Use it to record evidence in your progress logs.
+Use the final Theory, JavaScript, Practice, and Reflection checklist to record evidence in your progress logs. A useful entry includes a trace or counterexample that you can explain yourself, rather than only a note that you read the chapter.
 
 ## Learning Objectives
+<!-- lesson-id:w11-section-learning-objectives -->
 
-- Translate a story into explicit vertices, edges, direction, and weights.
-- Compare adjacency lists, matrices, and implicit neighbor generation.
-- Implement iterative DFS, BFS with predecessors, flood fill, and graph cloning.
-- Prove discovery-time marking prevents repeated scheduling.
-- Derive traversal costs by counting vertices and adjacency entries.
+- Turn a story into vertices and edges, and say whether connections work both ways and whether they carry costs.
+- Compare a neighbor list, a table of possible connections, and rules that generate neighbors only when needed.
+- Write DFS with an explicit stack, recover a BFS route through predecessor links, explore a connected grid region with flood fill, and clone linked graph objects.
+- Explain why marking a vertex as soon as you discover it prevents putting the same work on the schedule twice.
+- Derive exploration costs by counting vertices and stored neighbor entries across the whole run.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w11-section-prerequisite-knowledge -->
 
-You need arrays, object references, `Map`, `Set`, and stack/queue behavior. A stack removes the latest item; a queue removes the oldest. Recursion is useful background, but the implementations use explicit worklists to avoid JavaScript call-stack limits. Graph traversal extends tree traversal by remembering discoveries: a graph may have multiple routes to the same object. Weighted traversal is developed next in [Week 12](week-12.md).
+You will use arrays, references to objects, `Map` for key/value associations, and `Set` for remembering membership without duplicates. A stack takes out the item added most recently; a queue takes out the oldest waiting item. We use these as worklists: collections of vertices still waiting to be explored.
+
+If you know recursion, you can think of the explicit stack as making pending calls visible in an array. This avoids relying on JavaScript's limited call stack. The important change from tree traversal is that several routes may reach the same object, so we must remember discoveries. We develop routes with unequal edge costs next in [Week 12](week-12.md).
 
 ## Core Theory
+<!-- lesson-id:w11-section-core-theory -->
 
 ### Start with a model
 
-Before choosing BFS or DFS, finish this sentence: “A vertex represents ___, and an edge represents ___.” For a friendship network, people are vertices and friendships are undirected edges. For a follower network, edges are directed: following someone does not imply they follow you. A weighted edge carries a cost; an unweighted edge counts as one step. A path follows edges, and a cycle returns to a vertex already on that path. An isolated vertex still belongs to the graph even though it has no neighbors.
+Before choosing an exploration method, finish this sentence: “A vertex represents ___, and an edge represents ___.” In a friendship network, a person is a vertex and a friendship is an undirected edge: the connection works in both directions. In a follower network, an edge is directed, meaning it has a particular direction. You can follow someone without them following you.
 
-An adjacency list stores neighbors separately for every vertex. An undirected edge contributes two entries, one at each endpoint. A matrix stores one cell for every possible ordered pair: it makes an edge query direct but allocates quadratic space. An edge list is convenient input, yet scanning the entire list every time you want neighbors repeats work. For a grid, generate neighboring coordinates when needed instead of storing all edges.
+An edge with an attached cost is weighted. In an unweighted graph, we count each edge as one step. A path is a sequence of vertices connected by edges; a cycle returns to a vertex already on that path. Do not forget a person with no connections: that isolated vertex still belongs to the graph, even though its neighbor list is empty.
+
+To find where we can go next, we need a representation. An adjacency list gives each vertex its own collection of neighbors. For an undirected connection A–B, store B in A's list and A in B's list. Those two entries describe one edge.
+
+An adjacency matrix instead reserves a table cell for every ordered pair of vertices. You can inspect a single cell to ask whether A connects to B, but V vertices require V² cells, even when almost none are connected. An edge list is a collection of endpoint pairs. It is convenient input, but repeatedly searching the entire collection for one vertex's neighbors wastes work. On a grid, we can generate neighboring coordinates from movement rules instead. Such a graph is implicit: its edges are described by rules rather than stored individually.
 
 ### Discovery is a commitment to process once
 
-Imagine a triangle A–B–C–A. Without a visited set, following connections can continue forever. Mark a vertex when you add it to the worklist. The invariant is: every queued or stacked vertex has already been marked, and no vertex is scheduled twice. Marking only after exploring children fails because a child can return to an unfinished ancestor before that mark exists.
+Imagine walking around A–B–C–A. If we keep following connections without remembering discoveries, we can circle forever. Mark each vertex when you add it to the worklist, rather than waiting until its exploration ends.
 
-DFS uses a stack and follows recently discovered work. BFS uses a queue and explores distance layers. Both solve reachability. Only BFS first discovery guarantees a route with the fewest edges when every edge costs the same. If a shorter route to a newly discovered vertex existed, its preceding vertex would have appeared in an earlier BFS layer and discovered it already. That contradiction proves the distance claim. MIT's [BFS notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf) provide a formal treatment of layers and predecessors.
+This gives us a statement that stays true throughout the loop, called an invariant: every vertex in the queue or stack is already marked, and no vertex is scheduled twice. Once A schedules B, any other edge reaching B sees that mark and leaves it alone. If recursive exploration marks only after its children return, B can follow its reverse edge back to the unfinished A before A has a mark. The protection arrives too late.
+
+Depth-first search, or DFS, uses a stack to pursue recently discovered work before older alternatives. Breadth-first search, or BFS, uses a queue to explore in layers: first distance zero, then one edge away, then two edges away. Both answer reachability, meaning whether a legal path exists.
+
+BFS also guarantees that first discovery gives a route with the fewest edges when all edges cost the same. To see why, suppose we first discover a vertex at distance three but a two-edge route exists. The preceding vertex on that shorter route is only one edge away. BFS would process that earlier layer first and discover our vertex at distance two, contradicting the supposed first discovery. The same argument works at every distance. DFS's stack does not preserve this layer order. MIT's [BFS notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf) give a formal treatment of layers and predecessors, the vertices through which we first reached later vertices.
 
 ### Components and identity
 
-An undirected connected component is a maximal set of vertices joined by paths. One traversal finds one component; an outer loop over every vertex finds all components, including isolated ones. This is not a strongly connected component algorithm for directed graphs: one-way reachability is not mutual reachability.
+In an undirected graph, a connected component is a maximal set of vertices joined by paths. Here maximal means that you cannot add another vertex while keeping that property. One traversal finds exactly the component containing its start. An outer loop tries every vertex and starts another traversal only when it finds one still unseen. This also counts an isolated vertex as a group of one.
 
-Cloning adds another requirement. Two nodes with equal values can still be different objects. A correct clone preserves cycles and shared references while allocating new nodes. The useful dictionary is original-object → cloned-object, not value → clone. Register a new clone before scheduling its neighbors so a back edge can reuse it immediately.
+For directed graphs, being able to go from A to B does not imply you can return. A strongly connected component requires mutual reachability: every member can reach every other member following edge directions. The ordinary undirected component algorithm does not establish that stronger property.
+
+Copying, or cloning, a graph adds an identity requirement. Two separate objects can both store the value 7. They still need two separate copies. Conversely, two references to one original object must point to one shared copy, rather than two new objects.
+
+Use a dictionary from original-object → cloned-object, not value → clone. Create and register a copy before scheduling its neighbors. Then an edge returning to that original object can immediately retrieve its existing copy. This preserves cycles and shared references while ensuring that every copied node is newly allocated.
 
 ## JavaScript Implementations
+<!-- lesson-id:w11-section-javascript-implementations -->
 
 ### Adjacency and iterative component traversal
 
-The contract uses distinct string vertex labels, known edge endpoints, and an undirected graph. Creating a fresh neighbor array for each label matters; a shared array would connect unrelated vertices accidentally.
+We want to collect all disconnected groups without losing isolated vertices. The input contract requires distinct string labels, edges whose endpoints are in the supplied vertex collection, and undirected connections. Give every label a fresh neighbor array; sharing an array would make an update to one vertex change other vertices' neighbors too.
+
+### Demonstration 1 — Find every undirected component with a stack
 
 ```javascript
 function components(vertices, edges) {
@@ -88,9 +109,13 @@ console.log(JSON.stringify(components([], [])));
 []
 ```
 
+In **Demonstration 1**, the supplied triangle contains A, B, and C, while D has no edges. Building the map first preserves D. Starting at A marks it before pushing work; discovering B and C marks them too. Because C is pushed last, the stack removes it first, producing the group A,C,B. Its edges back into the triangle schedule nothing new. The outer loop eventually reaches unseen D and creates its one-vertex group. With no vertices, that loop never starts and the result is empty.
+
 ### BFS with a route, not just a yes/no answer
 
-This function accepts a complete adjacency `Map` with string labels. Directed lists work too. `null` means no route; a source-to-itself route contains one vertex and zero edges. The distance map doubles as the visited structure. A head index avoids repeatedly shifting an array.
+Now we want an actual shortest route, so we will remember how each vertex was reached. Supply a complete adjacency `Map` with string labels and valid neighbor entries; directed lists are also supported. We return `null` when a route cannot be found. Reaching the source from itself uses zero edges and returns the single source vertex. The distance map also records discovery. An index into the queue lets us read the oldest waiting item without repeatedly shifting the array.
+
+### Demonstration 2 — Recover a shortest route through BFS parents
 
 ```javascript
 function shortestPath(graph, source, target) {
@@ -138,9 +163,13 @@ console.log(shortestPath(graph, 'A', 'E'));
 null
 ```
 
+In **Demonstration 2**, A discovers B and C at distance one. B is removed first and discovers D at distance two, recording B as D's parent. C cannot overwrite that discovery. Starting from D, the reconstruction loop collects D,B,A and reverses it to A,B,D. The separate A-to-A call stops at once with distance zero. E exists in the map but is disconnected, so it never receives a distance and the function returns `null` for A-to-E.
+
 ### Islands are implicit components
 
-The input is a rectangular grid of string cells `'0'` and `'1'`. This version leaves it unchanged. Multiplying row by column count gives each cell a unique integer key. Four directions deliberately exclude diagonal connections.
+We can count islands by treating each land cell as a vertex and each legal move between land cells as an edge. Supply a rectangular grid containing string cells `'0'` and `'1'`; we leave the grid unchanged. The key for a cell is its row multiplied by the column count, plus its column. For three columns, `(1,1)` becomes key four. Four movement directions deliberately exclude diagonals.
+
+### Demonstration 3 — Count land components without changing the grid
 
 ```javascript
 function islands(grid) {
@@ -191,7 +220,13 @@ console.log(islands([]));
 0
 ```
 
+In **Demonstration 3**, the first land cell `(0,0)` starts a traversal covering `(0,1)` and `(1,1)` as well. The outer scan does not count either of those again because their keys are marked. The isolated cells `(2,0)` and `(2,2)` each start another traversal, giving three islands. In the two-by-two test, opposite corners remain two islands because no diagonal move is allowed. Empty input has no cells to start from and returns zero. The initial shape check rejects rows of different lengths before coordinate keys are used.
+
 ### Clone shared references faithfully
+
+We will copy the reachable object graph while retaining its reference relationships. Each node has a value and a neighbors array; `null` represents no starting node. The equal-valued example deliberately includes two references to the same neighbor and an edge returning to the start, so we can check more than whether the copied values look right.
+
+### Demonstration 4 — Clone cycles and repeated object references
 
 ```javascript
 function cloneGraph(start) {
@@ -241,9 +276,12 @@ true
 null
 ```
 
-## Worked Examples
+In **Demonstration 4**, `copies` registers a's copy before the queue starts. The first reference from a to b creates and schedules b's copy. The second reference retrieves that same copy and appends it again, preserving the repeated relationship. When b leads back to a, the map returns the already-created copy of a. The identity checks therefore show fresh objects, a shared copied neighbor, and a copied cycle. The final call shows that an absent start remains `null`.
 
-For the BFS diamond, watch discovery rather than removal alone:
+## Worked Examples
+<!-- lesson-id:w11-section-worked-examples -->
+
+For another view of BFS, follow **Demonstration 2** in **JavaScript Implementations** through the diamond. Pay attention to when a vertex is discovered, not just when it leaves the queue:
 
 | Removed | Newly discovered | Pending queue | Recorded distances |
 | --- | --- | --- | --- |
@@ -252,13 +290,14 @@ For the BFS diamond, watch discovery rather than removal alone:
 | C | none | D | D remains 2 |
 | D | stop | empty | route A–B–D |
 
-C does not replace D's predecessor merely because another route exists. Both routes have length two, and the contract asks for one. DFS might find a longer route first on a different graph, so its first parent assignment lacks the same distance proof.
+When C is removed, D already has a predecessor. We leave it alone: A–B–D and A–C–D both use two edges, and we promised one shortest route rather than every shortest route. On another graph DFS could discover a longer route first, because it does not finish one distance layer before entering the next. Recording a parent is useful in both searches, but the queue order is what proves BFS's distance guarantee.
 
-In the islands example, the first traversal covers `(0,0)`, `(0,1)`, and `(1,1)`. The outer scan later starts at `(2,0)` and `(2,2)`, producing three components. Every traversal stays inside one component because it follows only legal land edges; every reachable land cell is eventually scheduled. Those two facts justify counting once per new start.
+Return to **Demonstration 3** in **JavaScript Implementations** and trace the first island: `(0,0)`, `(0,1)`, and `(1,1)`. Later starts at `(2,0)` and `(2,2)` give three components. Why is a start worth exactly one count? A traversal cannot leave its island because it only follows legal land edges. It also cannot miss reachable land: processing each discovered cell schedules every unseen legal neighbor. Together, those facts show that one start covers exactly one island.
 
-For cloning, the first A→B edge creates B's copy. The second A→B edge reuses it. B→A retrieves the already registered A copy. Equal values never enter the identity decision.
+The cloning trace in **Demonstration 4** in **JavaScript Implementations** has a different concern. The first A→B reference creates B's copy, the second reuses it, and B→A retrieves A's registered copy. At no point do we ask whether values are equal. Try replacing the identity map with a value map mentally: both 7-valued nodes would collapse into one, destroying the original structure.
 
 ## Visual Explanations
+<!-- lesson-id:w11-section-visual-explanations -->
 
 ```text
       B                 BFS layers
@@ -273,8 +312,9 @@ No clone edge points into the original graph.
 ```
 
 ## Complexity Analysis
+<!-- lesson-id:w11-section-complexity-analysis -->
 
-Let V be vertices and E edges, counting duplicate edges separately. Assume expected constant-time `Map`/`Set` operations.
+Let V count vertices and E count edges, including duplicate edges as separate entries in the input. We assume `Map` and `Set` operations take constant time on average under the usual hash-table model. That expected-operation assumption is separate from whether a traversal bound describes a worst-case graph. Big O gives an upper growth bound; it does not by itself mean “worst case.”
 
 | Operation | Time | Working space beyond supplied input | Output |
 | --- | --- | --- | --- |
@@ -284,90 +324,105 @@ Let V be vertices and E edges, counting duplicate edges separately. Assume expec
 | Islands on R×C grid | O(RC+R), including shape validation | O(RC) | O(1) count |
 | Clone reachable graph | O(V+E) | O(V) | O(V+E) |
 
-The nested neighbor loop does not imply V×E: across the entire traversal, all neighbor lists contain E directed entries or 2E undirected entries. A head-index queue retains processed slots, so report O(V) backing storage. Replacing land with water removes the visited set but does not remove the traversal stack; mutation alone does not prove constant space.
+Count the neighbor work across the entire traversal before multiplying loop sizes. Each vertex's list is scanned once, and all lists together contain E directed entries or 2E undirected entries. That is why nesting a neighbor loop inside a vertex-processing loop does not imply V×E work.
+
+Also count the storage that remains allocated. A queue with a head index keeps its processed slots, so its backing array can still use O(V) space. If you mark visited land by changing it to water, you can remove the separate visited set, but the traversal stack can still grow with the grid. Mutating the input alone does not establish constant auxiliary space.
 
 ## Common Mistakes
+<!-- lesson-id:w11-section-common-mistakes -->
 
-- Building vertices only from edges loses isolated vertices.
-- Testing `distance.get(v)` for truthiness mistakes distance zero for absence; use `has`.
-- Marking after recursion permits a two-way edge to recurse forever.
-- Forgetting reverse edges changes an undirected graph into a directed one.
-- Treating labels as identity corrupts a clone when values repeat.
-- Using one global visited set for a no-reuse word-search path is wrong: path-specific restrictions must be undone, as [Week 15](week-15.md) explains.
+- Create vertices from the vertex input, not just the edges. Otherwise a label with no connections disappears before exploration starts.
+- Ask `distance.has(v)` whether v was discovered. Testing the truthiness of `distance.get(v)` rejects the valid source distance zero.
+- Mark before descending recursively. Waiting for a recursive call to finish lets a two-way edge return to an unmarked ancestor indefinitely.
+- Store both directions of an undirected edge. Omitting the reverse entry changes which routes exist.
+- Key clones by their original objects. Equal values are not evidence that two references identify the same node.
+- Distinguish global discovery from a current path's restrictions. A no-reuse Word Search must undo marks between candidate paths, as [Week 15](week-15.md) explains.
 
-This intentionally broken fragment shares one array across all vertices:
+Here is a deliberately broken allocation. We want three independent neighbor arrays, but `fill` repeats a single array reference instead. Watch what one push does to all three apparent rows.
+
+### Demonstration 1 — Broken shared neighbor-array allocation
 
 ```javascript-bug
 const graph = Array(3).fill([]);
 graph[0].push(1); // All three rows now contain 1.
 ```
 
+In broken **Demonstration 1**, pushing 1 into row zero changes the single array also referenced by rows one and two. There are three slots, but only one neighbor-array object. Repair the allocation by calling a factory separately for each row, then check that pushing to one row leaves the others empty. This is an object-sharing error, so changing traversal order cannot repair it.
+
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w11-section-interview-and-leetcode-pattern-recognition -->
 
-“Connected groups” suggests an outer scan plus traversal; “fewest moves” suggests BFS only if moves have equal cost. “Clone” suggests an identity map as well as traversal. Number of Islands hides adjacency in coordinate rules; Clone Graph exposes it as object references. Find Center of Star Graph permits a shortcut: under a valid-star guarantee with at least three vertices, the common endpoint of the first two edges is the center. That shortcut is not a general center-finding algorithm.
+When a question asks for “connected groups,” consider a traversal inside an outer scan. When it asks for “fewest moves,” check whether every move has equal cost before choosing BFS. “Clone” adds the need for an original-to-copy identity map. Number of Islands gives neighbor relationships through coordinates; Clone Graph gives them through object references. We still need the same discovery discipline.
 
-Ask whether you need all vertices or only the source's reachable region, whether edges are directed, and whether a shortest answer means fewest edges or minimum weight. Those questions determine the model before any loop is written.
+Sometimes an input promise makes traversal unnecessary. In Find Center of Star Graph, a valid star has one center connected to every other vertex. With at least three vertices, the shared endpoint of the first two edges must be that center. Keep the promise attached to the shortcut: it does not find a general graph's center.
+
+Before you write a loop, ask whether the answer concerns every vertex or only the region reachable from one source. Then establish edge direction and whether “shortest” means fewest edges or least total weight. These decisions tell you what must be represented and what your processing order has to guarantee.
 
 ## Practice Exercises
+<!-- lesson-id:w11-section-practice-exercises -->
 
 ### Conceptual
 
-1. Explain why undirected component counting cannot be reused unchanged to count strongly connected components.
+1. Explain why the undirected component counter cannot be reused unchanged for strongly connected components. Use a one-way connection to show the difference between reaching another vertex and being able to return.
 
 ### Tracing
 
-2. Trace BFS on S–A, A–B, B–T, S–C, C–T. Explore A before C. Record parents and distances.
+2. Trace BFS on S–A, A–B, B–T, S–C, C–T, exploring A before C. Write down each first discovery, its parent, and its distance. Check whether discovering B before T forces the final route to pass through B.
 
 ### Debugging
 
-3. Repair the shared-array fragment and explain the aliasing, not just the replacement syntax.
+3. Repair broken **Demonstration 1** in **Common Mistakes**. Explain aliasing—the fact that multiple slots refer to one object—and show why your replacement creates independent arrays.
 
 ### Implementation
 
-4. Extend component traversal to return the largest component size, including an empty graph.
-5. Add diagonal neighbors to the islands solver. Predict the opposite-corner result before running it.
+4. Extend component traversal to return the largest group size. Decide what to return for an empty graph before coding, and explain which work is still necessary if you no longer return the groups themselves.
+5. Add diagonal neighbors to the islands solver. Predict the result for opposite-corner land before running it, and explain how changing adjacency changes the meaning of an island.
 
 ### LeetCode + HackerRank
 
-- **[Number of Islands](https://leetcode.com/problems/number-of-islands/)** — Platform: LeetCode. Difficulty: Medium. Concepts: implicit graphs, four-direction components, discovery-time marking. Why: tests whether you can translate a grid into traversal while explaining mutation and memory choices.
-- **[DFS: Connected Cell in a Grid](https://www.hackerrank.com/challenges/ctci-connected-cell-in-a-grid/problem)** — Platform: HackerRank. Difficulty: Hard, as displayed on the verified official page. Concepts: flood fill, eight-direction adjacency, largest component. Why: changes both the neighborhood and requested aggregate, testing your model rather than a memorized island counter.
+- **[Number of Islands](https://leetcode.com/problems/number-of-islands/)** — LeetCode, Medium. Translate the grid into a graph with four-direction land connections, then mark cells when you discover them. Use the exercise to explain why you chose to preserve or mutate the grid and what memory your traversal still needs.
+- **[DFS: Connected Cell in a Grid](https://www.hackerrank.com/challenges/ctci-connected-cell-in-a-grid/problem)** — HackerRank, Hard according to the chapter's earlier official-page verification. Here flood fill means exploring one connected region. You must use eight directions and report the largest region, so both the neighbor rule and the accumulated result differ from the island counter.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w11-section-hints-and-worked-solutions -->
 
-1. Hint: try A→B. Both vertices are reachable from A, but B cannot return. They form two strongly connected components; the ordinary outer traversal can group them as one depending on start order.
-2. S discovers A and C at distance one. A discovers B at two; C discovers T at two. B cannot overwrite T. A valid shortest route is S,C,T. A DFS taking A first could return the three-edge route S,A,B,T.
-3. Use a factory such as `Array.from({length: 3}, () => [])`. `fill` repeats the same reference; a factory creates three distinct arrays.
-4. Keep a size counter inside each traversal and update a maximum afterward, initially zero. Every vertex is still processed once, so time remains O(V+E). You can omit group output if only the maximum is requested.
-5. Add offsets `(1,1)`, `(1,-1)`, `(-1,1)`, `(-1,-1)`. Opposite-corner land becomes one island. Eight remains a constant number of neighbor checks, so asymptotic cost stays O(RC).
-For Number of Islands, a complete argument names the four-direction land graph, proves traversal covers exactly one island, and shows the outer scan starts once per island. Test empty input, all water, a cycle of land, and diagonal-only contact. For Connected Cell, use numeric cells, eight directions, and a maximum size rather than a component count. For cloning practice, test two equal-valued nodes and a self-loop, not only a chain.
+1. Try A→B. Starting from A reaches both vertices, but B cannot return to A. Mutual reachability therefore gives two strongly connected components. An ordinary reachability traversal starting at A can put both into one group, and reversing the outer start order can change that grouping. It is answering the wrong question.
+2. S first discovers A and C at distance one. A then discovers B at distance two, but C discovers T at distance two before B is removed. B must not overwrite T's parent. Reversing parents gives S,C,T. A DFS pursuing A first could instead discover the three-edge route S,A,B,T; that is a reachable route, but not a shortest one.
+3. Use a per-row factory such as `Array.from({length: 3}, () => [])`. Each invocation creates another array object. By contrast, `fill` receives one already-created object and copies its reference into each slot. Verify independence with a push into just one row.
+4. Start the maximum at zero. Inside each new traversal, count removed vertices; afterward compare that size with the maximum. An empty graph never starts a traversal and keeps zero. Every vertex and adjacency entry is still processed at most once, giving O(V+E) time. If the maximum is all you need, omit the stored group arrays.
+5. Add `(1,1)`, `(1,-1)`, `(-1,1)`, `(-1,-1)` to the movement offsets. The two opposite-corner land cells now connect and form one island. Checking eight directions rather than four changes a constant factor, leaving the O(RC) asymptotic upper bound unchanged.
+
+For Number of Islands, explain the four-direction land graph, why a traversal covers exactly one island, and why the outer scan starts exactly once per island. Test an empty grid, all water, land containing a cycle, and diagonal-only contact. For Connected Cell, switch to numeric cells, eight directions, and a maximum region size. To practice cloning, include two different equal-valued nodes and a node pointing to itself—a self-loop—so your tests exercise identity and cycles rather than only a chain.
 
 ## Sources and Further Reading
+<!-- lesson-id:w11-section-sources-and-further-reading -->
 
-- Canonical scope consulted: [curriculum](../../shared/curriculum.js) and [weeks 9–12 textbook](../../shared/textbook/weeks09to12.js). Explanations, examples, and exercises here are independently written for this chapter.
-- MIT OCW, [Lecture 13 BFS notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf): opened and consulted for representation, layers, and parent-pointer terminology.
-- LeetCode, [Number of Islands](https://leetcode.com/problems/number-of-islands/), and HackerRank, [DFS: Connected Cell in a Grid](https://www.hackerrank.com/challenges/ctci-connected-cell-in-a-grid/problem): official statements and displayed difficulty opened and verified; no editorial solutions consulted.
+- Use the [curriculum](../../shared/curriculum.js) and [weeks 9–12 textbook](../../shared/textbook/weeks09to12.js) to place this chapter in the course. Its explanations, examples, and exercises are independently written teaching material.
+- MIT OCW's [Lecture 13 BFS notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf) were consulted during the chapter's earlier preparation for representation, layers, and parent-pointer terminology. This rewrite does not claim a new external-link check.
+- The official [Number of Islands](https://leetcode.com/problems/number-of-islands/) and [DFS: Connected Cell in a Grid](https://www.hackerrank.com/challenges/ctci-connected-cell-in-a-grid/problem) statements and displayed difficulties were verified during earlier preparation. No editorial solutions were consulted for that work.
 
 ## Weekly Summary
+<!-- lesson-id:w11-section-weekly-summary -->
 
-Graph traversal begins with a precise relationship model. Discovery-time marking prevents duplicate work; the worklist order decides whether you explore deeply or by distance layer. Components require an outer scan, grids can generate edges implicitly, and cloning requires object identity. Continue to [Week 12](week-12.md) when you can explain those choices without relying on memorized code.
+Start a graph solution by saying what its vertices and edges mean. Mark on discovery so each vertex enters the worklist once, then choose a stack for depth-first exploration or a queue for distance layers. Scan every vertex when you need every component; generate neighbors from coordinates when the graph is a grid. When copying linked objects, preserve identity as well as values. Before continuing to [Week 12](week-12.md), explain each of those choices with a small example and show what would break if you changed it.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Explain directed, undirected, weighted, and implicit graphs. <!-- checkpoint:w11-model-relationships -->
-- [ ] Prove why BFS first discovery gives minimum edge count. <!-- checkpoint:w11-prove-bfs-layers -->
+- [ ] Model an example with directed, undirected, weighted, and implicit connections, explaining each term. <!-- checkpoint:w11-model-relationships -->
+- [ ] Use BFS layer order to prove that first discovery gives a minimum edge count. <!-- checkpoint:w11-prove-bfs-layers -->
 
 ### JavaScript
 
-- [ ] Implement iterative components and BFS with path reconstruction. <!-- checkpoint:w11-build-traversals -->
-- [ ] Clone a cycle while preserving shared object references. <!-- checkpoint:w11-clone-identity -->
+- [ ] Build components with an explicit stack and recover a BFS path from parent links. <!-- checkpoint:w11-build-traversals -->
+- [ ] Copy a cyclic graph and check that repeated references still share the same copied object. <!-- checkpoint:w11-clone-identity -->
 
 ### Practice
 
-- [ ] Complete the trace, aliasing repair, and islands exercise. <!-- checkpoint:w11-complete-exercises -->
-- [ ] Account separately for graph storage, working memory, and output. <!-- checkpoint:w11-account-memory -->
+- [ ] Complete the BFS trace, explain the shared-array repair, and change the islands neighbor rule. <!-- checkpoint:w11-complete-exercises -->
+- [ ] Explain separately the memory for the graph, pending work, and returned result. <!-- checkpoint:w11-account-memory -->
 
 ### Reflection
 
-- [ ] Record a counterexample to one incorrect traversal assumption. <!-- checkpoint:w11-review-counterexample -->
+- [ ] Record a small graph that disproves an incorrect traversal assumption and explain the failure. <!-- checkpoint:w11-review-counterexample -->

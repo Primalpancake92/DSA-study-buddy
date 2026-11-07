@@ -1,61 +1,68 @@
 # Week 8 - Recursion and Backtracking
+<!-- lesson-id:w8-section-chapter-introduction -->
 
-This week, you will be learning recursion and backtracking: ways to describe smaller problems and explore possible answers systematically. They are useful for hierarchical data, generating combinations, and searching choices that cannot be settled by one greedy step.
+Sometimes a problem becomes easier when we ask the same question about a smaller input. That is recursion: a function delegates a smaller version of its job to another call of itself. When we need to try choices and then undo them to try alternatives, we use backtracking. This week you will use both ideas for hierarchical data and combinations, especially when taking one locally attractive choice—a greedy step—cannot settle the whole problem.
 
-We will start with a single chain of recursive calls, then draw branching call trees and implement subsets, permutations, reusable-candidate sums, and phone-letter combinations. We will pay special attention to restoring shared state and measuring the output we actually produce.
+We will begin with one chain of calls so you can see where each result returns. Then we will draw branching calls and generate subsets, different orders of values, sums that reuse candidates, and letters for phone digits. Throughout, we will track the shared working array and restore it between alternatives. We will also count the cost of storing answers, because generating many answers is real work.
 
-By the end, you will be able to state a recursive contract, prove progress toward a base case, write choose/explore/undo code, and distinguish recursion depth from total runtime and stored output size.
+By the end, you should be able to say what each call promises, identify when no smaller call is needed, and prove that every branch reaches that stopping point. You will write choose/explore/undo steps and explain why the number of simultaneously waiting calls, the total running time, and the stored answers can have very different sizes.
 
-There will be a checklist at the end to help you track your progress. Use it after explaining a call tree and rebuilding an example without copying, and record the state-restoration bugs you discover in your progress logs.
+Use the final checklist after explaining a complete small call tree and rebuilding an example without copying. In your progress logs, record bugs where a choice leaked into another branch. Include what the parent state should have been and which undo step was missing; that makes the lesson reusable.
 
 ## Learning Objectives
+<!-- lesson-id:w8-section-learning-objectives -->
 
-- Explain suspended call frames and the difference between calling and returning.
-- Identify a base case and a strictly decreasing measure for every recursive path.
-- Define state, allowed choices, completion, and undo for four enumeration patterns.
-- Save independent result snapshots rather than references to a changing path.
-- Prove a pruning condition cannot remove a valid answer.
-- Analyze explored work plus output-copying work using clearly named parameters.
+- Explain what a waiting function call remembers and how execution resumes when its child returns.
+- Give each recursive path a stopping rule and a quantity that decreases toward that rule.
+- Describe the working state, permitted choices, completed answers, and undo steps for all four generation patterns.
+- Save independent copies of completed paths so later edits cannot change earlier answers.
+- Justify skipping a branch by proving that no valid answer can exist inside it.
+- Name your input and output parameters, then count both exploration and answer construction.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w8-section-prerequisite-knowledge -->
 
-Review functions, arrays, object identity from [Week 7](week-07.md), and stacks from [Week 5](week-05.md). Each function call gets its own local bindings, but two calls can still refer to the same array. That distinction is central to backtracking. Examples use small inputs suitable for demonstration; JavaScript recursion depth is limited by the runtime, and large result sets can exhaust memory even with shallow recursion.
+Bring functions, arrays, object identity from [Week 7](week-07.md), and newest-first stacks from [Week 5](week-05.md). Every call has its own local variable bindings, but those bindings can refer to the same array object. Backtracking depends on understanding both facts at once. We use small teaching inputs: JavaScript limits how many calls can wait at once, and even a shallow search can run out of memory if it retains enough answers.
 
 ## Core Theory
+<!-- lesson-id:w8-section-core-theory -->
 
 ### A recursive call makes a smaller promise
 
-Instead of imagining that a function magically solves everything, give it a precise contract. For `sumFrom(values,index)`, the promise is “return the sum from index to the end.” If index is at the end, the answer is zero. Otherwise the answer is the current value plus the answer for index+1. The measure `values.length-index` decreases, so every path reaches the base case.
+Give each call a precise promise, called its contract. For `sumFrom(values,index)`, promise to return the sum from index through the end. At the end, there are no values to add, so return zero without another call. This stopping situation is the **base case**. Otherwise, add the current value to the answer for index+1. The remaining length, `values.length-index`, decreases each time, proving that the calls eventually reach the base case.
 
-Calling the helper does not erase the caller. The caller waits with its local index and its unfinished addition. After the child returns, the addition finishes and the result returns to the next waiting caller. The pending frames form a stack, as illustrated in [MDN's recursion discussion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions). A missing base case or a recursive call with unchanged state can overflow that stack.
+A call does not disappear when it calls the helper. It waits with its local index and unfinished addition. The information retained for that waiting call is a **call frame**. When the child returns, the parent finishes its addition and returns to its own parent. These waiting frames form a stack, discussed in [MDN's recursion discussion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions). Without a reachable base case, or with unchanged recursive state, the stack keeps growing until the runtime cannot hold another frame.
 
 ### A call tree counts work; a path counts stack depth
 
-A function making one call on n−1 has a chain of n calls. A function making two calls on n−1 has a branching tree with about 2^n nodes, although only O(n) frames are active at once. Two calls on disjoint halves are different again: with linear combining work, each level costs O(n), and O(log n) levels give O(n log n). Count the sizes and overlap of subproblems; the number of call expressions alone proves little.
+Draw one node for each call and connect it to the calls it makes: this is a **call tree**. One call on n−1 creates a chain of n calls. Two calls on n−1 create about 2^n call-tree nodes, although only O(n) frames are active along one path at a time. Two calls on separate halves behave differently: with linear combining work, each level costs O(n), and O(log n) levels give O(n log n). Ask how large the subproblems are, whether they overlap, and what work surrounds them. Counting call expressions alone does not answer those questions.
 
-Passing array slices can hide additional copying. The first example passes an index and shares the input without mutation. This makes the work in each frame explicit.
+Watch for copying hidden in arguments. Passing a new array slice makes the call do more than a constant-time index update. Our recursive sum shares the input unchanged and passes only an index, so the work done by each frame is visible and easy to count.
 
 ### Backtracking temporarily borrows mutable state
 
-Backtracking explores a decision tree. Before descending, make a choice; after that entire branch returns, undo it so the next sibling starts from exactly the same state. Stanford's [backtracking lecture](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1242/lectures/11-backtracking1/) uses this choose/explore/unchoose framework. Here the path array is a shared scratchpad, while saved answers are snapshots.
+Backtracking treats choices as branches of a decision tree. Make one choice, explore all answers beneath it, then undo that choice before exploring an alternative. Alternatives from the same parent are sibling branches, and each must begin with exactly the same parent state. Stanford's [backtracking lecture](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1242/lectures/11-backtracking1/) describes this as choose/explore/unchoose. We will use a shared path array as a scratchpad and save snapshots when a path becomes an answer.
 
-`result.push(path)` stores a reference to that scratchpad. Later pops modify what every saved reference sees. `result.push([...path])` creates a new array containing the chosen values. This is a shallow copy: if the values themselves are mutable objects, those objects remain shared. Our examples use primitive values.
+`result.push(path)` saves a reference to the scratchpad itself. Later pops therefore change what all those saved references see. Use `result.push([...path])` to create a separate array containing the current choices. This is a **shallow copy**: the outer array is new, but any objects inside it are still shared. Our values are primitives, such as numbers and strings, so those nested-object changes are not an issue here.
 
-For each pattern, ask five questions: What does the state mean? Which choices are allowed? When is an answer complete? What guarantees progress? What must be restored? Answering them before coding prevents most backtracking bugs.
+Before coding a pattern, describe five things in words: what the current state represents, which choices are allowed, when an answer is complete, why another call makes progress, and what must be restored on return. If you cannot answer the last question, trace one sibling transition. That is where shared-state bugs usually become visible.
 
 ### Four choice rules, four contracts
 
-**Subsets:** At input position i, exclude or include that element. Completion occurs after all positions are decided. Index always advances, and an included value must be popped after its branch. Distinct input values give unique value subsets. Equal input values at distinct indexes can produce duplicate arrays unless a separate duplicate policy is added.
+**Subsets:** A subset chooses which input elements to keep, without rearranging them. At position i, either exclude the element or include it. An answer is complete once every position has a decision. Both branches advance the index; the include branch must pop its addition on return. Distinct values give unique value subsets. If equal values occupy different indexes, different decisions can produce equal arrays, so uniqueness would require a separate duplicate policy.
 
-**Permutations:** At output position depth, choose any unused input index. Completion is path length n. The path and used flags must agree: a flag is true exactly when that position already appears in the path. Restore both after exploring. Distinct values yield n! unique value permutations.
+**Permutations:** A permutation is an ordering that uses every input position once. To fill output position depth, choose any index not yet used. Complete the answer when path length reaches n. Keep a true/false flag for each input position: it is true exactly while that position belongs to the path. Restore both the path and its flag after exploring. For distinct values, there are n! unique orders, where factorial means multiplying the available choices n, n−1, and so on down to one.
 
-**Combination Sum:** Choose a candidate at or after a start index, allowing the same index again. Choices are nondecreasing, so `[2,3,2]` is represented only as `[2,2,3]`. Positive candidates make the remaining target decrease even when the index stays the same. Sorting allows us to stop when a candidate exceeds the remainder. Zero would remove progress; negative values would invalidate this pruning proof.
+**Combination Sum:** Choose a candidate at or after a remembered start index, and allow that same index again. This makes chosen indexes nondecreasing, so `[2,3,2]` is represented only in canonical order as `[2,2,3]`. Because candidates are positive, the remaining target decreases even on reuse. Sorting lets us stop when a candidate is larger than the remainder: every later candidate is too large too. Skipping impossible branches this way is **pruning**. Zero would destroy the progress guarantee; negative values would destroy this pruning proof.
 
-**Phone letters:** Each digit supplies a small alphabet. Depth selects the digit, and the path holds one letter for each earlier digit. There is no used flag: choosing a letter for one digit does not consume it for another. This API returns an empty result for an empty digit string, unlike the mathematical one empty subset or one empty permutation.
+**Phone letters:** Each digit offers its own alphabet of possible letters. Depth selects the digit being filled, while the path contains one letter for each earlier digit. No used flag is needed: a letter chosen for one position remains available at another. Our function deliberately returns no results for an empty digit string. That API decision differs from subsets and permutations, whose mathematical contracts include one empty answer.
 
 ## JavaScript Implementations
+<!-- lesson-id:w8-section-javascript-implementations -->
 
-### A recursive sum with visible entry and return
+We will log entering and returning so you can see the parent additions wait for smaller suffix sums.
+
+### Demonstration 1 — Watch a recursive sum descend and return
 
 ```javascript
 function sum(values) {
@@ -83,9 +90,11 @@ return 0 11
 total 11
 ```
 
-The output shows descent and unwinding separately. Each call returns one value to its caller; `return` does not return from every surrounding call simultaneously. Ignoring demonstration logging, time is Θ(n) and active-frame space is Θ(n). A simple iterative sum would use O(1) working space, so recursion is not automatically the best implementation for a flat array.
+In **Demonstration 1**, `[4,7]` enters indexes 0, 1, then 2. Index 2 returns zero; index 1 resumes its waiting addition and returns 7; index 0 resumes and returns 11. This reverse return process is called unwinding. A `return` exits only its own call, not every surrounding call at once. Ignoring teaching logs, time and active-frame space are both Θ(n). An iterative flat-array sum needs O(1) working space, so this example teaches call behavior rather than claiming recursion is always the best implementation.
 
-### Subsets through exclude/include decisions
+We will generate all choices for A and B, saving a separate array at each completed path.
+
+### Demonstration 2 — Generate subsets with exclude and include branches
 
 ```javascript
 function subsets(values) {
@@ -115,9 +124,11 @@ console.log(JSON.stringify(answers[1]));
 ["B"]
 ```
 
-Before each call, path contains exactly the included values among earlier positions. The exclude branch does not change path. The include branch adds one value and restores it afterwards. Mutating one returned array does not change another, which checks that snapshots are independent.
+In **Demonstration 2**, excluding A and then B saves `[]`; including B saves `["B"]`, then its pop restores the empty path. The A branch similarly saves `["A"]` and `["A","B"]`. Before each call, path contains exactly the included values among earlier positions. The final mutation changes only the first returned array, leaving `["B"]` intact. That checks snapshot independence rather than merely counting four results.
 
-### Permutations using index flags
+We will fill one output slot at a time, allowing each input position only once within the current path.
+
+### Demonstration 3 — Generate permutations with used-position flags
 
 ```javascript
 function permutations(values) {
@@ -147,9 +158,11 @@ console.log(JSON.stringify(permutations([])));
 [[]]
 ```
 
-The input is unchanged. Flags represent positions, so duplicated input values would generate repeated value permutations; uniqueness here assumes distinct values. The early return at a complete path prevents a useless candidate scan at leaves.
+In **Demonstration 3**, choosing 1, 2, 3 saves the first result. Popping 3 clears its flag; popping 2 clears that flag too, so the same parent path `[1]` can next choose 3 then 2. The input never changes. Flags refer to positions, so repeated values would still produce repeated value permutations; uniqueness assumes distinct inputs. Returning as soon as the path is complete avoids scanning candidates at a finished leaf of the call tree.
 
-### Combination sum with reuse and safe pruning
+We will keep candidates ordered, allow reuse, and stop a branch only when positivity and sorting prove it cannot finish.
+
+### Demonstration 4 — Find candidate sums with reuse and pruning
 
 ```javascript
 function combinationSum(candidates, target) {
@@ -186,9 +199,11 @@ console.log(JSON.stringify(combinationSum([2,2], 4)));
 [[2,2]]
 ```
 
-The function normalizes repeated candidates and sorts a new array, preserving the caller's input. Passing i, rather than i+1, permits reuse. Passing start onward prevents reordering duplicates. A zero remainder is handled before searching for another candidate, so the empty combination correctly solves target zero.
+In **Demonstration 4**, `[2,3,5]` with target 8 first reuses 2 four times, then finds `[2,3,3]` and `[3,5]`. Calling `visit(i, ...)` permits reuse; restricting future choices to that start index prevents `[5,3]` from repeating `[3,5]`. A Set removes repeated candidate values and sorting a copied array preserves the caller's input. The zero-remainder check runs before the loop, so even empty candidates produce `[[]]` for target zero. Invalid nonpositive candidates are rejected because they would break the proof.
 
-### Letters by digit position
+We will select one letter per digit and count the results for both three-choice and four-choice alphabets.
+
+### Demonstration 5 — Build phone-letter strings by position
 
 ```javascript
 function phoneLetters(digits) {
@@ -223,19 +238,21 @@ console.log(JSON.stringify(phoneLetters('')));
 []
 ```
 
-The join creates each completed output string. It costs proportional to the digit count; do not hide that cost when deriving runtime. Digits 0 and 1 are rejected rather than silently omitted.
+In **Demonstration 5**, digit string `23` first chooses a and then explores d, e, f, producing ad, ae, af before undoing a and trying b. `path.join('')` creates a completed string at each leaf and takes work proportional to the digit count. Include that cost in runtime. For `79`, four choices at each position give sixteen results. Empty input returns `[]`, and unmapped digits 0 and 1 are rejected rather than silently dropped.
 
 ## Worked Examples
+<!-- lesson-id:w8-section-worked-examples -->
 
-For subsets `[A,B]`, the first branch excludes A. Excluding B then saves `[]`; including B saves `[B]` and is undone. Returning to the root, include A. Excluding B saves `[A]`; including B saves `[A,B]`. The final two pops restore the shared path to empty. Every binary include/exclude decision sequence identifies one subset, establishing completeness without duplicates for distinct input.
+Trace subsets `[A,B]` by writing each decision before moving to the next position. Exclude A, then exclude B to save `[]`. Return to B's decision, include it to save `[B]`, then undo it. Back at the root, include A. Excluding B saves `[A]`; including B saves `[A,B]`. Undo B and then A to restore the original empty path. Every include/exclude sequence reaches one answer, and for distinct input no two sequences choose the same subset. That proves both completeness and uniqueness.
 
-For permutations `[1,2,3]`, choose 1, then 2, then 3 and save. Undo 3 and 2, leaving path `[1]` and only flag 0 true. Now choose 3 then 2 and save `[1,3,2]`. Only after the entire prefix-1 subtree finishes do we remove 1 and explore prefix 2. Undo restores the parent state, not some global blank state.
+For permutations `[1,2,3]`, choose 1, then 2, then 3 and save the complete order. Undo 3 and 2, leaving `[1]` with only flag 0 true. You can now choose 3, then 2, to save `[1,3,2]`. Remove 1 only after all orders beginning with 1 have finished. Notice what undo means: restore the immediate parent's state. Clearing the whole path would lose the parent's choices just as surely as failing to pop would leak a child's choice.
 
-For combination sum target 8, prefix `[2,2,2]` leaves remainder 2, so another 2 completes `[2,2,2,2]`. Backtracking to `[2]`, choosing 3 leaves 3 and another 3 completes `[2,3,3]`. Starting at 3 can later choose 5, completing `[3,5]`. Starting at 5 cannot choose an earlier 3, which prevents `[5,3]` from duplicating the same combination.
+For target 8, path `[2,2,2]` leaves 2, so one more 2 completes `[2,2,2,2]`. Backtrack to `[2]`, choose 3, and the remaining 3 permits `[2,3,3]`. A branch starting with 3 can later choose 5 and complete `[3,5]`. A branch starting with 5 cannot return to the earlier candidate 3. This index restriction removes duplicate orderings without needing to compare completed result arrays.
 
-For phone digits `23`, the a-prefix explores d/e/f completely before the b-prefix begins. Three choices at the first position times three at the second means nine results. Digits `79` have four choices each, yielding sixteen.
+For digits `23`, keep a on the path while exploring d, e, and f in turn. Only after all three answers return do you replace a with b. Three first-position choices, each with three second-position choices, give nine results. For `79`, the same multiplication gives four times four, or sixteen. The alphabets do not shrink when a letter has been used elsewhere.
 
 ## Visual Explanations
+<!-- lesson-id:w8-section-visual-explanations -->
 
 ```text
 Subsets [A,B]:
@@ -253,35 +270,41 @@ parent path -> PUSH -> child explores -> POP -> same parent path
 saved answer = a separate snapshot, not the path object itself
 ```
 
-For permutations, redraw the branches with 3 choices, then 2, then 1. For phone letters, choices do not shrink because using a letter at one position does not remove it from future alphabets.
+Redraw the tree for three-element permutations: there are 3 choices at the root, then 2 unused positions, then 1. Contrast this with phone letters, where each digit keeps its whole alphabet regardless of earlier choices. The tree's branch counts come from the contract, so changing the reuse rule changes both the answers and the complexity.
 
 ## Complexity Analysis
+<!-- lesson-id:w8-section-complexity-analysis -->
 
 ### Output is part of the work
 
-For n distinct subset elements, there are 2^n answers. The binary call tree has Θ(2^n) nodes, but copying arrays is not constant work. Each element belongs to exactly half the subsets, so the total copied element count is n·2^(n−1) for n≥1. Time and stored output are Θ(n·2^n); working path and stack space are O(n). Including the empty-input case uniformly gives Θ((n+1)2^n). Counting subsets alone is a different task and does not require constructing them.
+For n distinct elements, every position has two decisions, yielding 2^n subsets. Visiting the binary call tree costs Θ(2^n), but a saved answer must copy every chosen element. Each element occurs in exactly half the subsets, so the total copied element count is n·2^(n−1) for n≥1. Thus time and stored output are Θ(n·2^n), while only O(n) working path and stack space are active at once. To include empty input uniformly, use Θ((n+1)2^n). These tight bounds describe growth; they are not names for best or worst input cases. Merely counting subsets is a different task and avoids constructing the arrays.
 
-For permutations, there are n! outputs of length n. Copying them costs Θ(n·n!) for n≥1. The implementation also scans n flags at each internal node. The number of internal nodes is `sum(n!/(n-d)!, d=0..n-1)`, which is O(n!), so these scans fit O(n·n!). Output establishes the matching lower bound. Path, used flags, and active frames need O(n) working space; stored output needs Θ(n·n!). Empty input has one empty permutation and constant cost.
+For permutations, n! answers each contain n values, so copying alone costs Θ(n·n!) for n≥1. We also scan n flags at each non-leaf call. There are `sum(n!/(n-d)!, d=0..n-1)` such internal nodes, which is O(n!), putting those scans within O(n·n!) as well. The output-copying work provides the matching lower bound, making the time tight. The working path, flags, and active frames need O(n) space; retaining all answers needs Θ(n·n!). Empty input has one empty permutation and constant cost, handled separately from the positive-n formula.
 
-For d nonempty phone digits with branching factors b₁…b_d, define P=∏bᵢ. The tree has O(P) nodes because every factor is at least three. Joining P strings of length d gives Θ(dP) time and output storage, and O(d) working space. P is at most 4^d, but using the actual product is more informative.
+For d nonempty phone digits, let b₁…b_d count the choices at each position and define P=∏bᵢ, their product. There are P completed strings. Because every factor is at least three, the whole call tree has O(P) nodes; shorter prefixes do not add a larger growth term. Joining P strings of length d gives Θ(dP) time and output storage, with O(d) working space. The simpler upper bound P≤4^d is valid, but the actual product distinguishes inputs such as `23` and `79` more clearly.
 
 ### Combination sum needs different parameters
 
-Let c be the input candidate count, m the distinct count, T the target, and D=floor(T/minimumCandidate) when m>0. Define V as recursive calls actually visited, A as candidate-loop tests actually performed, S as saved answers, and L as the sum of their lengths. The search costs Θ(V+A+S+L). This is an output-sensitive accounting of actual work, **not** a claim of O(L) alone: many explored branches may produce no answer.
+Combination sum needs parameters that describe both failed exploration and successful output. Let c be input candidate count, m distinct count, T target, and D=floor(T/minimumCandidate) when m>0. D bounds how many positive choices fit. Let V count calls actually visited, A candidate-loop tests, S saved answers, and L all saved answer lengths added together. Search costs Θ(V+A+S+L). This is **output-sensitive** accounting: it names output size, but still pays for branches with no answer. It does not justify O(L) alone.
 
-Every call scans at most m candidates, so A≤mV. Depth is at most D, and a loose m-ary-tree upper bound is V≤1+m+…+m^D. For m≥2 this yields O(m^(D+1)+S+L) search time. The nondecreasing-index restriction often makes actual exploration much smaller. With m=1, the search is a chain of at most D+1 calls, so use O(D+1+S+L), not a misleading exponential formula. With m=0, only the root call occurs.
+A call tests at most m candidates, so A≤mV. With depth at most D and at most m children per call, a loose bound is V≤1+m+…+m^D. For m≥2 this gives O(m^(D+1)+S+L) search time. The nondecreasing-index rule usually removes many branches counted by that loose tree. Handle smaller m explicitly: m=1 makes a chain of at most D+1 calls and costs O(D+1+S+L); m=0 makes only the root call. Applying the exponential expression blindly would hide those different shapes.
 
-Preprocessing adds expected O(c) Set work and O(m log(m+1)) comparison-sort work under the usual sorting model. Exact JavaScript sort internals are engine-dependent. Working space is O(m+D+1) for candidates, path, and frames, plus any sort workspace; output is O(S+L), including empty answer arrays. A huge D can overflow the call stack even when branching is one. Positive candidates are essential to the depth bound.
+Before the search, removing duplicates adds expected O(c) Set work under the usual hashing model, and sorting adds O(m log(m+1)) work under a comparison-sort model. JavaScript's exact sorting internals depend on the engine. Candidates, path, and frames need O(m+D+1) working space, plus sorting workspace. Stored output needs O(S+L), counting even empty answer arrays. A large D can overflow the call stack even with only one branch at each call. The depth bound relies on every candidate being positive.
 
 ## Common Mistakes
+<!-- lesson-id:w8-section-common-mistakes -->
 
-- Writing a base case but failing to move toward it.
-- Forgetting `return` after saving a complete answer.
-- Saving the path reference and later changing every “saved” result.
-- Restoring the path but forgetting to clear a used flag.
-- Using i+1 when the combination contract permits repeated use.
-- Breaking on an oversized candidate before sorting the candidates.
-- Calling all recursion O(2^n), or claiming O(n) total space while retaining exponential output.
+- A base case is useful only if every recursive branch moves toward it. Name a decreasing quantity.
+- Return after saving a completed answer so you do not keep exploring from a finished state.
+- Copy the path when saving; a reference to the scratchpad changes during later undo steps.
+- Restore used flags as well as the path, or later siblings will inherit unavailable positions.
+- Pass i when reuse is allowed; i+1 silently changes the combination contract.
+- Sort before breaking on an oversized candidate, since an unsorted later value could still fit.
+- Analyze the actual call tree rather than calling every recursion O(2^n), and count retained output separately from an O(n) path.
+
+This broken leaf case saves the shared scratchpad itself. Use a two-element subset input to watch later pops change earlier results.
+
+### Demonstration 1 — Broken result saving aliases the working path
 
 ```javascript-bug
 if (index === values.length) {
@@ -290,49 +313,54 @@ if (index === values.length) {
 }
 ```
 
-This stores aliases. An output-length test alone will not catch it: there can be the right number of arrays, all pointing to the same object.
+In broken **Demonstration 1**, subsets of `[A,B]` can save four references, yet all four refer to the same path object. Such alternate references to one object are aliases. When all branches finish and pops restore path to empty, every saved entry appears empty too. Checking result length alone misses the bug; inspect contents and object identities or mutate one answer and watch the others.
 
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w8-section-interview-and-leetcode-pattern-recognition -->
 
-“All subsets” suggests binary include/exclude choices; “all orders” suggests unused-item choices. “Reuse candidates” requires a progress measure other than advancing the index. A fixed alphabet per position suggests a product of choices. “Is there any solution?” can short-circuit, while “return every solution” must pay for every returned value.
+Translate prompt wording into choices. “All subsets” suggests include/exclude decisions, while “all orders” suggests choosing unused positions. Reusing a candidate means the index may stay unchanged, so something else must prove progress. An alphabet for each position gives a product of choice counts. Also distinguish finding any solution from returning every solution: the former can stop early, while the latter must construct every requested answer.
 
-Before proposing pruning, explain why no completion below that branch can succeed. In combination sum, positive sorted candidates justify the break. With negative candidates, an overshoot might later be repaired, so the same pruning would be unsound. Recognizing that a familiar optimization has lost its preconditions is an interview skill.
+Before pruning, explain why no continuation of that branch can succeed. In combination sum, positivity means added values cannot reduce an overshoot, and sorting means later candidates cannot be smaller. With negative candidates, a later value could repair an overshoot, making the same break incorrect. In an interview, explicitly notice when a familiar optimization has lost the assumptions that justified it.
 
 ## Practice Exercises
+<!-- lesson-id:w8-section-practice-exercises -->
 
 ### Conceptual Questions
 
-1. Compare two calls on n/2 with two calls on n−1. What extra information do you need to analyze time?
-2. Why do subsets and permutations return `[[]]` on empty input while this phone-letter API returns `[]`?
+1. Compare a function making two calls of size n/2 with one making two calls of size n−1. State what else you must know before deriving total time.
+2. Explain the meaning of `[[]]` for empty subsets and permutations, then explain why this phone-letter API instead chooses `[]`.
 
 ### Code Tracing
 
-3. Draw the full subset tree for `[X,Y]`, then trace only the prefix-2 subtree of permutations `[1,2,3]`.
-4. Trace combination sum for `[2,5]`, target 7. Mark pruned branches and the saved answer.
+3. Draw every subset branch for `[X,Y]`. Then trace only the permutation branches beginning with 2 for `[1,2,3]`, showing flags restored between siblings.
+4. Trace candidates `[2,5]` with target 7. Mark each impossible branch where pruning stops exploration and show the path saved as an answer.
 
 ### Debugging Exercises
 
-5. Repair the aliased-result fragment and design a test that catches aliasing rather than just counting outputs.
-6. A permutation solver never clears `used[i]`. Explain why later branches disappear. A combination solver uses i+1: what problem does it solve instead?
+5. Repair **Demonstration 1** in “Common Mistakes.” Design a test that detects shared answer arrays even if the returned array count is correct.
+6. Explain what later siblings see if a permutation solver never clears `used[i]`. Then change reuse to i+1 in combination sum and describe the different selection problem that results.
 
 ### Implementation Exercises
 
-7. Write a function returning all length-k combinations of distinct input values without reuse. Add safe pruning when too few elements remain. Define k=0 and k>n.
-8. Rebuild phone letters and reject unmapped digits. Explain the result count for `279` without generating it.
+7. Return every length-k combination of distinct values without reuse. Prune a branch when it has too few remaining positions to fill the missing slots, and justify that rule. Define results for k=0 and k>n explicitly.
+8. Rebuild the phone-letter function, including rejection of unmapped digits. Compute the number of answers for `279` by multiplying choices rather than generating strings.
 
 ### LeetCode and HackerRank Practice
 
-9. **[Subsets](https://leetcode.com/problems/subsets/)** — Platform: LeetCode. Official difficulty: Medium. Concepts: decision trees, include/exclude, output snapshots. Why: it exposes the difference between O(n) recursion depth and exponential stored output. This official page was verified; no HackerRank exercise was consulted. Extend practice with the syllabus topics Permutations, Combination Sum, and Letter Combinations of a Phone Number after reproducing the local examples.
+9. **[Subsets](https://leetcode.com/problems/subsets/)** — LeetCode lists this as Medium. Practice decision trees, include/exclude branches, and independent answer snapshots. Explain why O(n) active call depth can coexist with exponentially many stored results. The prior record says the official page was verified and no HackerRank exercise consulted; this rewrite performs no new verification. After reproducing the local examples, continue the syllabus topics Permutations, Combination Sum, and Letter Combinations of a Phone Number.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w8-section-hints-and-worked-solutions -->
 
-1. You need nonrecursive work and whether subproblems overlap. Two half-size calls with Θ(n) local work give Θ(n log n) time and O(log n) frame depth, excluding any local allocations. Two size-(n−1) calls with constant work give Θ(2^n) time and O(n) depth.
-2. There is one way to choose nothing and one way to order nothing. The phone API deliberately treats no requested digits as no requested combinations. Base cases follow contracts, not a universal rule about empty arrays.
-3. Subset order is `[],[Y],[X],[X,Y]`. The prefix-2 permutation subtree emits `[2,1,3]` then `[2,3,1]`. Flags for 1 and 3 must be reset before leaving that subtree.
-4. The path `[2,2,2]` leaves 1 and fails. Restoring to `[2]` permits 5, which completes `[2,5]`. A branch starting with 5 cannot go backward to 2, preventing a duplicate ordering.
-5. Save `[...path]`. Mutate one returned answer and verify the others do not change; also check distinct array identities.
-6. A true flag left behind means that position appears used in unrelated siblings. Passing i+1 in combination sum forbids reusing the same candidate position, solving a different selection contract.
-7. Hint: compare remaining positions with missing slots before branching. Here is a complete solution.
+1. Include the nonrecursive work and whether the subproblems overlap. Two half-size calls with Θ(n) local work give Θ(n log n) time and O(log n) frame depth, excluding local allocations. Two size-(n−1) calls with constant local work give Θ(2^n) time and O(n) depth. The active path and full call tree answer different cost questions.
+2. There is exactly one way to choose nothing and one way to order nothing, represented by one empty answer. The phone API treats no requested digits as no requested combinations instead. The correct base case follows the function's promised meaning, not a universal rule that empty inputs always produce the same shape.
+3. The subset sequence is `[],[Y],[X],[X,Y]`. Permutations beginning with 2 are `[2,1,3]` then `[2,3,1]`. Undo choices 1 and 3 and their flags before returning from that subtree, leaving only the parent's state.
+4. Path `[2,2,2]` leaves remainder 1, too small for another candidate, so it fails. Restoring to `[2]` permits choosing 5 and saving `[2,5]`. A branch beginning with 5 cannot return to candidate 2, avoiding the duplicate order `[5,2]`.
+5. Save `[...path]` rather than path itself. Change one returned answer and assert that the others remain unchanged; also compare their array identities. Counting outputs alone does not establish independence.
+6. A flag left true makes an input position look used in unrelated sibling branches, so valid later orders disappear. Passing i+1 in combination sum forbids reusing that candidate position and solves a different, no-reuse selection contract.
+7. Compare how many positions remain with how many output slots are missing. If there are too few, no continuation can complete the path. The implementation also limits the loop so each selected first position leaves enough later positions.
+
+### Demonstration 1 — Generate fixed-size combinations without reuse
 
 ```javascript
 function chooseK(values, k) {
@@ -361,40 +389,44 @@ console.log(JSON.stringify(chooseK(['A'], 2)));
 []
 ```
 
-For 1≤k≤n, there are C(n,k) outputs of length k. Every explored prefix can complete and has at most k ancestors, so time is O(k·C(n,k)), matching the copying lower bound; working space is O(k). Output costs Θ(k·C(n,k)). Handle k=0 and k>n as constant-size cases rather than substituting zero into that formula.
-8. Digit 2 has three choices; 7 and 9 each have four. There are 3·4·4=48 strings, each of length three.
-9. The subset implementation is a worked solution. To test completeness on small distinct inputs, check 2^n results, unique normalized subsets, and membership drawn only from input values.
+In **Demonstration 1**, choosing two from A, B, C explores AB and AC before returning to choose BC. Once only C remains at the root, there are too few positions to start another pair. For k=0, the initial empty path is already complete; for k>n, the root prunes immediately.
+
+For 1≤k≤n, the number of length-k answers is C(n,k), read “n choose k.” Every explored prefix can complete and has at most k ancestors, so time is O(k·C(n,k)), matching the copying lower bound. Working space is O(k), and output costs Θ(k·C(n,k)). Handle k=0 and k>n as constant-size cases rather than substituting zero into the positive-k formula.
+8. Digit 2 has three choices and digits 7 and 9 have four each. Multiplying gives 3·4·4=48 strings, each containing three letters. No enumeration is needed to establish that count.
+9. Rebuild **Demonstration 2** in “JavaScript Implementations.” On small distinct inputs, check that there are 2^n results, each contains only input values, and normalized subsets are unique. Normalizing means representing equivalent subsets consistently before comparing them; together these checks help establish completeness.
 
 ## Sources and Further Reading
+<!-- lesson-id:w8-section-sources-and-further-reading -->
 
-Consulted on 2026-11-07. The implementations, traces, and output-cost derivations are original and aligned with the repository syllabus.
+The existing chapter records consultation on 2026-11-07. We retain that source history without claiming fresh external verification. The implementations, traces, and output-cost derivations are original teaching material aligned with the repository syllabus.
 
-- [MDN: Functions, recursion discussion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions) — read the recursive-call and function-stack discussion.
-- [Stanford CS106B: Recursive Backtracking and Enumeration](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1242/lectures/11-backtracking1/) — consulted the choose/explore/unchoose framework and subset-enumeration discussion.
-- [LeetCode: Subsets](https://leetcode.com/problems/subsets/) — read the official unique-input and unique-output contract. No editorial was consulted.
+- [MDN: Functions, recursion discussion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions) — the prior reading informed the explanation of recursive calls and the stack of waiting functions.
+- [Stanford CS106B: Recursive Backtracking and Enumeration](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1242/lectures/11-backtracking1/) — the prior consultation used the choose/explore/unchoose framework and discussion of generating subsets.
+- [LeetCode: Subsets](https://leetcode.com/problems/subsets/) — the prior reading established the official requirements for distinct input values and unique output subsets. The record reports no editorial consultation.
 
 ## Weekly Summary
+<!-- lesson-id:w8-section-weekly-summary -->
 
-Recursion delegates a smaller problem and resumes when it returns. Backtracking restores state so sibling branches remain independent. Pruning requires a proof, and enumeration requires paying for output construction as well as search. These ideas transfer directly to the recursive structure of [Week 9's binary trees](week-09.md).
+You can now describe recursion as a smaller promised job followed by a return to waiting work. Backtracking adds disciplined restoration so alternatives begin from the same parent state. Before skipping a branch, prove it cannot contain an answer; before quoting a generation cost, include construction of the answers themselves. These habits transfer directly to the smaller-subtree structure of [Week 9's binary trees](week-09.md).
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] State a base case, contract, and decreasing measure for each pattern. <!-- checkpoint:w8-recursive-contracts -->
-- [ ] Derive subset and permutation bounds including output copies. <!-- checkpoint:w8-output-sensitive-analysis -->
+- [ ] Explain each pattern's promise, stopping case, and quantity that decreases toward termination. <!-- checkpoint:w8-recursive-contracts -->
+- [ ] Derive subset and permutation costs while paying for every copied output element. <!-- checkpoint:w8-output-sensitive-analysis -->
 
 ### JavaScript
 
-- [ ] Implement choose/explore/undo with independent saved arrays. <!-- checkpoint:w8-snapshot-and-undo -->
-- [ ] Implement positive-candidate pruning and explain its assumptions. <!-- checkpoint:w8-safe-pruning -->
+- [ ] Build choose/explore/undo code and demonstrate that saved answers are independent arrays. <!-- checkpoint:w8-snapshot-and-undo -->
+- [ ] Implement pruning for positive candidates and prove why positivity and sorting make it safe. <!-- checkpoint:w8-safe-pruning -->
 
 ### Practice
 
-- [ ] Trace both descent and return in a complete small search tree. <!-- checkpoint:w8-call-tree-trace -->
-- [ ] Solve Subsets and implement fixed-size combinations. <!-- checkpoint:w8-enumeration-practice -->
+- [ ] Trace entry, branch choices, undo, and return throughout a complete small call tree. <!-- checkpoint:w8-call-tree-trace -->
+- [ ] Complete Subsets and build length-k combinations with justified pruning. <!-- checkpoint:w8-enumeration-practice -->
 
 ### Reflection
 
-- [ ] Explain why stack depth and total runtime are different quantities. <!-- checkpoint:w8-depth-reflection -->
-- [ ] Record an aliasing bug and a test that detects shared results. <!-- checkpoint:w8-aliasing-reflection -->
+- [ ] Contrast the length of one active call path with the work across the entire call tree. <!-- checkpoint:w8-depth-reflection -->
+- [ ] Record a shared-result bug and a test that detects aliases rather than only output count. <!-- checkpoint:w8-aliasing-reflection -->

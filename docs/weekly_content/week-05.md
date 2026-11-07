@@ -1,54 +1,63 @@
 # Week 5 - Stacks and Queues
+<!-- lesson-id:w5-section-chapter-introduction -->
 
-This week, you will be learning stacks and queues: structures that decide which unfinished job deserves attention next. Matching a bracket requires the most recent opener; serving customers requires the oldest arrival. These ordering rules also power undo histories, parsers, and tree traversals.
+When several jobs are waiting, which one should we handle next? This week we will build two containers that answer that question: a stack handles the newest waiting item, while a queue handles the oldest. You already use both ideas. You close the most recently opened bracket first, but serve the customer who arrived first. Undo histories, programs that read structured expressions, and visits through trees depend on these same rules.
 
-We will start with LIFO and FIFO, then build efficient queues and a monotonic stack that remembers questions whose answers have not arrived yet. Work through one trace with pencil and paper before running each program.
+We will give those rules their usual names, LIFO and FIFO, and then build queues that avoid repeatedly moving their contents. We will also build a monotonic stack: a stack whose values stay in a particular order, allowing it to remember questions waiting for future answers. Before you run a program, trace a small input on paper. Predicting each change is how you learn to build the container yourself.
 
-By the end, you will be able to implement both ordering policies, explain why a nested loop can still be linear, and distinguish a queue's live size from the memory its implementation retains.
+Our aim is for you to implement both ordering policies and explain their costs. In particular, you should be able to show why a loop inside another loop can still do only linear total work, and why a queue with no waiting items might still retain array storage. We will count actual movements and retained slots rather than guessing from the shape of the program.
 
-There will be a checklist at the end to help you track your progress. Tick an item after you can demonstrate it without reading the implementation, and record examples, mistakes, and next steps in your progress logs.
+Use the final checklist as a practical self-test. Tick an item when you can demonstrate it with the implementation covered, including an awkward input. In your progress logs, keep the example you tried, the mistake it revealed, and the next change you want to practice. Those small counterexamples are useful revision material.
 
 ## Learning Objectives
+<!-- lesson-id:w5-section-learning-objectives -->
 
-- Explain LIFO and FIFO using an operation sequence.
-- Implement bracket matching, two efficient queue designs, and a monotonic stack.
-- State an invariant that explains why each removal is safe.
-- Separate worst-case cost, amortized cost, live elements, and retained array slots.
-- Recognize nesting, arrival-order processing, and next-greater questions.
+- Show, by adding and removing items, how newest-first LIFO differs from oldest-first FIFO.
+- Build bracket matching, both efficient queue designs, and the ordered pending stack used for warmer-day questions.
+- Describe what remains true after every operation—an invariant—and use it to justify each removal.
+- Account separately for the most expensive single operation, the average cost across a guaranteed sequence, the waiting items, and the array slots still retained.
+- Explain why nesting, arrival-order work, and finding a later greater value suggest different containers.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w5-section-prerequisite-knowledge -->
 
-You need array indexes, `push`, `pop`, and object references from [Arrays](week-17.md), plus loops and the time/space distinctions from [Algorithm Complexity](week-01.md). Sets and maps from [Week 2](week-02.md) help represent bracket categories. The “each item enters and leaves once” argument resembles the pointer accounting in [Week 4](week-04.md). Every JavaScript block below is a complete independent program; collection outputs use JSON so formatting is reproducible.
+Before starting, make sure you can find an array position, add at the end with `push`, and remove the last item with `pop`; [Arrays](week-17.md) also covers references, which let variables refer to the same object. Bring the loop and time-versus-storage reasoning from [Algorithm Complexity](week-01.md). We use sets to recognize opening symbols and maps to pair closing symbols with their openers, as introduced in [Week 2](week-02.md). Our argument that each item enters and leaves once follows the same accounting idea as [Week 4](week-04.md). Each JavaScript demonstration is independent. JSON outputs make array contents reproducible rather than relying on a console's display style.
 
 ## Core Theory
+<!-- lesson-id:w5-section-core-theory -->
 
 ### A stack stores obligations in reverse completion order
 
-LIFO means last in, first out. Imagine opening a folder, opening a subfolder, and then returning: you must leave the subfolder before leaving its parent. A stack provides `push` to add an obligation, `pop` to finish the newest one, and `peek` to inspect it without removal. An array's last position is a convenient top.
+Imagine entering a folder and then a subfolder. To return, you leave the subfolder before its parent: the last thing entered is the first thing left. That is **last in, first out**, abbreviated LIFO. A stack makes this rule available through three operations. `push` adds an item, `pop` removes the newest item, and `peek` lets you inspect that item without removing it. We call this accessible end the top; using an array's last position makes it convenient to implement.
 
-For brackets, the invariant is that the stack contains exactly the unmatched opening brackets in the prefix already read. A closer must match the top. Matching an older opener would cross a still-open inner pair. Equal counts do not establish nesting: `([)]` contains one of each symbol but is invalid. A closer with an empty stack fails immediately. After the scan, any leftover opener also means failure. Our implementation ignores other characters, so an arithmetic expression is allowed; that is an explicit input policy.
+For bracket matching, we need a statement that stays true as we read: the stack contains exactly the opening brackets that have not yet been closed, in the part of the input already read. That part is called a prefix, and the statement is our invariant. A closing bracket must match the top because any older opener surrounds the still-open inner pair. In `([)]`, the `)` cannot skip over `[`, even though the total counts look right.
 
-An undo feature uses the same order, but it must save enough information to reverse each action. “Delete three characters” alone is insufficient unless the deleted text was saved. A stack specifies order, not what an adequate record contains.
+There are two separate failure checks. A closer with an empty stack has no opener to match. An opener left after the scan has no closer. We must reject both. We also need to decide what other characters mean: this implementation ignores them, allowing arithmetic expressions. That is a deliberate rule for accepted input, rather than a property every bracket matcher must share.
+
+An undo feature follows the same newest-first order, but ordering is only half the design. To undo “delete three characters,” you need the deleted text and enough context to restore it. Saving only the action's name will not recover the data. When you choose a stack, you still have to design a useful record for each item.
 
 ### A queue separates arrival from processing
 
-FIFO means first in, first out. Append new work at the rear and remove old work at the front. This is the order needed to process tree levels in [Week 9](week-09.md). A queue is an interface, not necessarily a JavaScript array.
+Customers waiting their turn illustrate **first in, first out**, or FIFO: the earliest arrival is served first. A queue adds work at its rear and removes work at its front. We will need this ordering to visit tree levels in [Week 9](week-09.md). Notice that “queue” describes the operations and their behavior—its interface. It does not require a particular storage choice such as a JavaScript array.
 
-Repeated `shift()` is a poor general queue strategy. Its semantics move later indexed values toward the front, as documented by [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift). In the ordinary array cost model, draining n items this way takes n + (n−1) + … + 1 work, or Θ(n²). Engine optimizations vary; our algorithmic guarantee should not depend on one engine special-casing a workload.
+You can remove an array's first item with `shift()`, but doing that repeatedly is a poor general guarantee for a queue. Its specified behavior moves later indexed values toward the front; [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift) describes those semantics. In the ordinary array cost model, draining n items requires n + (n−1) + … + 1 work, or Θ(n²). Particular JavaScript engines may optimize particular workloads. We want a design whose reasoning remains valid without depending on that optimization.
 
-With a head index, the live queue is only `items[head ... length)`. Incrementing head avoids movement, but does not shorten the array or release old references. Clearing consumed slots releases those references from this container. Periodic compaction also bounds the number of retained indexed slots. Those are separate improvements.
+One solution is to remember where the front is. A head index identifies the first waiting item, so the live queue is `items[head ... length)`: include head and stop before length. Removing an item advances head instead of moving the suffix. However, the array still has its old length and may still refer to removed objects. Clearing consumed slots releases this container's references. Occasionally copying the live suffix into a new array—compaction—also limits retained slots. These solve different storage problems.
 
-Another design uses two stacks. Incoming items accumulate in one stack. When the outgoing stack is empty, transfer all incoming items to it. The reversal makes the oldest arrival the next pop. Never transfer while outgoing still contains older jobs.
+You can also build a queue from two stacks. Add arrivals to an incoming stack. When an outgoing stack has no items left, pop everything from incoming onto outgoing. For arrivals A, B, C, that transfer places A on top, ready to leave first. Wait until outgoing is empty before transferring again: its remaining items arrived before anything still in incoming.
 
 ### A monotonic stack stores unresolved questions
 
-Suppose each temperature asks, “How long until a strictly warmer day?” Scanning forward separately from every day repeats comparisons. Instead, store indexes whose first warmer day has not appeared. Their temperatures are nonincreasing from bottom to top. Today's temperature can resolve several waiting indexes, so keep popping while it is strictly greater than the top temperature.
+Suppose you want each day's distance to its first strictly warmer day. Searching forward afresh for every day repeats comparisons. Instead, let unresolved days wait in a stack of indexes. The temperatures at those indexes stay **nonincreasing** from bottom to top: each is no greater than the previous one. This is the monotonic ordering we maintain. When today's temperature is greater than the top reading, today answers that waiting question. Pop it, record the distance, and check the next waiting index too.
 
-Why is today the *first* answer? Every intervening day was processed and failed to remove that index. Why can we forget a popped index? Its final answer is now known. Equal temperatures remain pending because the question requires strictly warmer. Indexes, rather than just temperatures, preserve distances and distinguish duplicate readings.
+To see why the answer is the *first* warmer day, consider a day still waiting in the stack. Every intervening reading has already had a chance to remove it and did not. Today's successful comparison is therefore the first. Once we record that answer, no later day can improve it, so removal is safe. An equal reading must keep waiting because equal is not strictly warmer. Store indexes rather than just readings: two days may both be 65, yet have different distances to their answer.
 
 ## JavaScript Implementations
+<!-- lesson-id:w5-section-javascript-implementations -->
 
-### Bracket matching
+We will test both correct nesting and two different reasons for failure, including an unfinished opener.
+
+### Demonstration 1 — Match brackets in newest-first order
 
 ```javascript
 function isBalanced(text) {
@@ -77,9 +86,11 @@ false
 true
 ```
 
-Short-circuit evaluation checks emptiness before removing anything. The final test is necessary even if every closer encountered was valid.
+In **Demonstration 1**, `x * {[2 + 3]}` pushes `{` then `[`, ignores ordinary expression characters, and removes `[` before `{`. In `([)]`, `stack.pop()` gives `[`, which does not match `)`'s required `(`, so we return false immediately. The `||` check stops as soon as its left side is true—short-circuit evaluation—so an empty stack fails before removal. Finally, `((` shows why `stack.length === 0` is still needed after the loop. The empty string has no unmatched brackets and succeeds.
 
-### A head-index queue with compaction
+We will serve Ana, Bo, and Cy in arrival order, then drain enough items to exercise storage compaction.
+
+### Demonstration 2 — Advance a queue head and compact consumed slots
 
 ```javascript
 class HeadQueue {
@@ -118,11 +129,15 @@ Bo Cy
 0 true
 ```
 
-The empty result is `undefined`; if callers enqueue `undefined`, they must inspect `size` to distinguish it from emptiness. Compaction copies only the live suffix. At that moment, the consumed prefix is at least as large as the suffix, so the copy can be charged to preceding dequeues. One dequeue can cost O(q), but a sequence has O(1) amortized cost per operation under the usual dynamic-array model.
+In **Demonstration 2**, removing Ana reads slot zero, clears it, and advances head to one. Appending Cy leaves Bo at the front, so `peek()` returns Bo and `size` reports two. Once Bo and Cy leave, another dequeue returns `undefined`. If you allow `undefined` as real data, inspect `size` to distinguish that value from an empty queue.
 
-Let q be current live size and L array length. When no compaction occurs, either head < 32, giving L < q + 32, or head < L/2, giving L < 2q. Thus retained indexed slots are O(q+32), not proportional to all historical arrivals. This describes algorithmic array storage; JavaScript does not promise immediate garbage collection or a particular backing-buffer capacity. Other references may still keep an object alive.
+Compaction copies just the live suffix when the consumed prefix is at least as large. We can charge those copies to the dequeues that created that prefix. A particular dequeue can still take O(q), where q is the live size; across a sequence, operations have O(1) **amortized** cost under the usual dynamic-array model. Amortized means a guaranteed total-cost argument across the sequence, not a claim that each operation is fast or that random inputs are likely.
 
-### A queue using two stacks
+We can also justify the storage bound. Let q be current live size and L array length. Without compaction, either head < 32, giving L < q + 32, or head < L/2, giving L < 2q. Otherwise the compaction condition would have fired. Retained indexed slots are therefore O(q+32), rather than growing with every historical arrival. This counts algorithmic array storage. JavaScript does not guarantee when unreachable objects are reclaimed by garbage collection or how much backing-buffer capacity an engine keeps. An object also remains alive if another variable still references it.
+
+Watch how a new arrival C waits behind B even though A has already left.
+
+### Demonstration 3 — Preserve arrival order with two stacks
 
 ```javascript
 class TwoStackQueue {
@@ -150,9 +165,11 @@ A
 B C 0
 ```
 
-Each value is pushed into incoming once, transferred once, and popped from outgoing once. That bounded lifetime work proves the amortized claim even though `prepare` contains a loop.
+In **Demonstration 3**, the first dequeue transfers B and then A into outgoing, making A the next pop. After C arrives, incoming is `["C"]` and outgoing is `["B"]`. `prepare()` leaves them alone because B must go first. Only after B leaves does C transfer. Each value enters incoming once, transfers once, and leaves outgoing once. That limited lifetime work proves O(1) amortized operation cost even though one call to `prepare()` may loop over many values.
 
-### Daily temperatures
+We will keep unresolved day indexes so a single warmer reading can answer several waiting days.
+
+### Demonstration 4 — Resolve first-warmer-day distances
 
 ```javascript
 function warmerWaits(temperatures) {
@@ -178,13 +195,14 @@ console.log(JSON.stringify(warmerWaits([])));
 []
 ```
 
-Unresolved entries retain zero. A zero means no later warmer reading, not “a warmer reading today.”
+In **Demonstration 4**, readings 68, 65, 65 leave indexes 0, 1, 2 pending. Day 3's 70 removes index 2 and writes `3 - 2`, then index 1 and writes `3 - 1`, then index 0 and writes `3 - 0`. Days 3 and 4 never find a later warmer reading, so their initialized zeros remain. Zero means no later warmer day; it does not mean today answers itself. Descending input leaves every answer zero, and empty input returns an empty array.
 
 ## Worked Examples
+<!-- lesson-id:w5-section-worked-examples -->
 
-For `{[()]}`, the stack evolves `{`, `{[`, `{[(`, `{[`, `{`, empty. For `([)]`, the first closer is `)`, but the top opener is `[`. Failure occurs there, before examining the final `]`.
+Trace `{[()]}` one character at a time: the stack becomes `{`, `{[`, `{[(`, `{[`, `{`, and finally empty. Each closer cancels just the newest opener. Now try `([)]`: after the first two characters, `[` is on top. The next character `)` asks for `(`, so failure occurs immediately, before the final `]`. You can stop there because later characters cannot repair a crossing pair.
 
-Here is the temperature example in full. Pending entries are indexes; compare their associated temperatures.
+For the temperature trace, read pending entries as day indexes and look up their temperatures when comparing. The table records every answer written, so you can check both the removal order and the distance arithmetic.
 
 | Day | Reading | Indexes resolved | Pending after push | Answers written |
 | --- | --- | --- | --- | --- |
@@ -194,9 +212,10 @@ Here is the temperature example in full. Pending entries are indexes; compare th
 | 3 | 70 | 2, 1, 0 | [3] | waits[2]=1, waits[1]=2, waits[0]=3 |
 | 4 | 69 | none | [3,4] | none |
 
-Day 3 performs three pops, but those indexes can never be popped again. A decreasing input has no pops during scanning and maximum stack size. An increasing input has frequent pops and a small stack. Both take linear total time.
+Day 3 does three pops, which may look expensive in isolation. But indexes 2, 1, and 0 are gone permanently: no later iteration can pay for them again. Decreasing temperatures create the largest stack and no scan-time pops; increasing temperatures cause frequent pops but keep the stack small. Both use linear total time because every index has only one arrival and at most one departure.
 
 ## Visual Explanations
+<!-- lesson-id:w5-section-visual-explanations -->
 
 ```text
 Stack (top on right):      [A, B, C] --pop--> C
@@ -213,9 +232,10 @@ physical slots: [undefined, undefined, C, D]
 logical queue:                       [C, D]
 ```
 
-Cover the labels and explain where the next item comes from. The data values alone do not determine the policy; the operations do.
+Cover the operation labels and predict the next item in each drawing. Popping the stack gives C, while dequeuing gives A. In the head-index drawing, the undefined slots are storage history, not waiting jobs. The same visible values can support different policies; you need to know where additions and removals happen.
 
 ## Complexity Analysis
+<!-- lesson-id:w5-section-complexity-analysis -->
 
 | Algorithm or operation | Time | Auxiliary storage, excluding returned answers |
 | --- | --- | --- |
@@ -225,18 +245,21 @@ Cover the labels and explain where the next item comes from. The data values alo
 | Temperature scan | Θ(n) | O(n) pending indexes |
 | Temperature answer | Included in Θ(n) time | Θ(n) returned array separately |
 
-The temperature scan has n pushes and at most n pops. Even counting the failed condition tests, there are only O(n) stack comparisons. For an uncompacted head queue, report O(H) retained slots after H historical enqueues even if q is tiny. Merely clearing slots removes retained references, not the slots themselves.
+To account for the temperature loop, count n pushes and at most n successful pops. Each day also has only a bounded number of condition tests that stop its loop, so failed tests do not turn the total into quadratic work. The scan is Θ(n). Keep the storage accounting equally explicit: a head queue without compaction retains O(H) slots after H historical enqueues even when q is tiny. Clearing those slots removes references from this container, but does not shorten the array.
 
 ## Common Mistakes
+<!-- lesson-id:w5-section-common-mistakes -->
 
-- Matching a closer against any opener instead of the newest one accepts crossing pairs.
-- Returning true after the loop without checking the stack accepts `((`.
-- Using `>=` in the warmer test treats an equal temperature as warmer.
-- Saving values instead of indexes loses the information needed for wait lengths.
-- Transferring incoming while outgoing is nonempty places newer work ahead of older work.
-- Calling every dequeue worst-case O(1) hides occasional transfers and copies.
+- If you search for any matching opener, `([)]` can slip through. Compare only with the newest unmatched opener.
+- If you return true just because the scan finished, `((` slips through. Check for leftover openers too.
+- If you use `>=`, an equal reading answers a question that explicitly asks for a warmer one. Preserve strict `>`.
+- If you keep temperatures alone, you cannot recover the waiting distance or distinguish equal readings on different days. Keep indexes.
+- If you transfer while outgoing still holds jobs, you put newer arrivals in front of older ones. Empty outgoing first.
+- If you describe every dequeue as worst-case O(1), you hide copies and transfers. State both the single-operation bound and the amortized bound.
 
-This deliberately broken fragment belongs to the temperature algorithm:
+Use two equal temperatures to expose this deliberately broken comparison in the warmer-day algorithm.
+
+### Demonstration 1 — Broken warmer-day comparison accepts equality
 
 ```javascript-bug
 while (pending.length && temperatures[day] >= temperatures[pending.at(-1)]) {
@@ -245,45 +268,50 @@ while (pending.length && temperatures[day] >= temperatures[pending.at(-1)]) {
 }
 ```
 
-It is a debugging exercise, not a runnable correct example. Two equal readings are enough to expose it.
+**Demonstration 1** is a broken fragment for debugging, not a complete runnable solution. With `[60,60]`, day 1 incorrectly pops day 0 because `60 >= 60` is true, writing a wait of one. The contract requires strictly warmer, so both days should keep zero. This tiny input isolates the comparison error without other readings obscuring it.
 
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w5-section-interview-and-leetcode-pattern-recognition -->
 
-“Most recent unmatched,” nesting, undo, and expression evaluation suggest a stack. “Oldest pending,” arrival order, and levels suggest a queue. “Next greater,” “next smaller,” and distance to a future improvement suggest a monotonic stack. These clues are hypotheses: identify the exact strictness and required answer before choosing the invariant.
+When you hear “most recent unmatched,” nested work, undo, or expression evaluation, try a stack. When you hear “oldest pending,” arrival order, or levels, try a queue. A request for the next greater or smaller value, especially its distance, suggests a monotonic stack. Treat these as starting hypotheses. Ask whether equality qualifies and whether the answer needs a value, an index, or a distance before stating what your container remembers.
 
-For Valid Parentheses, explain why counts are insufficient. For Implement Queue using Stacks, explain why transfer is conditional. For Daily Temperatures, first describe the quadratic baseline, then explain which repeated work the pending stack eliminates. A useful interview answer includes both the proof and an adversarial example, such as all-equal temperatures.
+For Valid Parentheses, use `([)]` to show why counts do not prove nesting. For Implement Queue using Stacks, explain why an existing outgoing item must precede new incoming work. For Daily Temperatures, start with the simple repeated forward searches, then identify the work eliminated by keeping unresolved indexes. Support your proof with an input designed to expose a mistake—an adversarial example—such as all-equal temperatures for the strict comparison rule.
 
 ## Practice Exercises
+<!-- lesson-id:w5-section-practice-exercises -->
 
 ### Conceptual Questions
 
-1. **Conceptual:** Choose a stack or queue for nested function returns, a printer's arrival-order jobs, and nearest warmer-day queries. Explain the policy, not just the name.
+1. **Conceptual:** Decide how to store nested function returns, a printer's arrival-order jobs, and nearest warmer-day queries. Choose a stack or queue for each and give an operation sequence that explains your policy.
 
 ### Code Tracing
 
-2. **Tracing:** Trace `([)]` and `(()` character by character. Then trace waits for `[60,60,59,62]`.
-3. **Tracing:** Enqueue A, enqueue B, dequeue, enqueue C, peek, dequeue, dequeue using two stacks. Show both arrays each time.
+2. **Tracing:** Read `([)]` and `(()` character by character, recording the unmatched openers and the exact point of failure. Then compute waits for `[60,60,59,62]`, recording every pending index removed.
+3. **Tracing:** With two stacks, enqueue A, enqueue B, dequeue, enqueue C, peek, dequeue, and dequeue again. Draw both arrays after every operation, including operations that leave them unchanged.
 
 ### Debugging Exercises
 
-4. **Debugging:** Repair the broken comparison above. Give the smallest input that distinguishes the broken and correct versions.
+4. **Debugging:** Repair **Demonstration 1** in “Common Mistakes.” Find the smallest input on which its broken comparison and your corrected comparison give different answers, and explain the contract violation.
 
 ### Implementation Exercises
 
-5. **Implementation:** Add `peek` and `size` to an array-backed stack. Then design a minimum stack that returns the minimum without scanning on every query. Handle duplicate minima.
-6. **Implementation:** Drain 1,000 queued objects. Compare an uncompacted head queue with the compacting version: count array length separately from live size. Do not interpret elapsed milliseconds as a proof of complexity.
+5. **Implementation:** Build `peek` and `size` for a stack stored in an array. Extend it into a minimum stack: a stack that can report its smallest value without scanning on every query. Make repeated equal minima work when one copy is popped.
+6. **Implementation:** Enqueue and drain 1,000 objects in both an uncompacted head queue and the compacting version. Record array length and live size separately. You may observe elapsed time, but explain complexity by counting operations; one timing cannot prove a growth bound.
 
 ### LeetCode and HackerRank Practice
 
-7. **[Daily Temperatures](https://leetcode.com/problems/daily-temperatures/)** — Platform: LeetCode. Official difficulty: Medium. Concepts: monotonic stacks, unresolved indexes, strict comparison, amortized analysis. Why: it turns repeated forward searches into one pass and exposes equality mistakes. Before submitting, predict descending and all-equal results. This official page was verified; no HackerRank page was consulted. Follow with the syllabus tasks Valid Parentheses and Implement Queue using Stacks.
+7. **[Daily Temperatures](https://leetcode.com/problems/daily-temperatures/)** — LeetCode lists this as Medium. Practice monotonic stacks, unresolved indexes, strict comparison, and amortized analysis by replacing repeated forward searches with one pass. Predict descending and all-equal results before submitting, then explain why each index leaves at most once. The existing chapter records prior verification of this official page and no HackerRank consultation; this prose rewrite does not reverify it. Continue with the syllabus tasks Valid Parentheses and Implement Queue using Stacks.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w5-section-hints-and-worked-solutions -->
 
-1. Function returns require LIFO; printer jobs require FIFO. Warmer-day queries use a stack of unresolved indexes with nonincreasing temperatures. It is not a queue simply because days arrive over time.
-2. `([)]` fails at `)`; `(()` leaves one `(` after the final character. Temperature waits are `[3,2,1,0]`: the equal second reading does not settle the first.
-3. After the first dequeue, outgoing is `[B]` and incoming is empty. Adding C makes incoming `[C]`. Peek returns B without changing either array. Dequeues then return B and C.
-4. Replace `>=` with `>`. On `[60,60]`, broken output is `[1,0]`, correct output is `[0,0]`.
-5. Hint: save the minimum of every prefix alongside each pushed value. Duplicates then need no special deletion search. Here is a complete solution; the empty methods return `undefined`.
+1. A function must finish its newest nested call first, so returns use LIFO. Printer jobs use FIFO to serve earlier arrivals first. Warmer-day queries need a stack of unresolved indexes with nonincreasing temperatures: arrival over time alone does not imply queue removal order.
+2. In `([)]`, `)` meets `[` on top and fails. In `(()`, the closer removes only the newest `(`, leaving another at the end. For `[60,60,59,62]`, the answer is `[3,2,1,0]`: the second 60 cannot settle the first 60, but 62 settles all three pending days.
+3. Enqueuing A and B leaves incoming `[A,B]`. Dequeuing transfers both and removes A, leaving outgoing `[B]` and incoming empty. C then enters incoming `[C]`; peek sees B without changing either array. The final dequeues remove B, then transfer and remove C.
+4. Change `>=` to `>`. Two equal readings `[60,60]` are enough: the broken result is `[1,0]`, while the correct result is `[0,0]`. A single reading cannot expose the error because there is no pair to compare.
+5. Keep the smallest value seen so far alongside every pushed value. That stored minimum describes the prefix ending at that entry. Popping restores the earlier entry and its minimum automatically, even with duplicates. The complete solution lets empty methods return `undefined`.
+
+### Demonstration 1 — Store a minimum with each stack entry
 
 ```javascript
 class MinStack {
@@ -309,40 +337,42 @@ console.log(stack.size);
 1
 ```
 
-Each operation does constant work apart from amortized array growth; storage is O(n). The extra minimum field buys fast queries.
+In **Demonstration 1**, pushing 4, 2, 2 stores minima 4, 2, 2. Popping the newest 2 exposes another entry whose minimum is still 2. Popping that entry exposes 4, so both `min()` and `peek()` return 4. The optional access `?.value` returns `undefined` when there is no entry. Each operation does constant work apart from amortized array growth, and n entries require O(n) storage. One extra field per entry buys the fast minimum query.
 
-6. An uncompacted array still has length 1,000 after draining. The shown compacting queue has fewer than 32 retained slots and zero live items. Clearing references and reclaiming actual engine memory are different observations.
-7. The implemented warmer-day scan is a worked solution. Rebuild it from its invariant, then compare output on a small input with a straightforward nested-loop oracle.
+6. After draining, the uncompacted array still has length 1,000, whereas **Demonstration 2** in “JavaScript Implementations” retains fewer than 32 slots and has zero live items. Check those separately from whether references were cleared. None of those observations guarantees when the engine physically reclaims memory.
+7. Rebuild **Demonstration 4** in “JavaScript Implementations” from the statement that pending indexes lack a later warmer answer. On small inputs, compare it with a simple nested-loop implementation used as an oracle—a straightforward reference answer. That independent comparison is especially useful for equality and distance errors.
 
 ## Sources and Further Reading
+<!-- lesson-id:w5-section-sources-and-further-reading -->
 
-Consulted on 2026-11-07. The explanations, traces, and JavaScript examples here are original teaching material aligned with the repository syllabus.
+The chapter's existing source record dates consultation to 2026-11-07. We retain that historical record; no external links were checked anew for this rewrite. The explanations, traces, and JavaScript examples are original teaching material following the repository syllabus.
 
-- [MDN: Array.prototype.shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift) — consulted for front-removal semantics and the empty return value; it does not specify engine allocation or garbage-collection timing.
-- [LeetCode: Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) — consulted the official problem description for the strictly-warmer contract and external practice. No editorial was consulted.
+- [MDN: Array.prototype.shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift) — the prior consultation supports the explanation of removing the front item and returning from an empty array. It supplies no guarantee about engine allocation or garbage-collection timing.
+- [LeetCode: Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) — the prior consultation used the official problem description to establish strictly warmer readings and the practice task. The record reports no editorial consultation.
 
 ## Weekly Summary
+<!-- lesson-id:w5-section-weekly-summary -->
 
-A stack resolves the newest obligation; a queue serves the oldest. A monotonic stack resolves each waiting query once. The performance argument comes from total item movement, while the memory argument must examine actual retained storage. These distinctions will support recursion in [Week 8](week-08.md) and tree traversal in [Week 9](week-09.md).
+You can now explain container choice by asking which waiting item may safely leave next. Stacks choose the newest, queues choose the oldest, and a monotonic stack removes a waiting query when its first qualifying answer arrives. Count total item movements to justify performance, and inspect retained storage separately to justify memory. We will use these distinctions again for suspended recursive calls in [Week 8](week-08.md) and tree traversal in [Week 9](week-09.md).
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Explain why `([)]` is invalid despite balanced counts. <!-- checkpoint:w5-nesting-invariant -->
-- [ ] Prove the monotonic scan has only O(n) total pops. <!-- checkpoint:w5-amortized-stack-proof -->
+- [ ] Show where `([)]` fails and explain why equal bracket counts cannot prove nesting. <!-- checkpoint:w5-nesting-invariant -->
+- [ ] Account for each index's one possible pop to prove O(n) total pops in the monotonic scan. <!-- checkpoint:w5-amortized-stack-proof -->
 
 ### JavaScript
 
-- [ ] Implement and trace both queue designs without using shift. <!-- checkpoint:w5-efficient-queue-implementations -->
-- [ ] Distinguish queue live size, retained slots, and retained object references. <!-- checkpoint:w5-retained-memory -->
+- [ ] Build both queue designs without shift and trace an arrival that occurs between removals. <!-- checkpoint:w5-efficient-queue-implementations -->
+- [ ] Measure waiting items, retained array slots, and retained object references as three separate quantities. <!-- checkpoint:w5-retained-memory -->
 
 ### Practice
 
-- [ ] Solve the equal-temperature debugging exercise and Daily Temperatures. <!-- checkpoint:w5-warmer-day-practice -->
-- [ ] Implement a minimum stack that handles duplicate minima. <!-- checkpoint:w5-min-stack-practice -->
+- [ ] Repair the equal-temperature bug and solve Daily Temperatures with a strict warmer comparison. <!-- checkpoint:w5-warmer-day-practice -->
+- [ ] Build a minimum stack and show that popping one duplicate minimum preserves the other. <!-- checkpoint:w5-min-stack-practice -->
 
 ### Reflection
 
-- [ ] Write one example where amortized and worst-case operation costs differ. <!-- checkpoint:w5-cost-reflection -->
-- [ ] Explain a pattern choice aloud before looking at the code. <!-- checkpoint:w5-pattern-reflection -->
+- [ ] Record a concrete sequence whose amortized operation cost differs from its most expensive operation. <!-- checkpoint:w5-cost-reflection -->
+- [ ] Explain aloud which pending item should leave next before consulting an implementation. <!-- checkpoint:w5-pattern-reflection -->

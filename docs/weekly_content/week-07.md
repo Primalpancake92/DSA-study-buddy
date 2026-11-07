@@ -1,65 +1,74 @@
 # Week 7 - Linked Lists
+<!-- lesson-id:w7-section-chapter-introduction -->
 
-This week, you will be learning linked lists: sequences built from nodes that point to other nodes. They make insertion, removal, and reordering into concrete exercises in preserving references, a useful foundation for trees and other connected structures.
+Imagine a sequence in which each item tells you where the next item lives. That is a linked list. Each item is a node—an object containing a value and a reference to the next object. This week we will use lists to practice inserting, removing, and rearranging items without losing access to the rest. That care with references also prepares you for trees and other connected structures.
 
-We will start by following a list, then reverse its arrows, merge sorted chains with a dummy node, detect cycles, and combine midpoint finding with reversal to reorder a list.
+First we will follow links to understand how a list differs from an array. Then we will reverse those links, join two sorted chains using a temporary starting node, and detect a chain that loops back on itself. Finally, we will combine midpoint finding, reversal, and alternating links to reorder a list. Each stage has a small, explainable job.
 
-By the end, you will be able to draw each reference before changing it, handle an empty head, distinguish node identity from equal values, and explain when a supposedly constant-time operation still requires a linear search.
+By the end, you should be able to draw the references before each change and handle a list with no first node. You will distinguish two equal values from two references to the very same object. You will also be able to challenge a constant-time claim by asking whether it includes the time needed to find the node being changed.
 
-There will be a checklist at the end to help you track your progress. Tick it after drawing and implementing the operations yourself, and keep your smallest pointer-bug examples in your progress logs.
+Use the final checklist after drawing the operations and implementing them yourself. Keep the smallest examples of reference errors in your progress logs. A three-node drawing showing exactly where a link was lost is often more useful than a long description of a failed test.
 
 ## Learning Objectives
+<!-- lesson-id:w7-section-learning-objectives -->
 
-- Represent a singly linked list with objects and a terminating `null` reference.
-- Reverse links without losing the unprocessed suffix.
-- Merge two disjoint sorted chains with a sentinel node.
-- Use slow/fast references for cycle detection and midpoint discovery.
-- Reorder a list in place while preserving every original node exactly once.
-- Separate traversal cost, rewiring cost, and demonstration-helper allocations.
+- Represent a one-way chain of node objects, ending with `null` to mean there is no successor.
+- Reverse the arrows while keeping a saved route to every unprocessed node.
+- Merge sorted chains that share no objects, using a temporary predecessor to simplify the first attachment.
+- Explain how references moving at different speeds can reveal a cycle or locate a midpoint.
+- Reorder existing links so every original node appears exactly once, without replacing its value.
+- Count walking through the chain separately from changing links and from arrays allocated by teaching helpers.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w7-section-prerequisite-knowledge -->
 
-Review object references and loops, and revisit slow/fast pointers in [Week 3](week-03.md). LIFO/FIFO from [Week 5](week-05.md) helps distinguish an ordering interface from its storage representation. JavaScript variables hold references to objects: assigning one variable to another does not clone the node. Unless explicitly constructing a cycle, all examples assume finite acyclic singly linked lists.
+Review loops and variables that refer to objects, plus the different-speed pointers in [Week 3](week-03.md). The ordering policies in [Week 5](week-05.md) also remind us to distinguish what operations promise from how data is stored. In JavaScript, assigning one object variable to another copies a reference, not the object itself. Unless we deliberately construct a cycle, inputs here are finite, acyclic singly linked lists: they have a limited number of nodes, never loop back, and provide only a forward link.
 
 ## Core Theory
+<!-- lesson-id:w7-section-core-theory -->
 
 ### Follow references, not positions
 
-An array gives an index-to-element relationship. A list gives a node-to-next-node relationship. Each node stores `value` and `next`; head points at the first node, and `null` marks the end. The empty list is simply a null head. To reach the fifth node, follow four links from the first. There is no built-in constant-time indexed access.
+An array lets you ask directly for an element by index. A list instead lets you ask a node for its successor. We store data in `value` and that successor reference in `next`. The **head** is a reference to the first node; `null` means there is no node, either at the end or as the head of an empty list. To reach the fifth node, start at the first and follow four links. This representation provides no built-in constant-time jump to an arbitrary index.
 
-Two nodes containing 7 can be different objects. Identity answers “is this the same node?” while value equality answers “do these nodes contain equal data?” Cycle detection needs identity. Reversal also preserves identities: the same objects remain, but their links change.
+Two objects can both contain 7 without being the same node. **Identity** asks whether two references point to the same object; value equality asks whether the objects hold equal data. A cycle means revisiting an object, not merely seeing a repeated value, so cycle detection needs identity. Reversal must preserve identity too: we change the existing objects' links rather than creating replacement nodes with matching values.
 
-Inserting after a known node is constant work: point the new node at the old successor, then point the predecessor at the new node. Removing its successor is constant work by bypassing it. Finding the predecessor may take O(n). A singly linked list cannot generally delete its tail in O(1) when only head is available. Data-structure claims must include what references the caller already possesses.
+If you already hold a reference to a node, inserting after it takes constant work. Point the new node to the old successor, then point the known node to the new node. To remove its successor, bypass that successor with one link change. However, finding this predecessor—the node immediately before the change—can take O(n). With only head, a singly linked list cannot generally delete its tail in O(1). Whenever you quote a cost, say which references are already available and whether the search for them is included.
 
 ### Reversal has two regions
 
-Maintain a reversed prefix headed by previous and an untouched suffix headed by current. Initially the prefix is empty and the suffix is the whole list. Save `current.next` before overwriting it; that saved reference is your route back to the suffix. Then turn current's arrow toward previous, move previous to current, and move current to the saved successor.
+Split your mental picture into two regions. `previous` heads the already reversed beginning, called a prefix; `current` heads the untouched remainder, called a suffix. Initially previous is null and current is the original head. Before changing `current.next`, save it. That reference is your only guaranteed route to the untouched remainder. Now point current back toward previous, move previous onto current, and advance current to the saved successor. The order of these assignments is part of the algorithm.
 
-After each iteration, the reversed region grows by one node and the untouched region shrinks by one. No node is copied or discarded. When current becomes null, previous heads the entire reversed chain. Returning the original head would return the new tail, which now points to null.
+After one iteration, one more original object belongs to the reversed region and one fewer remains untouched. This invariant explains why every node is retained without copying. When current reaches null, there is no remainder and previous heads the entire reversed list. The original head is now the tail and points to null, so returning it would expose only that final node.
 
 ### A dummy node removes the first-node special case
 
-To merge sorted lists, repeatedly attach the smaller current head to a growing result. A dummy node provides a predecessor even before the first real output node exists. Tail always points at the final attached node; the answer starts at `dummy.next`, not at dummy itself. This sentinel idea is also discussed in [Stanford's linked-list section](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1224/section/section7/).
+To merge two sorted lists, repeatedly attach the smaller current head to your output. The first attachment seems special because there is no previous output node. A **dummy node**, also called a sentinel, supplies that temporary predecessor. Tail starts there and always moves to the final attached node. Return `dummy.next` so the temporary node never becomes user data. [Stanford's linked-list section](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1224/section/section7/) discusses this same simplifying idea.
 
-The merge invariant says the completed prefix is sorted, and every remaining value is at least its last value. The smaller current head is safe because each input suffix is already sorted. Once one input empties, attach the entire other suffix. This implementation reuses nodes and changes their links. Inputs must be disjoint: shared suffixes could make rewiring create cycles. Use copied nodes if callers need independent original lists.
+Our merge invariant says the completed prefix is sorted and no remaining value is smaller than its last value. Because each remaining input chain is sorted, its head is its smallest value; choosing the smaller head is therefore safe. When one input runs out, the other suffix can be attached whole.
+
+This implementation reuses nodes, so merging changes input links. The inputs must be **disjoint**, meaning they share no node objects. A shared suffix can make rewiring introduce a cycle. If callers need independent unchanged originals, use copied nodes instead and account for their storage. Equal values are fine; shared identities are the concern.
 
 ### Slow and fast references compare positions through motion
 
-For cycle detection, slow moves one edge and fast moves two. If there is no cycle, fast eventually reaches null. Check both fast and `fast.next` before taking two steps. If a cycle exists, both pointers eventually circulate inside it. Their relative position changes by one modulo the cycle length each iteration, so they must meet.
+For cycle detection, let slow move one link per iteration and fast move two. Without a cycle, fast eventually reaches the end. Check both fast and `fast.next` before taking two steps so neither access dereferences null. With a cycle, both references eventually travel around the same loop. Fast gains one position per iteration relative to slow. Thinking of positions wrapping around after the cycle length—arithmetic modulo that length—shows that the gap must eventually become zero and the references must meet.
 
-The meeting must be tested after moving. Both pointers begin at head; testing before moving would falsely claim every nonempty list is cyclic. The equality test is `slow === fast`, not equality of values.
+Test for a meeting after movement. Both references start at head, so testing immediately would incorrectly declare every nonempty list cyclic. Use `slow === fast` to compare objects. Comparing `slow.value` and `fast.value` would confuse repeated data with revisiting the same node.
 
-For finding a midpoint in an acyclic list, the same speed difference is useful: when fast reaches the end, slow has covered roughly half the nodes. Which middle you choose for an even-length list depends on initialization and loop conditions. Our reorder algorithm intentionally leaves slow at the end of the first half.
+The same speed difference finds a midpoint when the list has no cycle. By the time fast reaches the end, slow has traveled roughly half as far. An even-length list has two plausible middle nodes, so initialization and stopping conditions determine which you get. For reordering, we deliberately stop slow at the last node of the first half, giving us the place to cut the chain.
 
 ### Reordering combines smaller operations
 
-To transform `a,b,c,d,e` into `a,e,b,d,c`, split at the midpoint, reverse the second half, then weave the two chains. Splitting is essential: without setting the first half's last `next` to null, old links may remain and form a cycle. During weaving, save both next references before overwriting either arrow.
+To turn `a,b,c,d,e` into `a,e,b,d,c`, first cut at the midpoint, then reverse the second half, then weave the two chains by taking one node from each. Cutting means setting the first half's last `next` to null. Without that assignment, an old cross-half link can survive and form a cycle. During weaving, save both successors before changing either arrow so both unprocessed chains remain reachable.
 
-This decomposition is worth practicing. A difficult-looking pointer task often becomes manageable when each stage has one simple invariant: disjoint halves, reversed second half, then alternating prefix.
+Practice explaining these stages separately. After splitting, the chains share no nodes or links. After reversing, the second chain is ready in the required outer-to-inner order. During weaving, the completed prefix alternates between the two halves. Keeping one small invariant per stage makes it easier to locate a reference mistake than trying to reason about a single complicated loop.
 
 ## JavaScript Implementations
+<!-- lesson-id:w7-section-javascript-implementations -->
 
-### Construct, inspect, and reverse
+We will construct a three-node chain, reverse its existing links, and inspect what happened to the original head.
+
+### Demonstration 1 — Reverse a list without replacing nodes
 
 ```javascript
 class Node {
@@ -97,9 +106,11 @@ console.log(reverseList(null));
 null
 ```
 
-The conversion helpers are for demonstration and require acyclic lists. Do not use `toArray` on a cycle: it will never reach null. Their O(n) allocations are separate from the reversal's O(1) working memory.
+In **Demonstration 1**, the first node holds 6. The first reversal step saves the node holding 2, then points 6 to null. The next two steps place 2 and then 9 in front, producing `[9,2,6]`. `originalHead` still refers to the same 6 node, now with a null successor. `fromArray` and `toArray` make examples easy to inspect but allocate O(n) storage, separate from reversal's O(1) working memory. Both helpers expect acyclic chains; `toArray` would never reach null on a cycle.
 
-### Merge two sorted lists using a dummy
+We will reuse nodes from two sorted, disjoint chains and give equal values a consistent attachment order.
+
+### Demonstration 2 — Merge sorted chains behind a temporary predecessor
 
 ```javascript
 function fromArray(values) {
@@ -138,9 +149,11 @@ console.log(mergeSorted(null, null));
 null
 ```
 
-Choosing the left input on equal values gives a deterministic tie rule and preserves each input's internal order. Updating tail is not optional: without it, every assignment overwrites the same link.
+In **Demonstration 2**, attach 1 from a, 2 from b, then the 4 from a before the 4 from b because `<=` gives the left input the tie. Each input retains its internal order. After every attachment, `tail = tail.next` advances the place where the next node will join. Without that line, later assignments would overwrite the same link. When a ends after 7, `a ?? b` attaches b's remaining 8; `??` selects b only when a is null or undefined.
 
-### Floyd's cycle test
+We will distinguish two equal-valued objects from a genuine return to the same object, including a one-node loop.
+
+### Demonstration 3 — Detect a cycle with slow and fast references
 
 ```javascript
 function hasCycle(head) {
@@ -170,9 +183,11 @@ false
 true
 ```
 
-The first two equal values demonstrate why comparing contents is insufficient. The self-loop tests the smallest possible cycle without invoking a traversal helper that expects termination.
+In **Demonstration 3**, a and b both hold 7, yet the first call returns false because b ends at null. Assigning `b.next = a` creates an actual cycle and the next call returns true. A null head returns false without movement. The self-loop makes slow and fast meet after one iteration, testing the smallest cycle. We deliberately avoid conversion helpers on cyclic input because those helpers expect to reach an end.
 
-### Split, reverse, and weave
+We will reorder odd and even chains by cutting them into independent halves before reversing and weaving.
+
+### Demonstration 4 — Reorder existing nodes through three stages
 
 ```javascript
 function fromArray(values) {
@@ -223,11 +238,12 @@ console.log(reorderList(null));
 null
 ```
 
-The first half has at least as many nodes as the second, so a first-half node exists for every weave iteration. For odd length, the final first-half node remains at the end. The algorithm changes links, not values.
+In **Demonstration 4**, `[1,2,3,4,5]` leaves slow at 3. Saving `slow.next` preserves 4 before `slow.next = null` cuts the chain. Reversing gives a second half `[5,4]`; weaving joins 1 to 5 to 2, then 2 to 4 to 3. The first half has at least as many nodes, so every second-half node has a partner. For odd length, the extra first-half node stays at the end. Only links change; node objects and their values are preserved.
 
 ## Worked Examples
+<!-- lesson-id:w7-section-worked-examples -->
 
-Reversing nodes A(6), B(2), C(9):
+Give the objects names A, B, and C and let them hold 6, 2, and 9. Now follow the saved successor and the two region heads through each reversal step.
 
 | Iteration | Saved next | Reversed prefix after update | Remaining suffix |
 | --- | --- | --- | --- |
@@ -235,15 +251,16 @@ Reversing nodes A(6), B(2), C(9):
 | 2 | C | B→A→null | C→null |
 | 3 | null | C→B→A→null | empty |
 
-The node labels identify objects; values in parentheses are merely payloads. This drawing still works if all three values are equal.
+A, B, and C identify objects, while the numbers in parentheses are their payloads—the data carried by each node. The reasoning would be unchanged if all three payloads were 7. Drawing object identities prevents equal values from hiding a lost or repeated node.
 
-Merging `[1,4,7]` and `[2,4,8]` attaches 1 from A, 2 from B, 4 from A, 4 from B, then 7 from A. A is now empty, so the remaining B node 8 is attached in one assignment. The dummy never enters the output.
+Merge `[1,4,7]` with `[2,4,8]` by comparing current heads. Attach 1 from A, then 2 from B, then 4 from A because ties go left, then 4 from B, then 7 from A. Now A is empty. Attach B's remaining 8 in one assignment rather than another comparison loop. Returning the link after the dummy keeps that temporary node out of the answer.
 
-For a cycle `A→B→C→D→B`, the slow/fast pairs after movement are `(B,C)`, `(C,B)`, `(D,D)`. They meet inside the cycle, not necessarily at its entry. This test returns a boolean; locating the entry is a separate problem.
+For `A→B→C→D→B`, start both references at A and record pairs after movement: `(B,C)`, `(C,B)`, then `(D,D)`. They meet at D, although the loop begins at B. That is enough for a boolean yes/no cycle test. Do not return the meeting node as though it identified the entry; finding the entry is a separate problem.
 
-For reorder `[1,2,3,4,5]`, slow stops at 3. Cut into `[1,2,3]` and `[4,5]`, reverse the latter to `[5,4]`, then weave 1→5→2 and 2→4→3. Saving next references is what allows each stage to continue after rewriting links.
+Trace reordering `[1,2,3,4,5]` as three transformations. Slow stops at 3, so cutting gives `[1,2,3]` and `[4,5]`. Reversing the latter gives `[5,4]`. Weaving first makes 1→5→2, then 2→4→3. At each attachment, the saved next references tell you where to resume even though the original forward arrows have been overwritten.
 
 ## Visual Explanations
+<!-- lesson-id:w7-section-visual-explanations -->
 
 ```text
 Before reversal step:
@@ -261,9 +278,10 @@ Reorder:
 1 -> 5 -> 2 -> 4 -> 3 -> null
 ```
 
-When a pointer bug is confusing, draw the arrows immediately after each assignment. Drawing only the final desired list can hide the moment the suffix was lost.
+When a reference error is hard to see, draw the state immediately after each assignment, including local variables. A drawing of only the desired final list cannot tell you which intermediate assignment lost the suffix. Ask whether every unprocessed node is still reachable from at least one saved reference.
 
 ## Complexity Analysis
+<!-- lesson-id:w7-section-complexity-analysis -->
 
 | Operation | Time | Auxiliary space |
 | --- | --- | --- |
@@ -275,17 +293,22 @@ When a pointer bug is confusing, draw the arrows immediately after each assignme
 | Reorder n nodes | Θ(n) | O(1) |
 | Convert n nodes to an array | Θ(n) | Θ(n) returned output |
 
-Floyd's test uses O(n) time on an acyclic chain. In a cyclic list, after entering the cycle it needs at most λ further iterations to meet. Reordering uses three linear passes; adding them gives linear time, not cubic time. Recursive reversal would use O(n) call-stack space and can exceed JavaScript's stack limit. The iterative version avoids that risk.
+In the cycle bound, μ counts nodes before the loop and λ counts nodes around it. Once both references are in the cycle, Floyd's test meets within at most λ further iterations; an acyclic chain takes O(n) time. Reordering makes three linear passes one after another, so you add their costs and still get linear time. You would multiply only for work repeated inside other work. Recursive reversal would retain O(n) waiting function calls and may exceed JavaScript's call-stack limit; iterative reversal keeps only a fixed number of references.
 
 ## Common Mistakes
+<!-- lesson-id:w7-section-common-mistakes -->
 
-- Saving the successor after overwriting `next` loses the original successor.
-- Returning the old head after reversal returns the tail.
-- Comparing values in cycle detection falsely treats equal-valued nodes as identical.
-- Omitting the dummy-to-real-head step returns a node that was never input data.
-- Forgetting `tail = tail.next` repeatedly replaces the first output link.
-- Reordering without severing the halves may leave a cycle.
-- Assuming merge preserves the original input chains ignores its mutation contract.
+- Save the original successor before overwriting `next`; afterwards that field leads backward.
+- Return the new head after reversal. The old head now exposes only the tail.
+- Compare node identities for cycles so repeated values do not create false positives.
+- Return the node after the dummy, keeping the temporary predecessor out of the data.
+- Advance tail after each merge attachment so the next choice extends the prefix rather than replaces it.
+- Cut the reorder halves apart before weaving; old cross-links can create cycles.
+- Tell callers that merge changes existing links. Reusing nodes does not preserve independent original chains.
+
+This deliberately broken reversal fragment saves its route forward too late. Trace it with at least two nodes.
+
+### Demonstration 1 — Broken reversal overwrites the saved route
 
 ```javascript-bug
 current.next = previous;
@@ -294,49 +317,54 @@ previous = current;
 current = next;
 ```
 
-This fragment saves the new backward link, not the old forward link. On the first step previous is null, so it abandons the remaining list immediately.
+In broken **Demonstration 1**, take `A→B→null` with previous null and current A. The first assignment changes A's next to null. The next line therefore saves null rather than B. After current becomes null, the loop would stop, abandoning B. Moving the save before the overwrite preserves the original forward route.
 
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w7-section-interview-and-leetcode-pattern-recognition -->
 
-“Change links,” “constant extra space,” “merge sorted lists,” and “cycle” point toward reference algorithms. Ask whether nodes may be reused and whether input lists can share nodes. For Reorder List, recognizing a midpoint plus reversal plus weave is more useful than improvising a single complicated loop.
+Prompts about changing links, constant extra space, sorted-list merging, or cycles ask you to reason about references. Before coding, ask whether you may reuse nodes and whether inputs can share them. For Reorder List, explain midpoint, reverse, and weave as separate stages. That decomposition lets you justify each change without inventing one large loop whose intermediate structure is hard to describe.
 
-If a prompt asks only for frequent indexed reads, an array is usually a better fit. If it gives a predecessor reference and asks for local insertion, a list may be convenient. Explain the available references before quoting O(1).
+Choose the representation according to access needs. Frequent indexed reads usually favor an array. A prompt that already supplies a predecessor reference and requests a nearby insertion may favor a list. Before claiming O(1), state exactly which node you can already reach without walking from head.
 
 ## Practice Exercises
+<!-- lesson-id:w7-section-practice-exercises -->
 
 ### Conceptual Questions
 
-1. Why is inserting after a known node O(1), but inserting before a value may take O(n)? What changes if the value occurs twice?
-2. Explain why two nodes with value 7 do not prove a cycle.
+1. Compare inserting after a node you already hold with inserting before a requested value. Explain the O(1) versus possible O(n) costs, and decide what the request means if that value occurs twice.
+2. Draw two different objects containing 7. Explain what extra reference relationship, beyond equal values, would be needed to establish a cycle.
 
 ### Code Tracing
 
-3. Reverse `A→B→C` on paper, recording previous/current/next after each assignment.
-4. Trace slow and fast on a self-loop and on a four-node acyclic list. Trace the reorder midpoint separately; its stopping rule differs.
+3. Reverse `A→B→C` on paper. Record previous, current, and next after each individual assignment so the save-before-overwrite requirement is visible.
+4. Trace slow and fast through a self-loop and a four-node chain ending at null. Then separately trace the reorder midpoint: explain how its different stopping rule changes the final slow position.
 
 ### Debugging Exercises
 
-5. Repair the broken reversal fragment. Then explain the effect of omitting the tail update from merge.
-6. Remove the split assignment from the reorder algorithm on paper. Identify an old arrow that can corrupt the woven result.
+5. Repair **Demonstration 1** in “Common Mistakes,” showing which successor is preserved. Then remove merge's tail update on paper and show which attachment gets overwritten.
+6. On paper, omit the assignment that cuts the reorder halves apart. Follow an old cross-half arrow and identify how it can corrupt the woven result.
 
 ### Implementation Exercises
 
-7. Write `removeAll(head,target)` using a dummy node. Reuse surviving nodes; handle repeated matching nodes at the beginning and end.
-8. Rebuild merge and reorder from their invariants. Check node identities as well as output values so lost or duplicated nodes cannot hide behind duplicates.
+7. Implement `removeAll(head,target)` with a dummy predecessor and reuse every surviving node. Test consecutive matches at the beginning and end, plus input in which every node matches.
+8. Rebuild merge and reorder from the statements each stage preserves. Check original object identities as well as values; equal payloads must not hide missing or duplicated nodes.
 
 ### LeetCode and HackerRank Practice
 
-9. **[Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/)** — Platform: LeetCode. Official difficulty: Easy. Concepts: reference rewiring, iteration, empty lists. Why: it isolates the save-before-overwrite habit and gives a direct check of the reversal contract. Only this LeetCode link was verified for this chapter; no HackerRank page was consulted. Continue with the syllabus titles Linked List Cycle and Reorder List after the local exercises.
+9. **[Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/)** — LeetCode lists this as Easy. Practice changing references, iteration, and empty lists. It isolates saving a successor before overwriting a link, making the reversal contract easy to check directly. The prior chapter record reports verification of only this LeetCode link and no HackerRank consultation; this rewrite does not repeat that verification. Continue with the syllabus titles Linked List Cycle and Reorder List after completing the local exercises.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w7-section-hints-and-worked-solutions -->
 
-1. Rewiring needs only the predecessor and successor. Searching for the requested value still scans nodes; duplicate values require a stated “first” or “all” policy.
-2. Identity is about the object, not its payload. The cycle demonstration contains two 7s and correctly returns false until a backward link is added.
-3. The reversal trace above is the solution. Each saved successor must come from the original forward arrow before mutation.
-4. A self-loop meets after one iteration. On four acyclic nodes A,B,C,D, the cycle test moves to `(B,C)`, then `(C,null)` and stops. The reorder midpoint instead stops at B, splitting the list evenly.
-5. Save next before assigning `current.next`. Without advancing merge's tail, later choices overwrite `dummy.next`, losing the earlier output prefix.
-6. On four nodes, leaving the old 2→3 link while weaving the reversed second half can eventually produce a self-link at 3. Splitting creates genuinely disjoint chains before weaving.
-7. Hint: predecessor should advance only when you keep its successor. Here is the complete implementation.
+1. Given predecessor and successor, changing their local links takes constant work. Searching for a value may still visit every node. If values repeat, specify whether insertion is before the first match or before all matches; value alone does not name a unique object.
+2. Identity concerns the object carrying a payload. **Demonstration 3** in “JavaScript Implementations” has two 7s but returns false until b links back to a. That backward reference, not the repeated number, creates the cycle.
+3. Use the table in “Worked Examples” to check your drawing. Every saved successor must come from the original forward arrow before you mutate that field. A later save cannot recover an overwritten reference.
+4. A self-loop meets after one iteration. On A,B,C,D ending at null, cycle detection moves to `(B,C)` and then `(C,null)` before stopping. Reorder's midpoint loop instead stops at B, allowing an even split into A,B and C,D.
+5. Save next before assigning `current.next`. In merge, failing to advance tail leaves it at the dummy, so later choices keep overwriting `dummy.next` and discard the previously attached prefix.
+6. On four nodes, leaving the original 2→3 link during weaving can eventually create a self-link at 3. Cutting first removes the old connection so the two working chains are genuinely disjoint.
+7. Keep the predecessor still when you remove its successor, because its new successor also needs checking. Advance only after keeping a node. A dummy applies this same rule to matches at the original head.
+
+### Demonstration 1 — Remove every matching node with one predecessor
 
 ```javascript
 function removeAll(head, target) {
@@ -368,40 +396,42 @@ null
 null
 ```
 
-Every iteration removes a node from consideration or advances past one, giving O(n) time and O(1) working space. Removed nodes can still exist if some outside variable references them; removal is a structural operation, not a promise about garbage collection.
+In **Demonstration 1**, `[2,2,1,2,3,2]` starts with previous at the dummy. Removing the first 2 leaves previous there, ready to remove the second 2. Keeping 1 advances previous; later 2s are bypassed the same way, leaving `[1,3]`. Every iteration removes a node from consideration or advances beyond one, giving O(n) time and O(1) working space. An outside variable may still refer to a removed node. Removal changes chain membership; it does not promise immediate garbage collection.
 
-8. Record input node objects in a Set before mutation. Afterwards, traverse with a second Set, rejecting repeated identities and checking that exactly the expected originals remain. That test uses O(n) memory, but does not change the algorithm's O(1) working-space claim.
-9. The iterative reversal above is the worked solution. Adapt `value` to the platform's provided field name if necessary; do not rebuild the input into new nodes when asked to reverse links.
+8. Before mutation, collect input objects in a Set. Afterwards, use another Set while traversing: reject repeated identities and compare the surviving objects with the expected originals. The test uses O(n) memory, but that does not change the algorithm's O(1) working-space claim. Measurement helpers and the operation being measured have separate costs.
+9. Use **Demonstration 1** in “JavaScript Implementations” as the worked reversal solution. Adapt the `value` field name if the platform supplies a different one. When the task asks to reverse links, constructing a new chain with reversed values does not satisfy the same object-preservation contract.
 
 ## Sources and Further Reading
+<!-- lesson-id:w7-section-sources-and-further-reading -->
 
-Consulted on 2026-11-07. Original explanations and examples follow the repository syllabus.
+The existing source record dates consultation to 2026-11-07. We preserve that attribution without claiming a fresh external-link check during this rewrite. The explanations and examples are original material following the repository syllabus.
 
-- [Stanford CS106B: Linked Lists section](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1224/section/section7/) — consulted the archived section for linked-node reasoning and dummy-node exercises. Its language-specific memory-management examples are not JavaScript requirements.
-- [LeetCode: Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) — read the official statement, difficulty, and empty-input example. No editorial was consulted.
+- [Stanford CS106B: Linked Lists section](https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1224/section/section7/) — the prior reading used this archived section for reasoning about linked nodes and dummy-node exercises. Translate the ideas rather than treating its language-specific memory management as JavaScript requirements.
+- [LeetCode: Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) — the prior reading established the official statement, difficulty, and empty-input example used for practice. The record reports no editorial consultation.
 
 ## Weekly Summary
+<!-- lesson-id:w7-section-weekly-summary -->
 
-Lists reward careful sequencing: save the route forward, change an arrow, then advance. Dummy nodes unify head changes with ordinary changes. Slow/fast references exploit movement rather than value equality. Reorder problems become simpler when split into independently understandable stages. In [Week 8](week-08.md), the same discipline will help you track suspended calls and shared mutable state.
+You can now reason about list changes by saving your route forward, changing one arrow, and only then advancing. Dummy nodes let head changes follow the same rules as other local changes. Different-speed references use motion and object identity rather than payload equality. Splitting reorder into stages keeps those obligations manageable. In [Week 8](week-08.md), the same careful state tracking will help you understand waiting function calls and arrays shared between calls.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Explain node identity and the cost of reaching an indexed position. <!-- checkpoint:w7-identity-and-access -->
-- [ ] Explain why slow and fast must meet inside a cycle. <!-- checkpoint:w7-cycle-proof -->
+- [ ] Distinguish object identity from equal data and count the links needed to reach an index. <!-- checkpoint:w7-identity-and-access -->
+- [ ] Explain how the changing relative gap forces slow and fast to meet within a cycle. <!-- checkpoint:w7-cycle-proof -->
 
 ### JavaScript
 
-- [ ] Reverse a list while preserving every original node. <!-- checkpoint:w7-reversal-implementation -->
-- [ ] Merge disjoint sorted lists with a dummy and moving tail. <!-- checkpoint:w7-dummy-merge -->
+- [ ] Reverse existing links and verify that every original object is still present. <!-- checkpoint:w7-reversal-implementation -->
+- [ ] Merge disjoint sorted inputs using a temporary predecessor and an advancing tail. <!-- checkpoint:w7-dummy-merge -->
 
 ### Practice
 
-- [ ] Implement removal of all matching nodes and test head changes. <!-- checkpoint:w7-removal-practice -->
-- [ ] Reorder even and odd lists and check for accidental cycles. <!-- checkpoint:w7-reorder-practice -->
+- [ ] Remove all matching nodes, including consecutive matches that change the head. <!-- checkpoint:w7-removal-practice -->
+- [ ] Reorder both even and odd chains and test that no node loops back accidentally. <!-- checkpoint:w7-reorder-practice -->
 
 ### Reflection
 
-- [ ] Record a lost-reference bug as a sequence of drawings. <!-- checkpoint:w7-reference-reflection -->
-- [ ] State mutation assumptions and separate helper allocations from working space. <!-- checkpoint:w7-contract-reflection -->
+- [ ] Draw each assignment of a bug that loses access to an unprocessed node. <!-- checkpoint:w7-reference-reflection -->
+- [ ] Explain which inputs are mutated and distinguish helper storage from algorithm working memory. <!-- checkpoint:w7-contract-reflection -->

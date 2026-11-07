@@ -90,7 +90,7 @@ export function MarkdownChapter({ markdown, weekId, progress, onToggle }) {
         return (
             <input
                 type="checkbox"
-                disabled={!id || !progress.ready || progress.saving}
+                disabled={!id || !progress.ready || progress.saving || progress.reloading}
                 checked={Boolean(id && progress.completedCheckpoints.includes(id))}
                 onChange={() => onToggle(id)}
                 aria-label={id ? undefined : 'Checklist item has no valid checkpoint ID'}

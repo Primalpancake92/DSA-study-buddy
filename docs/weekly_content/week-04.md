@@ -1,89 +1,96 @@
 # Week 4 - Sliding Window
+<!-- lesson-id:w4-section-chapter-introduction -->
 
-This week, you will be learning how to maintain information about a contiguous range without recomputing it from scratch. We will study fixed windows, variable windows, and frequency tracking through sums, unique substrings, distinct-character limits, and minimum coverage.
+This week, we will work with ranges of consecutive input positions, called contiguous ranges. Instead of recomputing everything when a range moves, we will update the information that changed. That is the sliding-window idea. We will use fixed and changing widths to calculate sums, find substrings without repeats, limit distinct characters, and locate the smallest range supplying required characters.
 
-We will start with overlapping fixed-width sums so the saved work is visible. Then we will let the width vary, define what makes a window valid, and decide whether to shrink until validity is restored or shrink while validity remains true.
+We will start with fixed-width sums because adjacent ranges visibly share most of their entries. Then we will let width vary and define what makes each range valid. Some tasks require us to shrink an invalid range until it becomes valid. Others require us to shrink a valid range while it still covers everything needed. We will derive those different decisions rather than memorize a single loop template.
 
-By the end, you should be able to write a window invariant, update its state as either boundary moves, and explain why nested contraction loops can still take linear total work. You should also be able to reject a sliding-window approach when its monotonicity assumptions do not hold.
+By the end, you should be able to say what a window's stored state means and preserve that invariant as either boundary moves. You will explain why a loop that shrinks inside another loop can still do linear total work. Just as importantly, you will check whether validity changes predictably in one direction—a property called monotonicity—and reject a proposed window argument when that assumption fails.
 
-There will be a checklist at the end of the module to complete your progress logs. Use the Theory, JavaScript, Practice, and Reflection categories after tracing the examples, completing the exercises, and explaining the differences between longest-valid and shortest-covering windows.
+After tracing the examples and attempting the exercises, update your progress logs with the final checklist. Use Theory, JavaScript, Practice, and Reflection to record both implementations and explanations. In particular, practice saying when a longest-valid range may be measured and when a shortest-covering range may be measured. That decision is where many superficially similar window routines diverge.
 
 ## Learning Objectives
+<!-- lesson-id:w4-section-learning-objectives -->
 
-- Distinguish contiguous subarrays and substrings from subsequences with gaps.
-- Derive fixed-window updates by removing outgoing and adding incoming contributions.
-- Initialize from a legal candidate and define invalid-width behavior.
-- Maintain unique-character and at-most-k-distinct windows with Set or Map state.
-- Track required occurrences for Minimum Window Substring, including repeated target characters.
-- Prove linear aggregate boundary movement instead of multiplying nested loop bounds.
-- Explain when negative values invalidate a variable sum-window argument.
-- Account for code-point conversion, frequency state, and final output construction.
+- Explain why a subarray or substring uses consecutive original positions, while a subsequence may skip positions.
+- Derive a fixed-width update by subtracting the outgoing entry and adding the incoming one.
+- Start the best answer from an actual legal candidate and specify what invalid widths return.
+- Use Set membership for unique-character windows and Map counts for windows allowing at most k distinct characters.
+- Track every required occurrence in Minimum Window Substring, including several copies of the same target character.
+- Add up total boundary advances to prove linear work, rather than automatically multiplying nested-loop bounds.
+- Show exactly why negative values can break a variable-width sum argument while leaving fixed-width updates valid.
+- Include converted character arrays, count state, and construction of the final returned string when accounting for costs.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w4-section-prerequisite-knowledge -->
 
-Review [Week 2](week-02.md) for frequency Maps and [Week 3](week-03.md) for monotone pointer movement. A window uses boundaries too, but unlike compaction it represents consecutive positions in the **original** input. It cannot combine separated survivors into a new prefix and still claim they form a substring.
+Review frequency Maps in [Week 2](week-02.md) and pointers that keep moving in one direction in [Week 3](week-03.md). A window also uses boundaries, but its range consists of consecutive positions in the **original** input. Compaction may pack separated survivors together; a substring cannot do that. If we skip original positions between selected characters, we have changed the kind of answer we are describing.
 
-We use inclusive boundaries `[left, right]`, so a nonempty window has length `right − left + 1`. An empty window can be represented by `left = right + 1`. Keep one interval convention throughout an implementation; changing between inclusive and exclusive bounds halfway through produces subtle length errors.
+Our boundaries are inclusive: `[left, right]` includes both named positions. A nonempty window therefore has length `right − left + 1`; for example, positions 2 through 4 contain three entries. We can represent an empty range by `left = right + 1`. Other conventions are possible, but choose one for the entire implementation. Mixing inclusive and exclusive ends is a common source of answers that are off by one.
 
-String implementations convert with `Array.from`, so their lengths and boundaries count Unicode code points. This allocates storage and does not combine code points into grapheme clusters. Numeric examples assume finite numbers and sufficiently precise arithmetic. Empty strings, impossible answers, and invalid widths have explicit local return contracts.
+Our string routines call `Array.from` to build arrays of Unicode code points, the numbered units representing text. Their indexes and lengths refer to those arrays. Conversion allocates storage, and it does not merge code points into grapheme clusters, the groups people perceive as whole visible characters. Assume finite numeric inputs and sufficiently precise arithmetic in number examples. We will explicitly define local behavior for empty strings, impossible answers, and invalid widths so boundary behavior is part of the contract.
 
 ## Core Theory
+<!-- lesson-id:w4-section-core-theory -->
 
 ### Reuse the overlap
 
-Consider daily measurements and a request for the largest sum of three consecutive days. The windows starting at positions zero and one share two of their three entries. Recomputing both sums ignores that overlap. Instead, subtract the entry that left the range and add the one that entered. The summary changes in constant work even though most of the window remains in place.
+Suppose we want the largest total across three consecutive daily measurements. The ranges beginning at positions zero and one share two measurements. Adding all three again wastes that overlap. Keep the old sum, subtract the measurement that left, and add the one that arrived. Only two contributions changed, so updating the summary takes constant work even though the range still contains three entries. The same saving matters more as the width grows.
 
-A window is a contiguous range plus state that describes it. For sums, state is a number. For uniqueness, state can be a Set. For multiplicities, state needs a frequency Map. A boundary update and its state update form one logical operation: advancing left without removing its old contribution makes the summary describe a different range than the indexes do.
+Think of a window as both a contiguous range and state describing that exact range. A sum needs one number. Uniqueness can use a Set. Multiplicity, meaning how many times each character occurs, needs frequency counts in a Map. Changing a boundary and updating its contribution belong to one logical operation. If left advances but its old character remains counted, your indexes and stored summary describe different ranges, so later validity tests cannot be trusted.
 
 ### Fixed width determines every movement
 
-With width k, legal starts are zero through `n−k`, so there are `n−k+1` windows. A baseline sums k entries at every start, taking Θ((n−k+1)k) time for valid k. That is bounded by O(nk), but the exact expression matters: k near n/2 gives quadratic work, while k=n gives only one linear scan.
+For width k, the first legal start is zero and the last is `n−k`, giving `n−k+1` candidate windows. A simple baseline adds k entries at each start, so valid k gives Θ((n−k+1)k) time. O(nk) is a valid upper bound, but keeping the more precise expression explains different widths. With k near n/2, both factors grow with n and the work is quadratic. With k=n, there is one window and only one linear scan.
 
-The optimized method sums the first k entries once. For each new right endpoint, it subtracts the entry at `right−k`, adds the new entry, and records the best sum. The invariant after the update is that sum equals exactly the entries from `right−k+1` through right. Fixed width works with negative numbers because width, not the sign of the sum, controls movement.
+To reuse work, sum the first k entries once. Each new right endpoint introduces one value and removes the entry at `right−k`. After that update, our invariant is that sum equals exactly the entries from `right−k+1` through right. We can then compare it with the best sum. Negative entries do not interfere: width tells us which entry leaves, regardless of whether the current sum rises or falls.
 
-Initialize best from the first legal window. Zero is not a legal candidate unless an actual window sums to zero. On `[-8,-3,-5]` with k=2, legal sums are −11 and −8, so returning zero would invent an empty answer. Invalid widths—zero, negative, noninteger, or larger than n—return null in our local API. An external problem may guarantee validity instead.
+Initialize best with the first legal window's sum rather than a convenient zero. On `[-8,-3,-5]` with k=2, the only sums are −11 and −8. A result of zero would invent an empty answer even though the task requires two entries. Our local interface returns null for widths that are zero, negative, noninteger, or greater than n. An external task may rule those inputs out, so preserve its contract when adapting the function.
 
 ### Longest valid windows: expand, repair, record
 
-For the longest substring without repeated characters, the width is unknown. Extend the right boundary one character at a time. If the new character already exists in the current unique window, remove characters from the left until the old occurrence is gone. Then insert the new character and record the now-valid length.
+For the longest substring without repetition, we do not know the correct width beforehand. Extend right one character at a time. If that character already belongs to the current unique range, remove entries from the left until its old occurrence is gone. Only then insert the new character and measure the range. We are looking for a longest valid window, so measuring before validity is restored would count a candidate that does not satisfy the question.
 
-A single removal may not be enough. In `abba`, when the second b arrives, the current window is `ab`. Removing a still leaves the old b, so another removal is necessary. That is why contraction is a while loop. Before adding the candidate, the Set represents a unique range; afterward it again represents a unique range, and best is updated only then.
+Trace the second b in `abba`. The existing window is `ab`. Removing a moves left, but the old b remains; we must remove that too before adding the arriving b. Shrinking, also called contraction, therefore needs a while loop rather than one conditional removal. Before adding the candidate, the Set represents a unique range. After repair and insertion, it again represents a unique range. We update best only in that restored state.
 
-Why can discarded starts be forgotten? Once a start produces a duplicate with the current right endpoint, extending farther right cannot remove that duplicate. Any future valid window must start later. Moving left therefore discards no future answer that could beat the valid candidates being considered. This is the safety argument behind the loop, not merely a coding recipe.
+We also need to justify forgetting old starts. If a start already includes a duplicate at the current right endpoint, extending farther right will not remove either occurrence. Any future valid window must start later. Advancing left therefore cannot lose a future valid answer beginning at a discarded start. This is the proof behind contraction. Without it, “move left until it works” would be only a recipe, not an explanation of correctness.
 
 ### Distinctness requires multiplicity-aware removal
 
-For “at most k distinct characters,” duplicates are allowed. A Set cannot tell whether removing one a from `aa` eliminates the last a. Maintain counts instead: increment the incoming character, decrement the outgoing one, and delete a key only when its count reaches zero. Then Map size equals the number of distinct characters actually in the window.
+“At most k distinct characters” allows repeated copies of a character. A Set is insufficient for removal: after taking one a out of `aa`, one a still belongs to the range. Keep counts instead. Increment an incoming character, decrement an outgoing one, and delete its key only when the count reaches zero. Map size then measures the number of different characters actually present, because every stored key has a positive count.
 
-After expansion, shrink while size exceeds k. Removing characters cannot increase distinctness, so contraction can restore validity. Once restored, the current range is the widest valid window ending at this right endpoint among starts not already safely discarded. With k=0, each incoming character must be removed and the empty window has length zero. Our implementation also returns zero for negative or noninteger k, a deliberate local fallback contract.
+After adding a character, shrink while the Map has more than k keys. Removal cannot increase distinctness, so it can restore validity. Once restored, we have the widest valid range ending at this right endpoint among starts not already safely discarded. With k=0, every arriving character must leave again, yielding length zero. We deliberately return zero for negative or noninteger k too. That fallback is a local contract choice rather than a universal definition for invalid input.
 
 ### Shortest coverage: expand until valid, then exploit validity
 
-Minimum Window Substring asks for the shortest contiguous source range containing every required target occurrence. A target `AAB` requires two As and one B. Merely matching two distinct letters is insufficient. Build a `need` Map and let `missing` be the total number of required occurrences not yet supplied by the current window.
+Minimum Window Substring asks for the shortest consecutive range of the source that contains every target occurrence. For target `AAB`, we need two As and one B, not just the presence of two different letters. Build a `need` Map recording required counts. Let `missing` count how many required occurrences are still unsupplied by the current range. Initially it is the target length, so repeated requirements contribute separately.
 
-On insertion of a needed character, reduce missing only if its previous count was below the required count. An extra third A does not reduce missing when only two As are required. On removal, increase missing only when the new count falls below the requirement. Irrelevant characters need not be stored in the Map, but their positions remain part of the contiguous window and its length.
+When a needed character arrives, inspect its previous count. Reduce missing only if that count was below need: the new occurrence must fill a real shortage. A third A does not help when two are required and two are already present. On removal, increase missing only when the new count drops below need. Characters absent from the target need not occupy the counts Map. Their original positions still belong to the contiguous range, however, and still contribute to its length.
 
-While missing is positive, expand to seek coverage. When missing reaches zero, record the current window and repeatedly remove from the left, recording each still-covering candidate before the removal that breaks coverage. This is the opposite recording rule from longest uniqueness: there we repair invalidity before recording; here we record while valid and shrink until invalid.
+While missing is positive, keep expanding to find coverage. Once missing reaches zero, the range is a valid answer, so record it and try removing its leftmost character. Continue recording every still-covering candidate before the next removal. Stop shrinking when coverage breaks. Compare this with longest uniqueness: there we repair invalidity before measuring; here validity is our opportunity to measure and seek something shorter. The time to record follows the goal of the task.
 
-For a fixed right boundary, removing leftmost characters makes candidate windows shorter until coverage breaks. A discarded start that already produced coverage cannot give a shorter answer at a later right boundary, because extending right only lengthens that same start's window. That observation justifies never moving left backward. Store only the best start and length during the scan; construct the substring once at the end.
+For one fixed right endpoint, removing leftmost entries shortens candidates until coverage fails. Why can we forget a start after removing it? It already produced a covering candidate, and a later right endpoint would only make that same start's range longer. It cannot improve the shortest answer we considered. This justifies never moving left backward. Remember only the best start and length while scanning; build the actual substring once after the search to avoid repeated copying.
 
 ### Permutation in String combines fixed width with frequencies
 
-A permutation preserves a multiset: order changes but counts do not. To find a permutation of a pattern of length m inside a source, consider only contiguous windows of exactly m characters. If such a window supplies every required occurrence, its counts must match exactly: its total size leaves no room for irrelevant or surplus characters. This lets us reuse a missing-occurrence counter while controlling width rather than shrinking according to coverage.
+A permutation rearranges a collection while preserving how many copies of each value it contains. That count-aware collection is a multiset. For a pattern of length m, inspect only source windows of exactly m characters. If one supplies every required occurrence, its counts must match exactly: all m positions are needed, leaving no room for irrelevant or surplus characters. We can therefore reuse a missing-occurrence counter, but control the width rather than shrinking whenever coverage holds.
 
-On arrival, decrement missing only when the incoming needed character fills a shortage. If the range grows past m, remove its oldest character and increase missing only if that removal creates a shortage. After this fixed-width repair, test missing. Unlike Minimum Window Substring, do not keep shrinking a valid candidate; the required width is already known. A sorting baseline sorts every m-character window and compares it with the sorted pattern, repeating work across overlapping ranges.
+On arrival, decrease missing only when a needed character fills a shortage. If width exceeds m, remove the oldest character and increase missing only if that removal creates a shortage. After restoring the fixed width, test missing. Do not keep shrinking a valid candidate as in minimum coverage; a permutation's width is already determined. As a baseline, sort every m-character window and compare it with the sorted pattern. That is straightforward to verify, but repeatedly rebuilds overlapping character collections.
 
 ### Applicability requires a monotone relationship
 
-“Contiguous” is a clue, not a proof that a window works. For a shortest subarray with sum at least a threshold, a simple shrink-while-sufficient strategy usually assumes nonnegative numbers. Removing a nonnegative value cannot increase sum; extending cannot reduce it. Negative values break that relationship.
+Seeing “contiguous” suggests investigating a window, but we still need a safe movement argument. Consider finding a shortest subarray whose sum reaches a threshold. A simple shrink-while-sufficient method usually assumes nonnegative values. Adding one cannot reduce the sum, and removing one cannot increase it. These predictable directions justify its decisions. If negative values are allowed, both claims can fail, so the same loop is no longer justified.
 
-For `[1,-1,5]` and threshold 5, the full range has sum 5. Removing 1 leaves sum 4, so the naive rule stops shrinking and misses `[5]`, which would be exposed by removing −1. The optimal candidate was hidden behind a temporarily insufficient range. Fixed-width sums remain valid with negatives; this particular variable-width sum proof does not. More advanced prefix-sum methods handle broader signed-input tasks.
+On `[1,-1,5]` with threshold 5, the full range sums to 5. Removing 1 leaves 4, so the naive method stops shrinking. But removing the next value, −1, would raise the sum to 5 and expose `[5]`, the shortest answer. A temporarily insufficient intermediate range hid the optimum. This breaks that variable-width sum proof, while fixed-width sums still work with negatives. Broader signed-input tasks require other reasoning, such as more advanced methods using sums accumulated from the beginning; we do not develop those methods here.
 
 ## JavaScript Implementations
+<!-- lesson-id:w4-section-javascript-implementations -->
 
 ### Fixed-width sum and maximum average
 
-The baseline is intentionally included as a simple reference. The optimized implementation shares its invalid-width contract. Maximum average follows from maximum sum because every candidate is divided by the same positive k.
+Let's compare recomputing every legal sum with updating one running sum. Both versions return null for an invalid width, so differences in behavior cannot be blamed on different contracts. We can also find the maximum average through the maximum sum: dividing every candidate by the same positive k preserves their order.
+
+### Demonstration 1 — Reuse fixed-width sums and derive maximum average
 
 ```javascript
 function maxFixedWindowSumBrute(values, k) {
@@ -127,9 +134,13 @@ null
 null
 ```
 
+In **Demonstration 1**, `[2, 1, 5, 1, 3, 2]` with width three starts at sum 8. At `right = 3`, `values[right - k]` is the outgoing 2 and the incoming value is 1, giving 7. The next update yields 9, which becomes best. Initializing best from the first legal sum lets `[-8, -3, -5]` correctly return −8 rather than an invented zero. For the average example, the maximum width-four sum is 51, giving 12.75 after division by four.
+
 ### Longest unique substring
 
-The baseline starts a new Set for every left endpoint. The optimized version keeps one Set and advances the existing left boundary. Both count code points, making their results directly comparable even when supplementary-plane symbols are present.
+The baseline will create a new Set for each possible start. The optimized version will keep one Set and move its existing left boundary forward. Both convert text to code points, so they answer the same length question even for symbols such as the emoji used here, which occupy more than one JavaScript string code unit.
+
+### Demonstration 2 — Repair repeated characters before measuring a unique range
 
 ```javascript
 function longestUniqueBrute(text) {
@@ -176,9 +187,13 @@ console.log(longestUniqueRun('🙂a🙂b'));
 3
 ```
 
+In **Demonstration 2**, reading the second b in `'abba'` enters the while loop with Set a,b. Deleting a is insufficient, so the loop runs again and deletes the old b. Only then does `seen.add(chars[right])` create the valid one-character window b. The later a gives ba, keeping best at two. For `'🙂a🙂b'`, conversion makes each emoji one indexed element, so the final unique range a,🙂,b has length three.
+
 ### Longest substring with at most k distinct characters
 
-Unlike uniqueness, the current valid window may contain many copies of one character. The outgoing count must be decremented, not blindly deleted. Zero-count keys are removed so `counts.size` remains an accurate distinctness measure.
+Now duplicates are allowed as long as no more than k different characters occur. We need counts because removing one copy may leave another in the range. Decrement the outgoing count and remove its key only at zero. This keeps `counts.size` equal to actual distinctness, the property the contraction condition tests.
+
+### Demonstration 3 — Maintain counts for an at-most-k-distinct window
 
 ```javascript
 function longestAtMostKDistinct(text, k) {
@@ -215,9 +230,13 @@ console.log(longestAtMostKDistinct('abc', -1));
 0
 ```
 
+In **Demonstration 3**, `'eceba'` with k=2 reaches ece with counts e:2,c:1 and length three. Adding b creates a third key. Removing the first e leaves e:1, so size is still three; removing c deletes that key and restores validity for eb. Updating best after this repair prevents counting eceb as an allowed range. With k=0, each insertion is removed immediately, leaving an empty range and best zero.
+
 ### Minimum Window Substring
 
-The return value is the shortest covering substring, the earliest one on equal-length ties, or an empty string if coverage is impossible or the target is empty. This extends the external task's input contract deliberately. Need and counts store only target characters, while boundary positions still include irrelevant source characters.
+Our function returns the shortest covering substring, keeping the earliest candidate when lengths tie. Impossible coverage and an empty target both return an empty string; these are deliberate local extensions of the external contract. The need and counts Maps store only target characters, but left and right still count every source position, including characters irrelevant to coverage.
+
+### Demonstration 4 — Count missing occurrences and shrink a covering window
 
 ```javascript
 function minimumWindowSubstring(source, target) {
@@ -270,9 +289,13 @@ console.log(JSON.stringify(minimumWindowSubstring('abxxba', 'ab')));
 "ab"
 ```
 
+In **Demonstration 4**, target `'AAB'` starts `missing` at three. On source `'AAAB'`, the first two As lower it to one; the third is surplus and leaves it unchanged. B lowers it to zero. Contraction records AAAB, removes one surplus A, then records the shorter AAB. Removing another A breaks coverage. The strict `length < bestLength` test preserves the earliest equal-length answer, which explains `'ab'` for source `'abxxba'`. The final `slice(...).join('')` constructs only the chosen answer.
+
 ### Permutation in String: a fixed-width multiset match
 
-This version counts code points, accepts an empty pattern as matching an empty range, and returns false when the pattern is longer than the source. The external task uses nonempty lowercase English strings, so those are deliberate local extensions. Only required characters are stored in the count Map; source positions still include every character.
+We will count code points and define an empty pattern as matching an empty range. A pattern longer than the source cannot fit and returns false. The external task uses nonempty lowercase English strings, so our boundary behavior and character model deliberately extend that contract. As in minimum coverage, the count Map stores only required characters while range boundaries still include every source character.
+
+### Demonstration 5 — Match required counts at exactly the pattern width
 
 ```javascript
 function containsPermutation(pattern, source) {
@@ -319,53 +342,57 @@ false
 true
 ```
 
-One removal suffices here because the previous range had width at most m and expansion adds exactly one character. This is a width argument, unlike uniqueness repair where a duplicate may require many removals. Knowing why if is correct in this implementation and while is required in the other prevents memorizing the wrong template.
+In **Demonstration 5**, pattern `'aab'` needs a:2,b:1. Source `'caba'` first produces full window cab with one missing a. Adding the last a fills that shortage; removing outgoing c restores width three without changing needed counts. Window aba therefore succeeds. For `'aaxb'` and pattern `'ab'`, both letters exist in the source but never together in a width-two range.
+
+One removal is sufficient here because the previous width was at most m and expansion adds exactly one character. Uniqueness repair can instead require several removals before an old duplicate disappears. Deriving that difference explains why an if is enough in this routine and a while is needed in the unique-range routine; the choice comes from the invariant, not the appearance of the loop.
 
 ## Worked Examples
+<!-- lesson-id:w4-section-worked-examples -->
 
 ### Example 1: fixed windows save overlapping additions
 
-For `[2,1,5,1,3,2]` and k=3, the first sum is 8. Moving right once removes 2 and adds 1, giving 7. The next move removes 1 and adds 3, giving 9. The final move removes 5 and adds 2, giving 6. The maximum is 9, from `[5,1,3]`.
+Write the four width-three ranges of `[2,1,5,1,3,2]`. The initial sum is 8. Slide once by subtracting 2 and adding 1 to get 7. Subtract the next outgoing 1 and add 3 to get 9. Finally, subtract 5 and add 2 to get 6. Comparing those legal candidates gives maximum 9 from `[5,1,3]`. At every move, most entries stay in place; we update only the changed contributions.
 
-The baseline makes four groups of three additions, while the optimized version does three initial additions and three constant-size updates. With this tiny input the savings are modest; with many wide overlapping windows, the repeated work becomes dominant. The proof does not depend on sums being positive.
+The baseline performs four separate groups of three additions. Reuse needs three additions to initialize and three updates of constant size. This small input makes the saving modest, but many wide overlapping ranges repeat much more work in the baseline. None of the update reasoning requires a positive sum: we subtract the outgoing contribution because it left, regardless of its sign.
 
 ### Example 2: repeated b requires two removals
 
-Trace `abba`. Reading a creates window `a`, best 1. Reading b creates `ab`, best 2. The next b is already present. Remove a and advance left, but b is still present; remove the old b and advance again. Now add the new b, leaving window `b`. The final a creates `ba`, and best remains 2.
+For `abba`, start empty. Reading a produces window `a` and best 1; reading b produces `ab` and best 2. The next b conflicts with an existing member. Remove a first, but observe that b is still present. Remove the old b as well, then add the arriving b. The repaired range is just `b`. Finally a extends it to `ba`, length two, so best remains 2.
 
-Updating best before repairing would count `abb` as if it were unique. Replacing while with if would leave the duplicate inside the actual range, even though a Set cannot display multiplicity. The boundary length and Set size would disagree, a strong debugging signal for this particular uniqueness invariant.
+If you measured before repair, `abb` would incorrectly count as a unique range of length three. A single if-removal is also insufficient: the indexed range would still contain two bs even though the Set displays only one b. For this uniqueness invariant, range length and Set size should agree after repair. A mismatch between them is a useful signal that the summary no longer matches the boundaries.
 
 ### Example 3: removing one copy need not remove a key
 
-For `eceba` with k=2, windows `e`, `ec`, and `ece` are valid, reaching length 3. Adding b creates counts e:2, c:1, b:1. Remove the first e: e drops to 1, so there are still three distinct keys. Remove c: its count reaches zero and the key disappears. The valid window is now `eb`.
+On `eceba` with k=2, the ranges `e`, `ec`, and `ece` are valid, growing best to three. Adding b produces e:2, c:1, b:1, which is invalid because three keys remain. Remove the first e and its count drops to one. There are still three distinct characters, so continue. Removing c reduces its count to zero and deletes its key, leaving valid window `eb`. Removing a copy and removing a distinct character are different events.
 
-Adding a again creates three keys. Removing the remaining e restores two, leaving `ba`. The best remains `ece`, length 3. A Set-based outgoing deletion would have removed e too early after the first contraction and treated `ceb` as a two-distinct window, which it is not.
+When a arrives, distinctness rises to three again. Remove the remaining e to restore two keys, leaving `ba`. The earlier `ece` remains best at length three. If we had deleted e from a Set on its first removal, we would have treated `ceb` as containing only two characters even though three distinct characters remained. Count-aware removal prevents that mismatch between the summary and the actual range.
 
 ### Example 4: coverage with surplus occurrences
 
-For source `AAAB` and target `AAB`, missing starts at 3. The first A lowers it to 2, the second to 1, and the third leaves it at 1 because the A requirement is already satisfied. B lowers it to zero. Record `AAAB`, then remove the first A: two As remain, so coverage is still valid. Record `AAB`, then remove another A: only one remains, so missing becomes 1 and contraction stops.
+Target `AAB` requires three occurrences, so missing starts at 3 for source `AAAB`. The first A changes it to 2 and the second to 1. The third A fills no shortage, leaving 1. B finally changes it to zero. Record `AAAB`. Removing its first A still leaves the required two As, so record the shorter `AAB`. Remove another A and only one remains; missing becomes 1, which ends contraction. The point at which removal creates a shortage determines where shrinking stops.
 
-The answer is `AAB`. Counting only distinct matched keys would have accepted `AB`, incorrectly ignoring the second required A. Decreasing missing for every extra A would also make the scalar drift away from the actual unmet requirement. Its definition must be maintained exactly on both insertion and removal.
+We return `AAB`. A check based only on distinct matched keys would wrongly accept `AB`, losing the second A requirement. Decreasing missing for every surplus A would also make that single number disagree with the real shortage. This scalar—a single numeric state value—is useful only because its exact meaning is preserved on insertion as well as removal. Derive both update conditions from that meaning.
 
 ### Example 5: the classic coverage trace
 
-In `ADOBECODEBANC` with target `ABC`, the first covering range ends at the first C: `ADOBEC`, length 6. Removing A breaks coverage. Continue expanding until the A at index 10 restores it. Shrink past irrelevant D and O, then surplus B, then E; `CODEBA` is still covering with length 6. Removing C breaks coverage again.
+For `ADOBECODEBANC` and target `ABC`, the first C completes `ADOBEC`, length six. Record it, then remove A and lose coverage. Expand until A at index 10 supplies the missing requirement. Shrink past irrelevant D and O, then a surplus B, then E. We reach `CODEBA`, another length-six covering candidate. Removing C next loses coverage, so expansion must resume. Irrelevant positions affect range length even though they never alter target counts.
 
-The final C restores coverage. Shrinking past O, D, and E leaves `BANC`, length 4. Removing B then breaks coverage, so retain `BANC`. The earlier length-six tie is not replaced because the code updates only on strict improvement. Keeping indexes rather than slicing each candidate avoids allocating many intermediate strings.
+The last C restores coverage again. Shrinking past O, D, and E exposes `BANC`, length four. Record it before removing B breaks coverage. We keep `BANC` as the answer. The earlier length-six tie did not replace the first candidate because updates require a strictly smaller length. Throughout the trace we remember positions and lengths rather than copying every candidate string, avoiding repeated intermediate allocations.
 
 ### Example 6: a valid-looking rule can fail on signed numbers
 
-For `[1,-1,5]`, target sum 5, a naive shortest-sum window reaches the full length-three range and records it. Removing 1 reduces the sum to 4, so a shrink-while-sufficient loop stops. Yet removing the following −1 would increase the sum to 5 and reveal a length-one answer. A temporarily invalid intermediate range blocks the greedy movement rule.
+Try a naive shortest-sum loop on `[1,-1,5]` with target 5. It first reaches the full length-three range with enough sum and records it. After removing 1, the sum becomes 4, so the shrink-while-sufficient rule stops. But the next removal, −1, would increase the sum and reveal the one-entry answer `[5]`. The loop commits to stopping based on an intermediate failure that does not persist under further removal.
 
-This counterexample does not invalidate all windows or all sum problems. It identifies the precise missing assumption: contraction is not monotone for signed sums. A fixed-width sum still works, and distinct-count constraints still improve under removal. Always test the property that justifies moving left rather than generalizing from the pattern's name.
+The counterexample identifies one broken assumption: signed sums do not change monotonically under contraction. It does not undermine fixed-width sums, whose movement is prescribed by width, or distinctness limits, which cannot worsen when entries are removed. When deciding whether a window works, test the actual property used to justify left's movement. A shared pattern name says nothing by itself about whether that property holds.
 
 ### Example 7: equal width turns coverage into exact equality
 
-For pattern `aab` and source `caba`, need is a:2,b:1 and missing begins at 3. The first c is irrelevant. The next a lowers missing to 2; b lowers it to 1. The first full window `cab` therefore fails. Adding the final a lowers missing to zero, then removing the outgoing c restores width three without changing any count. The range is `aba`, an exact permutation.
+For pattern `aab`, build need a:2,b:1 and set missing to 3. In source `caba`, c changes no requirement. The first a lowers missing to 2 and b lowers it to 1, so the first full range `cab` fails. The final a lowers missing to zero. We then remove outgoing c to restore width three; no needed count changes. The resulting `aba` has exactly the required counts and is a permutation.
 
-For source `cabx`, adding x and removing c leaves `abx` with one missing a, so no match is reported. A Set comparison cannot express the two-As requirement. For pattern `ab` and source `aaxb`, the a and b both occur somewhere, but no length-two window contains both. This distinguishes substring matching from choosing a subsequence across a gap.
+Compare source `cabx`. Adding x and removing c leaves `abx`, still short of one a, so it fails. A Set comparison would lose the two-As requirement. Also try pattern `ab` in `aaxb`: both letters appear somewhere, but no width-two range contains them together. Selecting separated letters would produce a subsequence with a gap, not the required substring. Both the count condition and equal-width condition matter.
 
 ## Visual Explanations
+<!-- lesson-id:w4-section-visual-explanations -->
 
 | Fixed range | Outgoing | Incoming | Sum |
 | --- | --- | --- | --- |
@@ -404,10 +431,11 @@ Both boundaries move forward. Their recording rules differ.
 | AB after removal | 1 | 1 | 1 | Coverage broken |
 
 ## Complexity Analysis
+<!-- lesson-id:w4-section-complexity-analysis -->
 
-The crucial distinction from a generic nested-loop bound is that left never resets. Right advances through n positions, and every contraction increases left, which can advance at most n times total. Charge each insertion and removal to its position: each position enters at most once and leaves at most once. That gives O(n) state updates, assuming constant expected Map/Set operations. It does not give constant memory automatically.
+The inner contraction loop does not start left over at zero. Right advances through n positions, and left advances at most n times across the entire run. Charge each insertion and removal to the position it handles: a position enters once and leaves at most once. Adding those charges gives O(n) state updates under expected constant-time Map/Set operations. Nested syntax alone does not make the work quadratic. This movement argument describes time, however, and says nothing by itself about constant memory.
 
-Let n be source length in code points, m target length, and d the number of distinct tracked characters. String conversion allocates a code-point array, so the displayed implementations have more memory than only their Set or Map state. An indexed ASCII version can avoid that conversion under a narrower text contract.
+For the string tasks, let n be source length in code points, m be target length, and d count distinct tracked characters. Include conversion arrays in memory accounting, not just the Set or Map. The displayed routines allocate those arrays with `Array.from`. An ASCII implementation accessing strings directly can avoid that conversion, but it answers a narrower text contract and has a different storage analysis.
 
 | Algorithm | Time | Additional memory |
 | --- | --- | --- |
@@ -419,17 +447,20 @@ Let n be source length in code points, m target length, and d the number of dist
 | Minimum coverage | Expected O(n+m) | O(n+m) conversion + O(d) Maps + output |
 | Permutation by fixed frequencies | Expected O(n+m) | O(n+m) code-point arrays + O(d) Maps |
 
-For permutation matching, each source character enters and leaves at most once. A sorting baseline can require O((n−m+1)m log(m+1) + m log(m+1)) time for valid positive m≤n, because it rebuilds and sorts each candidate. With a validated fixed lowercase alphabet, two 26-entry arrays and direct indexed-string access can avoid the displayed code-point allocations; do not claim that constant-space variant's bound for the implementation above.
+In permutation matching, each source position arrives once and departs at most once. The sorting baseline instead rebuilds and sorts every candidate, costing O((n−m+1)m log(m+1) + m log(m+1)) for valid positive m≤n. The final term includes sorting the pattern. Under a validated fixed lowercase alphabet, direct indexed-string access and two 26-entry arrays can avoid the conversion arrays. That variant can have constant auxiliary state, but it is not the implementation in **Demonstration 5** of **JavaScript Implementations**. Do not transfer its space bound to different code.
 
-The quadratic unique baseline reaches its worst case when the available alphabet can provide n distinct characters. Under a fixed alphabet of size σ, its work is more specifically O(n min(n,σ+1)); stopping at duplicates limits each growth. The optimized method still avoids repeatedly rebuilding state and is linear in the input length under the same operation model.
+The unique-substring baseline needs an alphabet large enough to supply n distinct characters to reach its quadratic worst case. If the alphabet has fixed size σ, each independent expansion soon stops at a repeat, giving the sharper bound O(n min(n,σ+1)). Here σ simply counts available character choices. The optimized version still avoids rebuilding membership for every start and remains linear in input length under the same table-operation model.
 
-For minimum coverage, building need costs O(m). Each source position enters once and is removed at most once. Creating the final substring costs O(answer length), bounded by O(n). Slicing every candidate inside the contraction loop could add repeated copying and undermine the intended linear processing bound. The algorithm therefore records indexes and allocates the answer only once.
+Minimum coverage first builds need in O(m), then inserts each source position once and removes it at most once. Constructing the final string costs O(answer length), which is bounded by O(n). If we sliced every candidate during contraction, many overlapping characters could be copied repeatedly, undermining the intended linear processing cost. Recording just the best indexes avoids that repeated work and defers allocation until the answer is known.
 
 ## Common Mistakes
+<!-- lesson-id:w4-section-common-mistakes -->
 
-Using `right−left` for an inclusive range loses one element. Initializing the best fixed sum to zero fails on all-negative input. Advancing left without deleting its old contribution makes the state stale. Deleting every outgoing character from a frequency Map loses multiplicity. Failing to advance left inside contraction can loop forever.
+Check that length, state, and boundaries agree. An inclusive range needs the extra one; `right−left` loses an entry. Starting a best fixed sum at zero invents a candidate on all-negative input. Moving left without removing its old contribution leaves stale state, while deleting a frequency key on every removal loses remaining copies. Finally, contraction must actually advance left or it may repeat the same failing state forever.
 
-The following deliberately broken uniqueness routine repairs only once. It reports 3 for `abba` even though the correct answer is 2:
+Let's expose the danger of repairing uniqueness only once. This deliberately broken routine reports 3 for `abba`, whose correct answer is 2. Trace the actual indexed range as well as the Set so you can see the duplicate the collection hides.
+
+### Demonstration 1 — Broken uniqueness repair removes only one character
 
 ```javascript-bug
 function brokenUnique(text) {
@@ -449,82 +480,87 @@ function brokenUnique(text) {
 console.log(brokenUnique('abba'));
 ```
 
-It incorrectly prints `3`.
+In **Demonstration 1**, `'abba'` reaches its second b with a,b already stored. One deletion removes a but leaves the old b in the range. Adding b again does not show that repetition in the Set. The later length update incorrectly prints `3`, even though no unique substring of that length exists.
 
-At the second b, removing a leaves the old b. The Set collapses equal values, hiding the fact that the indexed range still contains two bs. The repair is repeated contraction until the candidate is absent, not changing the best formula to match the incorrect state.
+Repair the cause by contracting repeatedly until the candidate is absent, keeping each deletion paired with a left increment. The Set cannot represent two copies, so you must preserve its unique-range invariant yourself. Changing the best-length formula to hide this output would leave the range and summary inconsistent and would fail on other inputs.
 
-For minimum coverage, an empty target needs an early return; otherwise missing starts at zero and a shrink-while-covered loop has no meaningful stopping requirement. Surplus occurrences must not reduce missing below its correct value. Finally, do not mix code-unit indexes with code-point arrays when constructing the returned substring.
+Minimum coverage has another boundary trap: return early for an empty target. Otherwise missing begins at zero and the shrink-while-covered loop has no unmet requirement to stop it. Surplus matches must also leave missing unchanged once a requirement is satisfied. When constructing the answer, use indexes from the same character model as the scan. A code-point array's positions do not necessarily match JavaScript string code-unit positions.
 
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w4-section-interview-and-leetcode-pattern-recognition -->
 
-Words such as contiguous, substring, subarray, fixed width, longest, shortest, at most k, and no repetition suggest investigating a window. Then ask what state summarizes the range and whether adding or removing elements changes validity in a predictable direction. A subsequence permits gaps and needs a different model.
+When you hear contiguous, substring, subarray, fixed width, longest, shortest, at most k, or no repetition, consider a window. Then do the real design work: choose a summary for the range and explain whether adding or removing entries changes validity predictably. Check that the answer truly requires consecutive original positions. A subsequence allows gaps, so the same boundary model may not describe its candidates.
 
-For longest uniqueness and at-most-k distinctness, invalidity is repaired before recording. For minimum coverage, validity is the opportunity to record and shrink. Stating that difference aloud is more useful than memorizing one universal template. Minimum Window Substring is a stretch task because it combines two frequency tables, a scalar invariant, and the reversed recording rule.
+For longest uniqueness and at-most-k distinctness, restore validity before measuring. For minimum coverage, measure while valid and keep shrinking to seek improvement. Say that distinction aloud as part of your solution. Minimum Window Substring is a stretch task because you must coordinate two frequency tables, one exact shortage count, and this reversed recording rule. Understand each piece independently before putting them into one loop.
 
-Start an interview answer with a baseline and identify its repeated work. Fixed windows repeat additions; unique-substring enumeration rebuilds membership; coverage enumeration rebuilds or repeatedly checks counts. The optimized version should explain exactly how the old state can be updated, not simply assert that sliding window is faster.
+Begin an interview explanation with a correct baseline and point to the repeated work. Fixed sums repeat additions; independently growing unique substrings rebuilds membership; coverage enumeration rebuilds tables or repeatedly checks all requirements. Then show how an arriving or departing entry changes the previous state. That specific update is the optimization. Merely saying “sliding window is faster” leaves both the saving and the correctness unexplained.
 
 ## Practice Exercises
+<!-- lesson-id:w4-section-practice-exercises -->
 
 ### Conceptual
 
-1. Explain why `[1,3,5]` selected from `[1,2,3,4,5]` is a subsequence but not a window.
-2. Derive the exact fixed-window baseline count and explain why k=n is not quadratic.
-3. State the different recording rules for longest-valid and shortest-covering windows.
-4. Explain why negative values break the simple shortest-sum contraction proof but not fixed-width sums.
+1. Select `[1,3,5]` from `[1,2,3,4,5]` and identify the gaps in original positions. Explain why this forms a subsequence and cannot be one window.
+2. Count legal starts and additions per start for the fixed-window baseline. Use that exact count to explain why k=n gives linear rather than quadratic work.
+3. Explain when to record a candidate in longest-valid search and when to record one in shortest-coverage search. Connect each rule to what the task optimizes.
+4. Use a signed-number example to explain the failure of simple shortest-sum contraction, then explain why fixed-width sum updates still work.
 
 ### Tracing
 
-5. Trace every width-three sum in `[2,1,5,1,3,2]` and every width-two sum in `[-8,-3,-5]`.
-6. Trace `abca` and `abba` for uniqueness, recording left, right, Set, and best after repair.
-7. Trace `eceba`, k=2, with exact counts after every removal.
-8. Trace source `AAAB`, target `AAB`, with missing before and after each insertion and contraction.
+5. List every width-three range sum in `[2,1,5,1,3,2]` and every width-two sum in `[-8,-3,-5]`. Show the outgoing and incoming contribution for each move.
+6. Trace unique-range search on `abca` and `abba`. Record left, right, the Set, and best after repair so each measured length can be checked for validity.
+7. Trace `eceba` with k=2. Keep exact frequencies after every removal, including removals that lower a count without deleting its key.
+8. Work through source `AAAB` and target `AAB`. Record missing before and after each arrival and contraction, explaining when surplus supply leaves it unchanged.
 
 ### Debugging
 
-9. Repair brokenUnique and explain why a single deletion can hide multiplicity in a Set.
-10. A distinct-count algorithm decrements counts but keeps zero-count keys. Construct a failing case and repair it.
-11. A coverage algorithm decreases missing for every matching target character, even surplus copies. Explain its failure on source `AA`, target `AB`.
+9. Repair **Demonstration 1** in **Common Mistakes**. Explain why one deletion can leave a repeated character in the indexed range even when the Set cannot display its multiplicity.
+10. Suppose a distinct-count routine keeps keys after their counts reach zero. Construct a failing input, then restore the connection between Map size and actual distinctness.
+11. A coverage routine decreases missing for every source character belonging to the target, including surplus copies. Trace its failure on source `AA` with target `AB` and repair the shortage condition.
 
 ### Implementation
 
-12. Implement fixed-window sum and maximum average. Test k=1, k=n, invalid widths, empty input, and all-negative values.
-13. Implement unique and at-most-k-distinct windows from their invariants. Explain the code-point conversion cost.
-14. Implement minimum coverage and test repeated requirements, irrelevant characters, impossible coverage, empty target, and ties.
-15. Write a simple coverage baseline that grows each start independently, and compare it against the optimized implementation on small strings.
+12. Write fixed-window sum and maximum average. Cover k=1, k=n, invalid widths, empty input, and all-negative values, explaining why initialization uses a legal candidate.
+13. Derive unique and at-most-k-distinct routines from their state invariants. Include the time and storage needed to convert text into code points.
+14. Build minimum coverage and test repeated target occurrences, irrelevant source characters, impossible coverage, an empty target, and equal-length ties.
+15. Write an independent coverage baseline that starts fresh at each position. Compare it with the optimized function on small strings using the same text model and tie rule.
 
 ### External
 
-The upstream assignment is Maximum Average Subarray I, Longest Substring Without Repeating Characters, and Permutation in String. Minimum Window Substring remains an additional stretch exercise from the local textbook.
+The upstream assignment includes Maximum Average Subarray I, Longest Substring Without Repeating Characters, and Permutation in String. Minimum Window Substring remains an additional stretch exercise from the local textbook. Work through fixed-width reuse and longest-valid repair before attempting the combined frequency and coverage reasoning of that stretch task.
 
-16. [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** fixed-width sums, incremental updates, initialization. **Relevance:** isolates overlap reuse without variable-window validity decisions.
-17. [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** Set membership, variable width, repeated contraction. **Relevance:** requires restoring a valid range before measuring its length.
-18. [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/) — **Platform:** LeetCode. **Difficulty:** Hard. **Concepts:** frequency requirements, missing occurrences, shortest coverage. **Relevance:** combines this week's ideas and reverses the recording rule; treat it as a stretch exercise after the first two. The verified difficulty corrects the curriculum guide's Medium label.
+16. [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** fixed-width totals, incremental updates, and legal-candidate initialization. **Relevance:** practice reusing overlap before adding the validity decisions needed for variable widths. Explain why maximizing sum also maximizes average here.
+17. [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** Set membership, changing widths, and repeated contraction. **Relevance:** explain why a range must be unique before you measure it, and why one removal may not restore that condition.
+18. [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/) — **Platform:** LeetCode. **Difficulty:** Hard. **Concepts:** required frequencies, missing occurrences, and shortest coverage. **Relevance:** combine the chapter's ideas using the record-while-valid rule. Attempt it as a stretch after the first two tasks. The original verification recorded Hard, correcting the curriculum guide's Medium label; this rewrite does not claim another check.
 
-19. [Permutation in String](https://leetcode.com/problems/permutation-in-string/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** fixed-width windows, character multiplicity, missing occurrences. **Relevance:** combines the sum window's predictable movement with anagram frequency state. Trace `aab` inside `caba`, explain why coverage is sufficient only at equal width, and compare against a sorted-window baseline.
+19. [Permutation in String](https://leetcode.com/problems/permutation-in-string/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** fixed widths, repeated-character counts, and missing occurrences. **Relevance:** combine predictable fixed-width movement with anagram frequency state. Trace `aab` in `caba`, justify why coverage implies equality only at the pattern's width, and compare the result with a baseline that sorts each candidate window.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w4-section-hints-and-worked-solutions -->
 
 ### Hints
 
-For 1–4, focus on what removing the leftmost element can and cannot change. For 5–8, update the state and boundary together. For 9–11, use two copies of a character to expose incorrect membership logic. For 12–15, get the baseline contract correct first; only reuse state once you can explain its meaning. For external work, solve fixed width before frequency-based coverage.
+For 1–4, ask what removal of the leftmost entry can change and which directions are guaranteed. For 5–8, move the boundary and update its state as one operation. For 9–11, repeated copies of one character help expose membership logic that has lost counts. For 12–15, make the baseline contract precise before reusing state. For the external tasks, establish fixed-width reasoning first, then add frequency requirements and coverage.
 
 ### Solutions 1–8
 
-A window has no gaps in original positions; `[1,3,5]` skips 2 and 4. There are `n−k+1` starts and k additions per baseline window, so k=n gives n additions. Longest-valid methods repair invalidity then record; minimum coverage records while valid then removes until invalid. Signed sums can improve when a negative element is removed, defeating the simple monotone contraction argument.
+For questions 1–4, `[1,3,5]` skips original positions containing 2 and 4, so it is not a window. A fixed-width baseline has `n−k+1` starts with k additions each; k=n leaves one candidate and n additions. Longest-valid methods repair before recording, whereas minimum coverage records valid ranges and removes until invalid. With signed numbers, removing a negative can improve the sum after an earlier removal made it insufficient, breaking the simple monotone contraction proof.
 
-The fixed sums are 8,7,9,6 and −11,−8. For `abca`, best grows to 3 and the final a removes the first a, leaving `bca` of length 3. For `abba`, the second b removes a and the old b, leaving one b; final a gives `ba`, best 2. For `eceba`, adding b produces e:2,c:1,b:1; removing e leaves e:1,c:1,b:1; removing c leaves e:1,b:1. Adding a and removing e leaves b:1,a:1.
+For question 5, the sum sequences are 8,7,9,6 and −11,−8. For question 6, `abca` reaches best three; its final a forces removal of the first a, leaving `bca`, also length three. In `abba`, the second b removes a and the old b before insertion; the final range `ba` leaves best two. For question 7, adding b in `eceba` gives e:2,c:1,b:1. Removing e leaves e:1,c:1,b:1; removing c leaves e:1,b:1. Finally adding a and removing e produces b:1,a:1.
 
-For `AAAB` and `AAB`, insertion changes missing through 3→2→1→1→0. Removing the first A preserves zero missing, so `AAB` is recorded. Removing the second A creates one missing occurrence and ends contraction. That trace demonstrates why missing counts required occurrences, not distinct letters or all matching source characters.
+For question 8, source `AAAB` and target `AAB` move missing through 3→2→1→1→0. The unchanged step corresponds to a surplus A. Removing the first A leaves enough supply, so missing stays zero and `AAB` is recorded. Removing the next A creates one shortage and stops contraction. Missing therefore counts required occurrences still lacking, rather than distinct letters or every source character that belongs to the target.
 
 ### Solutions 9–11: repair state, not symptoms
 
-Replace if with while in brokenUnique, retaining the paired Set deletion and left increment. For zero-count keys, source `ab` with k=1 is enough: after removing a, the Map still has two keys if a:0 remains, so contraction continues incorrectly. Delete exhausted keys so size tracks actual distinctness.
+In the broken uniqueness routine, replace if with while and keep the Set deletion paired with left's increment. For the zero-count-key error, source `ab` with k=1 is enough. After removing a, keeping a:0 leaves two Map keys even though the range contains only b, so contraction continues incorrectly. Delete the exhausted key to restore the size invariant. In both repairs, the goal is an accurate summary of the indexed range.
 
-For source `AA` and target `AB`, only the first A should reduce missing. If both do, the algorithm falsely reports coverage even though no B exists. Decrease missing on insertion only when the prior count is below need, and increase it on removal only when the new count falls below need. These conditions follow directly from the scalar's definition.
+Source `AA` with target `AB` supplies only one useful A. The second A cannot replace the missing B, so it must not reduce missing. Otherwise the routine falsely reports coverage. On insertion, compare the prior count with need; on removal, compare the new count with need. Reduce missing only when filling a shortage and increase it only when creating one. These conditions follow from the definition, so you can reconstruct them instead of memorizing inequalities.
 
 ### Solution 15: an independent baseline for coverage
 
-This baseline builds a fresh supply table for each start and checks all requirements as the end grows. Once it covers the target for a given start, further extension cannot improve that start's shortest answer, so it stops. It is intentionally simpler to inspect than the optimized missing-counter updates, at the cost of repeated work.
+For an independent coverage check, build a fresh supply table at every start and inspect every requirement as the end grows. Once that start covers the target, extending farther can only lengthen its answer, so stop its inner scan. This baseline repeats work, but its direct requirement checks are easier to inspect independently than the optimized missing-counter updates. That makes it a useful comparison for small inputs.
+
+### Demonstration 1 — Check minimum coverage with independent scans from each start
 
 ```javascript
 function minimumWindowBrute(source, target) {
@@ -567,63 +603,65 @@ console.log(JSON.stringify(minimumWindowBrute('abxxba', 'ab')));
 "ab"
 ```
 
-With d distinct target characters, checking coverage can take O(d) per extension, giving O(n²(d+1)+m) expected time in this baseline. It uses O(n+d) auxiliary storage for the source conversion and tables, plus output. The optimized routine replaces repeated coverage scans with an exact missing count and reuses one range across starts.
+In **Demonstration 1**, source `'AAAB'` with target `'AAB'` first finds AAAB from start zero. Restarting at one finds AAB, which replaces it with a shorter answer. The loop over need checks both required amounts directly. With d distinct target characters, each extension can spend O(d) checking coverage, giving O(n²(d+1)+m) expected time. Source conversion and tables use O(n+d) auxiliary storage, plus output. **Demonstration 4** in **JavaScript Implementations** avoids those repeated checks with exact missing state and one reused range.
 
 ### Solutions 12–14 and 16–18: evaluate boundary behavior
 
-The implementations above are complete worked solutions under the local contracts. For `[4,-2,7]`, k=1 gives 7 and k=3 gives 9. For uniqueness, an empty input gives zero and repeated copies of one character give one. For at-most-k distinctness, k=0 gives zero. For minimum coverage, impossible or empty-target cases give an empty string, and `abxxba` with target `ab` preserves the earliest equal-length answer `ab`.
+Use **Demonstrations 1–4** in **JavaScript Implementations** as the worked solutions under our local contracts. For `[4,-2,7]`, width one gives 7 and width three gives 9. Unique-substring length is zero for empty text and one for repetitions of a single character. At-most-k distinctness returns zero for k=0. Minimum coverage returns an empty string for impossible coverage or an empty target; `abxxba` with target `ab` keeps earliest equal-length answer `ab`. Each boundary case checks a specific part of the contract.
 
-When comparing baseline and optimized coverage results, use the same character model and tie rule. Random tests can help reveal errors, but boundary examples explain them: repeated requirements exercise surplus handling, irrelevant characters exercise boundary updates without Map changes, and impossible targets exercise the no-answer path. No external judge acceptance is claimed by these local solutions.
+Compare baseline and optimized results only after aligning their character model and tie rule. Random inputs can reveal discrepancies, but focused boundaries explain the cause. Repeated requirements test surplus handling; irrelevant characters test boundary movement without target-count updates; impossible targets test the no-answer path. Passing local comparisons is useful evidence, while these worked solutions make no claim of external judge acceptance.
 
 ### Solution 19: match the multiset at exactly the pattern width
 
-Hint: there is no need to generate permutations. Their common property is the same count for every character. The full `containsPermutation` implementation above records need and missing, updates the arriving character, removes one outgoing character if width exceeds m, and checks coverage only at width m. In `caba`, windows `cab` and `aba` have missing counts one and zero. In `aaxb`, no width-two window covers `ab`, despite both letters appearing in the whole source.
+The useful hint is that you need not generate permutations. All permutations share the same character counts. **Demonstration 5** in **JavaScript Implementations** records need and missing, handles the arriving character, removes one outgoing character if width exceeds m, and tests coverage only at width m. For `caba`, ranges `cab` and `aba` have missing counts one and zero. For `aaxb`, no width-two range covers `ab`, even though both required letters occur somewhere in the source.
 
-The equal-width condition is essential: a wider covering range may include unrelated characters and is not itself a permutation. Surplus counts do not reduce missing, and removing an irrelevant character does not increase it. With expected constant-time Map operations, processing is O(n+m); the shown conversion arrays use O(n+m) extra storage. A useful independent test enumerates all length-m substrings, sorts their code-point arrays, and compares them with a sorted pattern. Test repeated requirements and gaps before considering larger random inputs.
+Equal width is essential because a wider covering range may contain unrelated characters and need not be a permutation. Extra supply does not reduce missing, and removing an irrelevant character creates no shortage. Under expected constant-time Map operations, processing costs O(n+m), while the conversion arrays use O(n+m) extra storage. For an independent check, enumerate length-m substrings, sort their code-point arrays, and compare with the sorted pattern. Begin with repeated requirements and gaps; those focused examples explain errors before larger random tests add volume.
 
 ## Sources and Further Reading
+<!-- lesson-id:w4-section-sources-and-further-reading -->
 
-The [canonical curriculum](../../shared/curriculum.js) and [Weeks 1–4 textbook](../../shared/textbook/weeks01to04.js) supply fixed-window, uniqueness, distinct-count, minimum-coverage, and applicability topics. The chapter expands them with original explanations, proofs, traces, baselines, and exercises.
+The [canonical curriculum](../../shared/curriculum.js) and [Weeks 1–4 textbook](../../shared/textbook/weeks01to04.js) establish the scope: fixed widths, uniqueness, distinct counts, minimum coverage, and deciding when windows apply. This chapter develops those topics through proofs, traces, reference baselines, and exercises. The external source notes preserve preparation history; no external page was rechecked as part of this rewrite.
 
-- [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/): opened to verify fixed-width average requirements and Easy difficulty.
-- [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/): opened to verify contiguous uniqueness and Medium difficulty.
-- [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/): opened to verify occurrence coverage and Hard difficulty, correcting the local guide's outdated label.
-- [Permutation in String](https://leetcode.com/problems/permutation-in-string/): opened to verify substring-permutation requirements, lowercase inputs, and Medium difficulty.
-- [Upstream Week 4](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/04.md): fetched through the GitHub connector to reconcile the three assigned problems. Its short teaching example was not copied; the permutation derivation and implementation here are original.
+- [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/): original preparation confirmed the fixed-width average contract and Easy difficulty. That fixed width explains why sum and average rank candidates identically.
+- [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/): original preparation confirmed consecutive-position uniqueness and Medium difficulty. Keep both parts of that contract when interpreting an answer.
+- [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/): the preparation check confirmed occurrence-based coverage and Hard difficulty, correcting the older local guide label.
+- [Permutation in String](https://leetcode.com/problems/permutation-in-string/): preparation confirmed the substring-permutation contract, lowercase inputs, and Medium difficulty. Our broader local boundaries are explicit extensions.
+- [Upstream Week 4](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/04.md): the preparation record reports a GitHub connector fetch to reconcile the three assignments. The short upstream example was not copied; our permutation derivation and implementation were developed independently.
 
-All external URLs were verified on 7 November 2026. The pages were used for task contracts and difficulty, not their editorials. No external submissions, universal Unicode text semantics, or engine-specific table guarantees are claimed. The code-point model and expected table-operation assumptions are explicit so learners can adapt them responsibly.
+The original preparation notes report external URL verification on 7 November 2026. That historical verification covered task contracts and difficulty rather than editorial solutions; this rewrite does not claim another check. No external submissions, universal Unicode character semantics, or engine-specific table guarantees are claimed. Use the explicit code-point model and expected table-operation assumptions when adapting an implementation to different requirements.
 
 ## Weekly Summary
+<!-- lesson-id:w4-section-weekly-summary -->
 
-A sliding window saves work by keeping a summary of a contiguous range and updating it when the range changes. Fixed width determines movement directly; variable width requires a validity rule and a proof that discarded starts will never become useful again. Frequency tracking preserves multiplicity that a Set would lose.
+A sliding window saves repeated work because its summary changes with the range. For fixed width, we know exactly which contribution leaves when another arrives. For variable width, we also need a validity rule and a proof that forgotten starts cannot improve a future answer. Counts preserve repeated occurrences that a Set would lose. Choose the state from the question, then derive every arrival and departure update from its meaning.
 
-The two central recording rules are now distinct: repair before recording a longest valid range, and record while shrinking a covering range. Both can be linear because boundaries never retreat, but their memory includes any converted character arrays and returned output. Revisit [Week 3](week-03.md) if the movement proof remains unclear, or [Week 2](week-02.md) if count updates still need practice.
+Keep the two recording rules separate: restore validity before measuring a longest-valid range, and measure covering ranges while shrinking toward invalidity. Both can do linear total movement because boundaries never retreat. Their memory claims must still include converted character arrays and returned output. Revisit [Week 3](week-03.md) for movement proofs or [Week 2](week-02.md) for count updates if either part remains difficult to explain without the code.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] I can distinguish windows from subsequences and state inclusive range length. <!-- checkpoint:w4-contiguous-range -->
-- [ ] I can derive fixed-window reuse and its exact baseline cost. <!-- checkpoint:w4-fixed-window-proof -->
-- [ ] I can explain longest-valid versus shortest-covering recording rules. <!-- checkpoint:w4-recording-rules -->
-- [ ] I can prove linear total movement and identify a nonmonotone sum constraint. <!-- checkpoint:w4-movement-and-limits -->
+- [ ] I can distinguish consecutive-position windows from subsequences with gaps and calculate inclusive range length. <!-- checkpoint:w4-contiguous-range -->
+- [ ] I can derive outgoing/incoming sum updates and count the exact repeated work in the baseline. <!-- checkpoint:w4-fixed-window-proof -->
+- [ ] I can explain why longest-valid search records after repair and shortest coverage records during valid contraction. <!-- checkpoint:w4-recording-rules -->
+- [ ] I can add up boundary movement to prove linear work and show a signed-sum constraint where simple contraction fails. <!-- checkpoint:w4-movement-and-limits -->
 
 ### JavaScript
 
-- [ ] I can implement fixed sums and averages with correct negative initialization. <!-- checkpoint:w4-fixed-window-code -->
-- [ ] I can implement uniqueness with repeated contraction. <!-- checkpoint:w4-unique-window-code -->
-- [ ] I can decrement frequencies and delete zero-count keys correctly. <!-- checkpoint:w4-frequency-maintenance -->
-- [ ] I can implement occurrence-based minimum coverage. <!-- checkpoint:w4-minimum-coverage-code -->
-- [ ] I can account for code-point arrays and construct the answer only once. <!-- checkpoint:w4-string-space-accounting -->
+- [ ] I can implement fixed sums and averages starting from a legal candidate, including all-negative inputs. <!-- checkpoint:w4-fixed-window-code -->
+- [ ] I can restore unique membership with as many left removals as the arriving character requires. <!-- checkpoint:w4-unique-window-code -->
+- [ ] I can lower outgoing counts and delete a key exactly when its final occurrence leaves. <!-- checkpoint:w4-frequency-maintenance -->
+- [ ] I can implement minimum coverage using missing required occurrences rather than just matched letters. <!-- checkpoint:w4-minimum-coverage-code -->
+- [ ] I can include converted code-point arrays in space claims and build only the final chosen answer. <!-- checkpoint:w4-string-space-accounting -->
 
 ### Practice
 
-- [ ] I completed fixed, unique, distinct-count, and coverage traces. <!-- checkpoint:w4-tracing-practice -->
-- [ ] I repaired the provided bugs and tested boundary contracts. <!-- checkpoint:w4-debugging-practice -->
-- [ ] I attempted the two introductory external tasks and the Hard coverage stretch task. <!-- checkpoint:w4-external-practice -->
-- [ ] I implemented the assigned Permutation in String task and justified equal-width coverage. <!-- checkpoint:w4-permutation-window -->
+- [ ] I traced state and boundaries for fixed sums, unique ranges, distinct-count limits, and minimum coverage. <!-- checkpoint:w4-tracing-practice -->
+- [ ] I repaired the supplied bugs and checked empty, invalid, and repeated-character boundary contracts. <!-- checkpoint:w4-debugging-practice -->
+- [ ] I attempted both introductory external assignments and the Hard minimum-coverage stretch exercise. <!-- checkpoint:w4-external-practice -->
+- [ ] I completed Permutation in String and explained why coverage proves a match only at equal width. <!-- checkpoint:w4-permutation-window -->
 
 ### Reflection
 
-- [ ] I recorded a constraint for which ordinary sliding window is unsafe. <!-- checkpoint:w4-applicability-reflection -->
-- [ ] I can derive a window implementation from its state invariant without a template. <!-- checkpoint:w4-independent-explanation -->
+- [ ] I recorded an input constraint that breaks an ordinary sliding-window movement proof and explained why. <!-- checkpoint:w4-applicability-reflection -->
+- [ ] I can reconstruct a window routine from its range and state invariant instead of copying a template. <!-- checkpoint:w4-independent-explanation -->

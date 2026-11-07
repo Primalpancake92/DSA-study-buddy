@@ -1,0 +1,2419 @@
+{
+    "docs/weekly_content/week-01.md": {
+        "headings": [
+            "# Week 1 - Introduction to Algorithm Complexity",
+            "## Introduction to algorithms and algorithm analysis",
+            "## Elementary operations",
+            "## Understanding input size n",
+            "## Deriving the running-time function T(n)",
+            "## Growth families",
+            "## Big O upper bounds",
+            "## Big Omega lower bounds",
+            "## Big Theta tight bounds",
+            "## Constants and thresholds",
+            "## Best worst and average cases",
+            "## Time versus space",
+            "## Counting loops and sequential operations",
+            "## Worked JavaScript examples",
+            "## Common misconceptions",
+            "## Practice exercises and module assessment",
+            "## Visual Explanations",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w1-section-chapter-introduction",
+            "w1-section-introduction-to-algorithms-and-algorithm-analysis",
+            "w1-section-elementary-operations",
+            "w1-section-understanding-input-size-n",
+            "w1-section-deriving-the-running-time-function-t-n",
+            "w1-section-growth-families",
+            "w1-section-big-o-upper-bounds",
+            "w1-section-big-omega-lower-bounds",
+            "w1-section-big-theta-tight-bounds",
+            "w1-section-constants-and-thresholds",
+            "w1-section-best-worst-and-average-cases",
+            "w1-section-time-versus-space",
+            "w1-section-counting-loops-and-sequential-operations",
+            "w1-section-worked-javascript-examples",
+            "w1-section-common-misconceptions",
+            "w1-section-practice-exercises-and-module-assessment",
+            "w1-section-visual-explanations",
+            "w1-section-hints-and-worked-solutions",
+            "w1-section-sources-and-further-reading",
+            "w1-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w1-analysis-foundations",
+            "w1-bounds-and-cases",
+            "w1-constants-thresholds",
+            "w1-dependent-loop-costs",
+            "w1-amortized-growth",
+            "w1-space-accounting",
+            "w1-counting-examples",
+            "w1-linear-search-analysis",
+            "w1-binary-search-analysis",
+            "w1-lesson-practice",
+            "w1-beginner-assessment",
+            "w1-intermediate-assessment",
+            "w1-advanced-assessment",
+            "w1-reflect-on-error",
+            "w1-explain-complexity"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "de2960d77fe78a8ad9c4278d94725b94c0592cbb261d290d4c340cc81e539ea9"
+            },
+            {
+                "language": "output",
+                "hash": "5e8469e5e12e0fd2de798bce3499492a5a719d2106d306ec12ab3c4dceae1e19"
+            },
+            {
+                "language": "javascript",
+                "hash": "c6be9d744077459893f8bbd391e8bd90fa041b19045fc4ff169571a40580528d"
+            },
+            {
+                "language": "output",
+                "hash": "8a23e499a64f87279d18b16978a096e4a6a128295ffed78e03854d2b07cb36cb"
+            },
+            {
+                "language": "javascript",
+                "hash": "ca408b6c1a6f68c178a3d3f0a72e3b96d46aa6e0fe31f5aad00d33ac212a2338"
+            },
+            {
+                "language": "output",
+                "hash": "bd253a4223927ecf55f9314293f1c4c3915a1f7629f2121e6963c36636cd4957"
+            },
+            {
+                "language": "javascript",
+                "hash": "397c8e0384da5c6c3922132d65275100e6a1811929e06f280cfb0448c002494d"
+            },
+            {
+                "language": "output",
+                "hash": "b76449bb8bedaabdd5571dd4834399592e42efa8416e4598f483ede4c7c57b7f"
+            },
+            {
+                "language": "javascript",
+                "hash": "e472900648f83a3bb8e62041db36c8a67f61fe3ed0f1f6ba605c898c2b460bc8"
+            },
+            {
+                "language": "output",
+                "hash": "77ab4c3a62493ab9fb6f3dc2c674b39fb8c155c2ca601d5b734ac46b708750b8"
+            },
+            {
+                "language": "javascript",
+                "hash": "89a06f63164198b76c9ac00348a474ed517565685a0d9777c46c7e1265cd9533"
+            },
+            {
+                "language": "output",
+                "hash": "e5eef658ab57846e56886daf7ed01754df829cc62b36c8f960c884bf4d6006cd"
+            },
+            {
+                "language": "javascript",
+                "hash": "979fb71e182135691bf823392c3df4167aed87bbc61d3e018f4b841e981c3dd8"
+            },
+            {
+                "language": "output",
+                "hash": "d5ce9ea8098e1328b3c701531bfd9e29ec8158fbfec38a0b5080660fee0f8de8"
+            },
+            {
+                "language": "javascript",
+                "hash": "517ed43c2f90df917b7c9dc6dead5b1ba2678a7359d0af03858d8ff47fa12930"
+            },
+            {
+                "language": "output",
+                "hash": "b32fd82a5f0702d72ed17d961f0caa0dc7efd7880708981bef90b5f66146dcb3"
+            },
+            {
+                "language": "javascript",
+                "hash": "236074aab3d529cf582601ad20fb6595824cf43613ad2aa14083d6cd18a588ed"
+            },
+            {
+                "language": "output",
+                "hash": "6589867fca5e1bbab75036ad81a20a9788ef6b8f894898b47e30568cbc1acdfc"
+            }
+        ],
+        "tables": [
+            "978fee35946463d934036cebedb11d45058c5dc5a4dc0d1c0d6b3eef4544b5c9",
+            "9cca83c207524aaa20767c48664f25f0644fdfae33bc74828e8ae30ed3853127",
+            "f9bea2441cde55ef3dec307d48216458495b24de1021a96e19bb9770231a4ae2",
+            "1e7878649437bf352a0846703278c39f8bd089d55595ff6a6f4fb4e6d9f32a7c"
+        ],
+        "links": [
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/",
+            "https://opendsa.org/",
+            "week-17.md"
+        ],
+        "math": [
+            "T(n) ∈ O(g(n))",
+            "0 ≤ T(n) ≤ c g(n)",
+            "3n + 7 ≤ 10n",
+            "3n + 7 ≤ 10n ≤ 10n²",
+            "5n + 2 ∈ O(n)",
+            "T(n) ∈ Ω(g(n))",
+            "0 ≤ c g(n) ≤ T(n)",
+            "3n ≤ 3n + 7",
+            "5n + 2 ∈ Ω(n)",
+            "T(n) ∈ Θ(g(n))",
+            "0 ≤ c₁g(n) ≤ T(n) ≤ c₂g(n)",
+            "n² + n",
+            "7 ≤ 7n",
+            "3n + 7 ≤ 3n + 7n = 10n",
+            "0 ≤ 3n ≤ 3n + 7 ≤ 10n",
+            "7 ≤ c₂ × 0",
+            "E[C(n)] = (1 + 2 + ... + n)/n = [n(n + 1)/2]/n = (n + 1)/2",
+            "pn + (1 − p)(n + 1)/2",
+            "n + n = 2n",
+            "n + n²",
+            "n − 1, n − 2, ..., 0",
+            "n(n − 1)/2",
+            "6n + 4 ∈ Θ(n)",
+            "5n + 2 ≤ 7n",
+            "5n ≤ 5n + 2",
+            "2n² ≤ 2n² + 3n + 1 ≤ 6n²",
+            "3n + 7 ≤ 4n",
+            "4n ≤ 4n + 6 ≤ 10n",
+            "6n ≤ 6n + 4 ≤ 10n",
+            "n(n + 1)/2",
+            "n + m + nm",
+            "nm ≤ n + m + nm ≤ 3nm"
+        ],
+        "proseWords": 6774
+    },
+    "docs/weekly_content/week-02.md": {
+        "headings": [
+            "# Week 2 - Hash Maps and Sets",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w2-section-chapter-introduction",
+            "w2-section-learning-objectives",
+            "w2-section-prerequisite-knowledge",
+            "w2-section-core-theory",
+            "w2-section-javascript-implementations",
+            "w2-section-worked-examples",
+            "w2-section-visual-explanations",
+            "w2-section-complexity-analysis",
+            "w2-section-common-mistakes",
+            "w2-section-interview-and-leetcode-pattern-recognition",
+            "w2-section-practice-exercises",
+            "w2-section-hints-and-worked-solutions",
+            "w2-section-sources-and-further-reading",
+            "w2-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w2-hash-table-model",
+            "w2-complexity-assumptions",
+            "w2-state-selection",
+            "w2-map-set-api",
+            "w2-key-equality",
+            "w2-presence-checks",
+            "w2-two-sum-order",
+            "w2-state-traces",
+            "w2-local-exercises",
+            "w2-external-practice",
+            "w2-top-k-and-two-sum",
+            "w2-counterexample-reflection",
+            "w2-tradeoff-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "b278ed4801e9a027fa7c90c0205ad4847e80ac9c9b6135ea4df941ebb6947a26"
+            },
+            {
+                "language": "output",
+                "hash": "45d5ab834133fd54b9338370662ab7be44c03398806b55cd5df4d1e6fa44eed8"
+            },
+            {
+                "language": "javascript",
+                "hash": "28db75d0c2985a061bd3753bb9af9a6c24ee06b78898c0bb00b01fc6e1276afc"
+            },
+            {
+                "language": "output",
+                "hash": "7480395d5aa494d4d7a00409257e651d26bba0beec586315da45bcb3c926d27d"
+            },
+            {
+                "language": "javascript",
+                "hash": "781ad435cc010586d860ace6f8b2a87648b0d18b37ebe6c5b6544c2127a2e6ca"
+            },
+            {
+                "language": "output",
+                "hash": "8e1e89f089d9af71817f5e81ffc784aa779d494b6136115bda1391058f047d27"
+            },
+            {
+                "language": "javascript",
+                "hash": "a0eb7c485ed596dd964d5b1b2d504c07ab1c671050fd2facb518c0f6bfd9bf5e"
+            },
+            {
+                "language": "output",
+                "hash": "4a7d7c98b98f1967cb16f7d14f4abf5f769a7451a2672c01b6befb9bb1b54dea"
+            },
+            {
+                "language": "javascript",
+                "hash": "a752ace095977eea8ddd139d67ea7101f11c8babfde2e2d1856697acdea849d2"
+            },
+            {
+                "language": "output",
+                "hash": "a7586ff8e081d216048739bf8c9798dfaea510fb391f76ac213313b287600ff0"
+            },
+            {
+                "language": "javascript",
+                "hash": "1c31e0e6049cc95409c3c99b9b1e4659c8937fadcc98c3898ce0b6a5e997dbc6"
+            },
+            {
+                "language": "output",
+                "hash": "e2e29244b83ef078c88fac0b51aab43ab1a6a65b13879785acee0ea17521422f"
+            },
+            {
+                "language": "javascript",
+                "hash": "174111b461673273847422dc996fe2ce7942aa85dd9343896ccddac45213ba9e"
+            },
+            {
+                "language": "output",
+                "hash": "760ea3a51f3559f2d6198b56607866e7ad64040484fda99191a9aafc29340851"
+            },
+            {
+                "language": "text",
+                "hash": "a68775e3cb8e7a63b41972fdc4b0810e1d580c2eb19c7c15175b8d725dc5d7d5"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "a221c04d0ac1f93bf58f12cbec1da59dfe343ff16591f0a4d6c184bb7b6d33da"
+            },
+            {
+                "language": "javascript",
+                "hash": "361253642a0b0418ca083ffcf8736e74105c63efa895a00bcd7549ee9cfde15b"
+            },
+            {
+                "language": "output",
+                "hash": "72d4adeacb52e5c2746b878f9707e1c0e127e91a497d3d10fde0cb11a247aae1"
+            }
+        ],
+        "tables": [
+            "381836b08a26cccc0dc4564d126aaf7851da2efbf6628a9f493dd370acac7e18",
+            "679606121cca43f75c5eb72b2f886076cc0f744d19dd44569d3d99ab0619ebb7"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks01to04.js",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set",
+            "https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/02.md",
+            "https://leetcode.com/problems/contains-duplicate/",
+            "https://leetcode.com/problems/group-anagrams/",
+            "https://leetcode.com/problems/top-k-frequent-elements/",
+            "https://leetcode.com/problems/two-sum/",
+            "https://leetcode.com/problems/valid-anagram/",
+            "week-01.md",
+            "week-03.md",
+            "week-03.md",
+            "week-17.md"
+        ],
+        "math": [
+            "0 + 1 + ... + (n−1)"
+        ],
+        "proseWords": 4703
+    },
+    "docs/weekly_content/week-03.md": {
+        "headings": [
+            "# Week 3 - Two Pointers",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w3-section-chapter-introduction",
+            "w3-section-learning-objectives",
+            "w3-section-prerequisite-knowledge",
+            "w3-section-core-theory",
+            "w3-section-javascript-implementations",
+            "w3-section-worked-examples",
+            "w3-section-visual-explanations",
+            "w3-section-complexity-analysis",
+            "w3-section-common-mistakes",
+            "w3-section-interview-and-leetcode-pattern-recognition",
+            "w3-section-practice-exercises",
+            "w3-section-hints-and-worked-solutions",
+            "w3-section-sources-and-further-reading",
+            "w3-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w3-safe-endpoint-elimination",
+            "w3-pointer-relationships",
+            "w3-compaction-contract",
+            "w3-cycle-proof",
+            "w3-pair-implementation",
+            "w3-palindrome-implementation",
+            "w3-reader-writer-implementation",
+            "w3-node-identity",
+            "w3-three-sum-implementation",
+            "w3-tracing-debugging",
+            "w3-external-practice",
+            "w3-assigned-return-contracts",
+            "w3-complexity-practice",
+            "w3-movement-reflection",
+            "w3-alternative-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "eb4b508cb60ab830ed9dd66f3cde1c2cf84952cf9b54ea5f810aab91aa9c9d8a"
+            },
+            {
+                "language": "output",
+                "hash": "81baf77b7f8c679a7afee300fb9e3836a8f70f5a296f4e1d328cae3135a10987"
+            },
+            {
+                "language": "javascript",
+                "hash": "4f1ccd37629436691e64cd6dc0d2df6389ff2ffba99f460156fa1180a5c94063"
+            },
+            {
+                "language": "output",
+                "hash": "b1102c67c1247294941edc6c403185ac287a85f2424052956999de56d306423e"
+            },
+            {
+                "language": "javascript",
+                "hash": "0f28809774f2798a2f72ee46ea8f883e065a54b9eca2dd91cd373c95ea387ba5"
+            },
+            {
+                "language": "output",
+                "hash": "72c16ca2674c35c2242b2f4e9597d25dc0d192a7234f91a17ac20feb0bd718e3"
+            },
+            {
+                "language": "javascript",
+                "hash": "783c73110d8ee331525ab400b4eb0489da13cb41f502a43647859c182d3bbcb3"
+            },
+            {
+                "language": "output",
+                "hash": "64ea3ec281a16e47b884b4092f855ab156c9a83b93c3727f944f70bf249b9945"
+            },
+            {
+                "language": "javascript",
+                "hash": "20d558369e69e46480c4ceabe70b86bc70d1376a4eabea59fe8184487a226307"
+            },
+            {
+                "language": "output",
+                "hash": "7b40ba344db2a8dcdb836d0513d584294fc95dfee70a4e43a983261b707c6254"
+            },
+            {
+                "language": "javascript",
+                "hash": "352ce0afaf606da4b5d5757ba0a843eb5275d467fbd5003b4fa2683ab6e0bf4e"
+            },
+            {
+                "language": "output",
+                "hash": "4d5780540df8548ca8b84ac092f526ea6e7335cf782f11eaf6ea7ea2f3c9da50"
+            },
+            {
+                "language": "text",
+                "hash": "97fbb19b56e8290e6dce79da4a634045df099ac139916b896e5d9a89bd61213c"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "044e3ddaf9472948e568f02aadab144be5322b3b96befa3f8ac6dcf3ba0f7d0b"
+            },
+            {
+                "language": "javascript",
+                "hash": "f44c95088e3f4d1cc9873258a0369a2eb48ceb6fd43732fc973cbdabd96e8492"
+            },
+            {
+                "language": "output",
+                "hash": "a618e64014077aaae2c5ea882393fc1e5960c6ca65087c21aeb118745f072381"
+            }
+        ],
+        "tables": [
+            "b2cfd6f3b000283dc61c1926f0b1ba89d3432c848eb81a8ee8612035cdc3cc3f",
+            "b532bf39e68be47537d4ad9cfb17f5f3e178066b415afaf6654813b5351c2fe9"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks01to04.js",
+            "https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/03.md",
+            "https://leetcode.com/problems/3sum/",
+            "https://leetcode.com/problems/3sum/",
+            "https://leetcode.com/problems/move-zeroes/",
+            "https://leetcode.com/problems/move-zeroes/",
+            "https://leetcode.com/problems/remove-duplicates-from-sorted-array/",
+            "https://leetcode.com/problems/remove-duplicates-from-sorted-array/",
+            "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/",
+            "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/",
+            "https://leetcode.com/problems/valid-palindrome/",
+            "https://leetcode.com/problems/valid-palindrome/",
+            "week-02.md",
+            "week-02.md",
+            "week-04.md",
+            "week-04.md",
+            "week-17.md"
+        ],
+        "math": [],
+        "proseWords": 4737
+    },
+    "docs/weekly_content/week-04.md": {
+        "headings": [
+            "# Week 4 - Sliding Window",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w4-section-chapter-introduction",
+            "w4-section-learning-objectives",
+            "w4-section-prerequisite-knowledge",
+            "w4-section-core-theory",
+            "w4-section-javascript-implementations",
+            "w4-section-worked-examples",
+            "w4-section-visual-explanations",
+            "w4-section-complexity-analysis",
+            "w4-section-common-mistakes",
+            "w4-section-interview-and-leetcode-pattern-recognition",
+            "w4-section-practice-exercises",
+            "w4-section-hints-and-worked-solutions",
+            "w4-section-sources-and-further-reading",
+            "w4-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w4-contiguous-range",
+            "w4-fixed-window-proof",
+            "w4-recording-rules",
+            "w4-movement-and-limits",
+            "w4-fixed-window-code",
+            "w4-unique-window-code",
+            "w4-frequency-maintenance",
+            "w4-minimum-coverage-code",
+            "w4-string-space-accounting",
+            "w4-tracing-practice",
+            "w4-debugging-practice",
+            "w4-external-practice",
+            "w4-permutation-window",
+            "w4-applicability-reflection",
+            "w4-independent-explanation"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "3cc1f6d04a303ba313966245710c9f3aa8ed57c3629913485743c1429b0e68db"
+            },
+            {
+                "language": "output",
+                "hash": "dff1fe299d1938c876283fe327fc53086f526a05ddc3a26f9f0196ea8a30eb38"
+            },
+            {
+                "language": "javascript",
+                "hash": "daa2df0a121cae905277503c19bf9f6b4f43e9688c8934d0ced1986cf5ed42be"
+            },
+            {
+                "language": "output",
+                "hash": "3fee72d86afe811d7a9b8b925806e2cb5877eff681d65bc657ad12e67a80b425"
+            },
+            {
+                "language": "javascript",
+                "hash": "a72ac1c97101e6fa737537f20a6a881237e56dc0de1afd2920d2c6be3cbdcd3c"
+            },
+            {
+                "language": "output",
+                "hash": "03ce20aa29bb5677d43edf09bedf69540cad5bb0aff0515685597356b3741459"
+            },
+            {
+                "language": "javascript",
+                "hash": "9949e0629eaa9218f13433e12b576c44c6e848e95d9facafac18f01948663a0a"
+            },
+            {
+                "language": "output",
+                "hash": "1a3a0dbd20ff853f9a2669ced5d8901a540f28c85729d9c87175cc651dd39eb4"
+            },
+            {
+                "language": "javascript",
+                "hash": "402a3e3b38b38d0a7513d419c9b680914f56e4654f97f3331d5e81f072036312"
+            },
+            {
+                "language": "output",
+                "hash": "d6ca46586580e969239b73d71dcf5258b52ad91c9d21529bf8095d9e9197f494"
+            },
+            {
+                "language": "text",
+                "hash": "cdbc02a9e4b95e20ab64320452282301690a16c84dddadac6abe33d2c3edf92d"
+            },
+            {
+                "language": "text",
+                "hash": "88cc40bea613edb20a05a5b3f157d4d6648a45c2630c1c93d3f030ea3a963cc3"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "b047fefb33f4437229980ade186c0c9db520f47004ed14eb227ac9455c502fce"
+            },
+            {
+                "language": "javascript",
+                "hash": "6e6182a87d2eb356d486d5d27d3f89ef158cde6b94d137057e0979c63a316748"
+            },
+            {
+                "language": "output",
+                "hash": "d8c30e6649acf56c15c1ea01f69d8eb78a8a46bf6188838022f0ca972d5684bc"
+            }
+        ],
+        "tables": [
+            "ec774ca55a7f187942540668f91385eddf4e2d444d0426584c9178b36744f2f7",
+            "5e71b54bec56f51bfe9c65540c8c33686d1305cbb4e42a8ec6b0415e4b17d2da",
+            "0a23e3d0543a9f63cb1a0d246abf9c2d8594e0fc8b0695c96264d4d1740a8897"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks01to04.js",
+            "https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/04.md",
+            "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+            "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+            "https://leetcode.com/problems/maximum-average-subarray-i/",
+            "https://leetcode.com/problems/maximum-average-subarray-i/",
+            "https://leetcode.com/problems/minimum-window-substring/",
+            "https://leetcode.com/problems/minimum-window-substring/",
+            "https://leetcode.com/problems/permutation-in-string/",
+            "https://leetcode.com/problems/permutation-in-string/",
+            "week-02.md",
+            "week-02.md",
+            "week-03.md",
+            "week-03.md"
+        ],
+        "math": [
+            "n−k",
+            "n−k+1"
+        ],
+        "proseWords": 5243
+    },
+    "docs/weekly_content/week-05.md": {
+        "headings": [
+            "# Week 5 - Stacks and Queues",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w5-section-chapter-introduction",
+            "w5-section-learning-objectives",
+            "w5-section-prerequisite-knowledge",
+            "w5-section-core-theory",
+            "w5-section-javascript-implementations",
+            "w5-section-worked-examples",
+            "w5-section-visual-explanations",
+            "w5-section-complexity-analysis",
+            "w5-section-common-mistakes",
+            "w5-section-interview-and-leetcode-pattern-recognition",
+            "w5-section-practice-exercises",
+            "w5-section-hints-and-worked-solutions",
+            "w5-section-sources-and-further-reading",
+            "w5-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w5-nesting-invariant",
+            "w5-amortized-stack-proof",
+            "w5-efficient-queue-implementations",
+            "w5-retained-memory",
+            "w5-warmer-day-practice",
+            "w5-min-stack-practice",
+            "w5-cost-reflection",
+            "w5-pattern-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "ad8e6b6e3e8a62d083ff1291a00e3decc4b7207561faaab99da82b9bed80c44e"
+            },
+            {
+                "language": "output",
+                "hash": "6206f23e40202ea59924c5828f6212a4de868b2023e1c00a669c079156a148c2"
+            },
+            {
+                "language": "javascript",
+                "hash": "e36cf9d2c8832a851739fae26a792493fa44e956205622c540625e1398d93a2a"
+            },
+            {
+                "language": "output",
+                "hash": "adc342617e74ff39519cd6b4b5ccbdc036e18e945cf024edc3b1b2d9e310552c"
+            },
+            {
+                "language": "javascript",
+                "hash": "c1d973c594cdf05fd836e39199d65e25941f2dd784c20c322c4a0e928c48634a"
+            },
+            {
+                "language": "output",
+                "hash": "db99847dea1718dcc4d0453369909056455d9129030953edfd84d190a6b618b3"
+            },
+            {
+                "language": "javascript",
+                "hash": "eb839f852e0c9de863d55488aac7d73574aad57e79f74b8e1b251013f72f600b"
+            },
+            {
+                "language": "output",
+                "hash": "779fea9aa40b483e5a39ad0b013d131d8e33b376e5bc11e33912fbf5ef3c25d6"
+            },
+            {
+                "language": "text",
+                "hash": "89ab038619e938e2e0864082089dbdbf14582f56aae507701cf40ba3b650dccb"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "cdca17334ea6c00871506dee964721c3ee2623f1f42662b506b5824f5f41d5ce"
+            },
+            {
+                "language": "javascript",
+                "hash": "1879d82b8bb252dc1f7e7862f05328aea96f87945bb814762b2cd26fcde01515"
+            },
+            {
+                "language": "output",
+                "hash": "3e9c737c49c50bfaca87a4c96d069db65f4bb7dfeccd6a308548c3d663974620"
+            }
+        ],
+        "tables": [
+            "866c265c91524033caaeb8fb93cdd7d00451fc9ccd60e8cb75ff83b7267aa99a",
+            "7c997881231afea756f4cd2953d665795c7a94c767772226df5193427bc936b7"
+        ],
+        "links": [
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift",
+            "https://leetcode.com/problems/daily-temperatures/",
+            "https://leetcode.com/problems/daily-temperatures/",
+            "week-01.md",
+            "week-02.md",
+            "week-04.md",
+            "week-08.md",
+            "week-09.md",
+            "week-09.md",
+            "week-17.md"
+        ],
+        "math": [],
+        "proseWords": 2213
+    },
+    "docs/weekly_content/week-06.md": {
+        "headings": [
+            "# Week 6 - Binary Search",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w6-section-chapter-introduction",
+            "w6-section-learning-objectives",
+            "w6-section-prerequisite-knowledge",
+            "w6-section-core-theory",
+            "w6-section-javascript-implementations",
+            "w6-section-worked-examples",
+            "w6-section-visual-explanations",
+            "w6-section-complexity-analysis",
+            "w6-section-common-mistakes",
+            "w6-section-interview-and-leetcode-pattern-recognition",
+            "w6-section-practice-exercises",
+            "w6-section-hints-and-worked-solutions",
+            "w6-section-sources-and-further-reading",
+            "w6-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w6-search-invariants",
+            "w6-monotonic-feasibility",
+            "w6-boundary-implementations",
+            "w6-rotated-search",
+            "w6-edge-case-traces",
+            "w6-external-practice",
+            "w6-termination-reflection",
+            "w6-full-cost-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "7b222645a57bbaafef9f3e085badc93025573d118da612fc9da58a26183527dd"
+            },
+            {
+                "language": "output",
+                "hash": "5788d7dee2df57b170f536060e7e0f95cc66b625194120890cf305aba9f4093f"
+            },
+            {
+                "language": "javascript",
+                "hash": "6474e7a9f4b1f0fe805054a8c39f0ef65aedf7e31d81a2cc3946b3dc1ad5f78a"
+            },
+            {
+                "language": "output",
+                "hash": "4b6f8b7acc551db61631797cda595b50358576761fe65b2256b6e562eb47086d"
+            },
+            {
+                "language": "javascript",
+                "hash": "35fef6a55a269f0e3b522ce06c0cd5a55413c28f723be3183e24bc3b2daf0db3"
+            },
+            {
+                "language": "output",
+                "hash": "2584aa2b2d514a1b7db1873e7ee245b97ec0945cbc5dd8ea8213f6597849f511"
+            },
+            {
+                "language": "javascript",
+                "hash": "cc01543be7a09e702dcecae7bf91b9c1e6a4484b0a24d7288b50b191a6949e5a"
+            },
+            {
+                "language": "output",
+                "hash": "cf676f1453e0da9c58a1f3c173a7d579b19c6fca23b130341098b241a303d387"
+            },
+            {
+                "language": "text",
+                "hash": "d713695d994d4dafff61ac5fdd8a87addce172b83ca88f3562c8ef7ec954ef1a"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "f374c6834b79488117eb686a547ec781bebaee26b7fabcc6abb731685aaceeb1"
+            },
+            {
+                "language": "javascript",
+                "hash": "1ed0c2fd395235f759b54c1d8206ea31727d1f25bcac08e96061fd734beb4c68"
+            },
+            {
+                "language": "output",
+                "hash": "e58020212b2d987dddd1673a2ae26c56249c5bbc8ba81d81e7ae0e1d12c74300"
+            }
+        ],
+        "tables": [
+            "566e763a5c0afbab07acff4b55ccb7798027d5e6dbe053ba876a5fd9e6c6b1b2",
+            "ef46fbd5bec46ce554a59fa32b3bc0022179f18e6400a0a14844c75d36a2c03d"
+        ],
+        "links": [
+            "https://leetcode.com/problems/binary-search/",
+            "https://leetcode.com/problems/binary-search/",
+            "https://leetcode.com/problems/koko-eating-bananas/description/",
+            "https://leetcode.com/problems/koko-eating-bananas/description/",
+            "https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15122-s14/www/06-binsearch.pdf",
+            "https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15122-s14/www/06-binsearch.pdf",
+            "week-01.md",
+            "week-03.md",
+            "week-07.md",
+            "week-17.md"
+        ],
+        "math": [],
+        "proseWords": 2331
+    },
+    "docs/weekly_content/week-07.md": {
+        "headings": [
+            "# Week 7 - Linked Lists",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w7-section-chapter-introduction",
+            "w7-section-learning-objectives",
+            "w7-section-prerequisite-knowledge",
+            "w7-section-core-theory",
+            "w7-section-javascript-implementations",
+            "w7-section-worked-examples",
+            "w7-section-visual-explanations",
+            "w7-section-complexity-analysis",
+            "w7-section-common-mistakes",
+            "w7-section-interview-and-leetcode-pattern-recognition",
+            "w7-section-practice-exercises",
+            "w7-section-hints-and-worked-solutions",
+            "w7-section-sources-and-further-reading",
+            "w7-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w7-identity-and-access",
+            "w7-cycle-proof",
+            "w7-reversal-implementation",
+            "w7-dummy-merge",
+            "w7-removal-practice",
+            "w7-reorder-practice",
+            "w7-reference-reflection",
+            "w7-contract-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "a3714047ed373d0c6afd5782d41c19634c12d3b0597f6a67fe540c721d78bd98"
+            },
+            {
+                "language": "output",
+                "hash": "082ae8c3bd0700f1913c4e7f0c610bc86703da44c0aefaef0821e418f6b1d0e5"
+            },
+            {
+                "language": "javascript",
+                "hash": "428178c22acd0352a827ecc5a9f703d6386f710392302b2ecf0b04b7b84bb206"
+            },
+            {
+                "language": "output",
+                "hash": "85b5f328fc6a47739d52a186a29e9e2e22f5448b7954e9fec98d4118be3517ee"
+            },
+            {
+                "language": "javascript",
+                "hash": "0c7f0c6894584608eeb27db47ad852d63b5e4fc1efd1eb09e19cc796677ba910"
+            },
+            {
+                "language": "output",
+                "hash": "cb4f7056b8a65d301709d49f9c55d9ced68f709e62cce4a932be6cbf851b6b81"
+            },
+            {
+                "language": "javascript",
+                "hash": "b10d70f8ab40954d80a01616e8950114e2ec320cfb36832e17b24c640990a1e6"
+            },
+            {
+                "language": "output",
+                "hash": "33d9f7e13772f0e38d82fb83d33eee19d19910bcfb1dfece047cfcf32cd41a5a"
+            },
+            {
+                "language": "text",
+                "hash": "4198fa9d3b7b52f3a180944f420dbd0b381398b7c7940a55e6f07354f9e04636"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "8cebb8726578213171c794118dec0bad9f5bcf55e54e7208d9a425c6b61df2ce"
+            },
+            {
+                "language": "javascript",
+                "hash": "8d58a2d28eb0033080f46c153594d0bcc8ecdcb19f160ea827d8ef80b2b8e4df"
+            },
+            {
+                "language": "output",
+                "hash": "a1b8e037a3430758c9d6c278516ceaba431e4f8aaa4ea13508ff245212779545"
+            }
+        ],
+        "tables": [
+            "458f6ecb9330338fa94bda319837957bba7d45776f8aed6932f420d505d835d6",
+            "33ea7fc3d5a526124802b9df4febc138d4ddd0e48daff0ade1f3116202bd0efb"
+        ],
+        "links": [
+            "https://leetcode.com/problems/reverse-linked-list/",
+            "https://leetcode.com/problems/reverse-linked-list/",
+            "https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1224/section/section7/",
+            "https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1224/section/section7/",
+            "week-03.md",
+            "week-05.md",
+            "week-08.md"
+        ],
+        "math": [],
+        "proseWords": 2393
+    },
+    "docs/weekly_content/week-08.md": {
+        "headings": [
+            "# Week 8 - Recursion and Backtracking",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w8-section-chapter-introduction",
+            "w8-section-learning-objectives",
+            "w8-section-prerequisite-knowledge",
+            "w8-section-core-theory",
+            "w8-section-javascript-implementations",
+            "w8-section-worked-examples",
+            "w8-section-visual-explanations",
+            "w8-section-complexity-analysis",
+            "w8-section-common-mistakes",
+            "w8-section-interview-and-leetcode-pattern-recognition",
+            "w8-section-practice-exercises",
+            "w8-section-hints-and-worked-solutions",
+            "w8-section-sources-and-further-reading",
+            "w8-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w8-recursive-contracts",
+            "w8-output-sensitive-analysis",
+            "w8-snapshot-and-undo",
+            "w8-safe-pruning",
+            "w8-call-tree-trace",
+            "w8-enumeration-practice",
+            "w8-depth-reflection",
+            "w8-aliasing-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "591c2b19fa109ac12cfd67a2b0acbff19c124f16a563dcf155f71146ee6fd9de"
+            },
+            {
+                "language": "output",
+                "hash": "0bdb9dff71458d049eb60c67fdddf6952b891b730c00bed91e3a1e258a57a917"
+            },
+            {
+                "language": "javascript",
+                "hash": "08eb5a61977863a8e46fca5032c710ef075b9531faafb213022cdea4c0e58543"
+            },
+            {
+                "language": "output",
+                "hash": "609e344ba655342172b0f1c10ed077e84952caa88d4219a22091f48f36ed7559"
+            },
+            {
+                "language": "javascript",
+                "hash": "c659cbf46c45286e548c7ed6d39432c1e3171f9c28f0d7db559606a53044b9bb"
+            },
+            {
+                "language": "output",
+                "hash": "bfaf32efd49f1957b2c2b50f158969631e1cb70e10b37c263b83cc385cd135a3"
+            },
+            {
+                "language": "javascript",
+                "hash": "2499e2f2ec6b291e4928a566dabbd15aaf21cbdd25ebf2061a7e241fe1bb80e8"
+            },
+            {
+                "language": "output",
+                "hash": "42028061d7d5651c51e2b3a8276b515b12effda938e4924763e4bded171f832c"
+            },
+            {
+                "language": "javascript",
+                "hash": "fe819dd60425fab2c5995e75c159bb409f1c564a153210eea0ea6e554f1b58ee"
+            },
+            {
+                "language": "output",
+                "hash": "b4072824df3bf0facab8724e44a4ad6e06a3130ce41b4ff1de9563fba45bcf9d"
+            },
+            {
+                "language": "text",
+                "hash": "b50159918e780f13d45edd78b164e3b9f410099182a0638119e3310edc2110ea"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "3d42d008ac7f2f8305be1cc45db6718fabcd4972c4dfd02f9c427a8b4117bb88"
+            },
+            {
+                "language": "javascript",
+                "hash": "238ec1bf4cd4afd8ccfb66129013f5d938accd4efbb64f0a628387df969d44ae"
+            },
+            {
+                "language": "output",
+                "hash": "975797ddab485f8db7b747b31fc9b07975103d4dc1318e584f0d44d0afbf6d7c"
+            }
+        ],
+        "tables": [],
+        "links": [
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions",
+            "https://leetcode.com/problems/subsets/",
+            "https://leetcode.com/problems/subsets/",
+            "https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1242/lectures/11-backtracking1/",
+            "https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1242/lectures/11-backtracking1/",
+            "week-05.md",
+            "week-07.md",
+            "week-09.md"
+        ],
+        "math": [],
+        "proseWords": 2754
+    },
+    "docs/weekly_content/week-09.md": {
+        "headings": [
+            "# Week 9 - Binary Trees",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w9-section-chapter-introduction",
+            "w9-section-learning-objectives",
+            "w9-section-prerequisite-knowledge",
+            "w9-section-core-theory",
+            "w9-section-javascript-implementations",
+            "w9-section-worked-examples",
+            "w9-section-visual-explanations",
+            "w9-section-complexity-analysis",
+            "w9-section-common-mistakes",
+            "w9-section-interview-and-leetcode-pattern-recognition",
+            "w9-section-practice-exercises",
+            "w9-section-hints-and-worked-solutions",
+            "w9-section-sources-and-further-reading",
+            "w9-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w9-traversal-theory",
+            "w9-subtree-contract",
+            "w9-depth-implementations",
+            "w9-inversion-and-bfs",
+            "w9-uneven-tree-practice",
+            "w9-level-and-leaf-practice",
+            "w9-retained-storage-reflection",
+            "w9-shape-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "caa55b634a7260b19600def2419bd90387ebcb3c3a6e69e138db8130a7fd2b2e"
+            },
+            {
+                "language": "output",
+                "hash": "8fef084877e8df58f8516b4eb6efc588a189ceb69301e4c39227295fc5e80b35"
+            },
+            {
+                "language": "javascript",
+                "hash": "16ca51ca44bc2b22001d4fe19057d96ae07f36238401bcb900bbcfe877d62300"
+            },
+            {
+                "language": "output",
+                "hash": "484deeb9f36e802c2fe670262d2ef209c75cdc80f132f9723897094f77c20469"
+            },
+            {
+                "language": "javascript",
+                "hash": "e0c0309cf3c222785d5cdca23dc2be6553f7cb9406454c7477099053bee9e7ff"
+            },
+            {
+                "language": "output",
+                "hash": "8c5c78940ef0cf9050847e974f555d14e3ba5bf908e5f3d1658ed00e9d43a655"
+            },
+            {
+                "language": "javascript",
+                "hash": "b0b73c2ea3f828ae40f00aae96d98632626d0910f8a3642ff9e763b34bf399d8"
+            },
+            {
+                "language": "output",
+                "hash": "061a799fa0317839611d8c2813ce45795a0c35801b3f9f9c90cf6e474f5ba3d3"
+            },
+            {
+                "language": "javascript",
+                "hash": "8156fa35a61a56c0d5b1ab9a8c3c502c00033cffb5f315ab2ea321b134ed0b2b"
+            },
+            {
+                "language": "output",
+                "hash": "38911b24a999dfb74e6584a6f0d3c21ed264c8702b396d6c13109e7e664e77fc"
+            },
+            {
+                "language": "text",
+                "hash": "ff3d153021cd7a2f39e6c8a21bf45201fa7af7863b36eb430aec65497f3bc4fd"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "0d9fc00993fc1235b871594e590da3bb3c182e6424c6c0f35befe30cf1eaa9f0"
+            },
+            {
+                "language": "javascript",
+                "hash": "7c678cdecaac7d1d76d41e61cfe403ebd59152a38309068e542e8b72fc38165e"
+            },
+            {
+                "language": "output",
+                "hash": "8a414018b18c37616efc7f7fb9f7104875d82331397f2389eec13cf4913e0210"
+            }
+        ],
+        "tables": [
+            "72d379c4cdb76cffba4a0bb9fa72862718ce6df2b949e331ba030ddc348cfebd"
+        ],
+        "links": [
+            "https://leetcode.com/problems/binary-tree-level-order-traversal/",
+            "https://leetcode.com/problems/binary-tree-level-order-traversal/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf",
+            "week-05.md",
+            "week-07.md",
+            "week-08.md",
+            "week-10.md",
+            "week-10.md",
+            "week-11.md"
+        ],
+        "math": [],
+        "proseWords": 2556
+    },
+    "docs/weekly_content/week-10.md": {
+        "headings": [
+            "# Week 10 - BSTs and Heaps",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w10-section-chapter-introduction",
+            "w10-section-learning-objectives",
+            "w10-section-prerequisite-knowledge",
+            "w10-section-core-theory",
+            "w10-section-javascript-implementations",
+            "w10-section-worked-examples",
+            "w10-section-visual-explanations",
+            "w10-section-complexity-analysis",
+            "w10-section-common-mistakes",
+            "w10-section-interview-and-leetcode-pattern-recognition",
+            "w10-section-practice-exercises",
+            "w10-section-hints-and-worked-solutions",
+            "w10-section-sources-and-further-reading",
+            "w10-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w10-ordering-invariants",
+            "w10-height-and-build-costs",
+            "w10-bst-validation",
+            "w10-real-heap",
+            "w10-heap-edge-practice",
+            "w10-top-k-practice",
+            "w10-boundary-reflection",
+            "w10-complete-cost-reflection"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "a5799f3e476ded902f375d65f8a3b962c707cbb8678a9541955b1d752de99c1c"
+            },
+            {
+                "language": "output",
+                "hash": "8b0211da03414fff1b938a77f667d05fe38a0b288a4852de8174a861650fac33"
+            },
+            {
+                "language": "javascript",
+                "hash": "b682f49c917a4d3d26e2ea0565b8f9c963d97960816af20fa9fde8623880847d"
+            },
+            {
+                "language": "output",
+                "hash": "b1affa2d6a3eca0217e47f6216e4c330e3008ea2ef5dab2ac7450474cf11bed9"
+            },
+            {
+                "language": "text",
+                "hash": "6fac67c750faea098a6da96eade31520fdeead21a028afaa6c3abb29be40e73b"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "6f25186f948771a30bd02d6dd737d5227084576eeb5f601095adcf4fe8c94179"
+            },
+            {
+                "language": "javascript",
+                "hash": "c26d918f3dfb0b8465858e8389373e1e59818691811046318c95e39b4d6e0cea"
+            },
+            {
+                "language": "output",
+                "hash": "ad6e04b69b79413ddcb7b44332b92b25689619ddd8da4060bef6fc953d37ac5f"
+            }
+        ],
+        "tables": [
+            "a25d5d9942b3f35c8b47113ed6440e763c1f25e7cf15050e6fc95540025c40a9",
+            "3c5213a6fe56e53e16cf53acfd7c9e38eaade51a3e3ea7fd3e3eee8a827b9700"
+        ],
+        "links": [
+            "https://courses.csail.mit.edu/6.006/fall09/lecture_notes/lecture09.pdf",
+            "https://courses.csail.mit.edu/6.006/fall09/lecture_notes/lecture09.pdf",
+            "https://leetcode.com/problems/kth-largest-element-in-an-array/",
+            "https://leetcode.com/problems/kth-largest-element-in-an-array/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/376714cc85c6c784d90eec9c575ec027_MIT6_006S20_lec6.pdf",
+            "week-02.md",
+            "week-06.md",
+            "week-09.md",
+            "week-12.md"
+        ],
+        "math": [
+            "n/2 + 2n/4 + 3n/8 + ..."
+        ],
+        "proseWords": 2951
+    },
+    "docs/weekly_content/week-11.md": {
+        "headings": [
+            "# Week 11 - Graph Foundations",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w11-section-chapter-introduction",
+            "w11-section-learning-objectives",
+            "w11-section-prerequisite-knowledge",
+            "w11-section-core-theory",
+            "w11-section-javascript-implementations",
+            "w11-section-worked-examples",
+            "w11-section-visual-explanations",
+            "w11-section-complexity-analysis",
+            "w11-section-common-mistakes",
+            "w11-section-interview-and-leetcode-pattern-recognition",
+            "w11-section-practice-exercises",
+            "w11-section-hints-and-worked-solutions",
+            "w11-section-sources-and-further-reading",
+            "w11-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w11-model-relationships",
+            "w11-prove-bfs-layers",
+            "w11-build-traversals",
+            "w11-clone-identity",
+            "w11-complete-exercises",
+            "w11-account-memory",
+            "w11-review-counterexample"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "9780d4dbdcef0142573cc8a4692fc91f87d5f51dddc175c4dc99a143b477f6c5"
+            },
+            {
+                "language": "output",
+                "hash": "42d0d619bedf2edab5bf0dec73e7aeaaa0c398df8813d15085a4a57cc878133e"
+            },
+            {
+                "language": "javascript",
+                "hash": "6491f229bf1a7e5e72e3130e18bed02f2f7f883ea2a2486e4c92f26247accb08"
+            },
+            {
+                "language": "output",
+                "hash": "145c53ca097bff93f3325b5689ca2b95a16567e2d3910f01ab8bd65e08f6ba47"
+            },
+            {
+                "language": "javascript",
+                "hash": "f3feb596b7e6f070d6cf212fc1b0faa3cd1a4cca03e62f97732570f826bf4b5a"
+            },
+            {
+                "language": "output",
+                "hash": "7dd7794c7cead6f55535b2979bf288afa7882fb8bf969cd8b724ec530f628f54"
+            },
+            {
+                "language": "javascript",
+                "hash": "ec1d411f72364848ffc96885fe152469d5caa59bd18ebd981d20062019f1af77"
+            },
+            {
+                "language": "output",
+                "hash": "40231e6c6f783fb88512268fe60b50db5ade9e551ffead4af16b6ebd4efb55d7"
+            },
+            {
+                "language": "text",
+                "hash": "7b7cf938eb388b63ed62900cb9194e631ff4ff635475ebfe8c5e02b293f3b37b"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "42e77576392f8e8a2954fad87126ca6bb27a359da7de744b1c55a176d8e40a8e"
+            }
+        ],
+        "tables": [
+            "57a0c0655a079bb43821ca6763a6222d72335060eac6282a0da1d1bec46e1b8a",
+            "467fabb188a23a545988ff532d1eb5ac7ac3ade4df1244cb3e8956cad4da5fbb"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks09to12.js",
+            "https://leetcode.com/problems/number-of-islands/",
+            "https://leetcode.com/problems/number-of-islands/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf",
+            "https://www.hackerrank.com/challenges/ctci-connected-cell-in-a-grid/problem",
+            "https://www.hackerrank.com/challenges/ctci-connected-cell-in-a-grid/problem",
+            "week-12.md",
+            "week-12.md",
+            "week-15.md"
+        ],
+        "math": [],
+        "proseWords": 1999
+    },
+    "docs/weekly_content/week-12.md": {
+        "headings": [
+            "# Week 12 - Advanced Graphs",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w12-section-chapter-introduction",
+            "w12-section-learning-objectives",
+            "w12-section-prerequisite-knowledge",
+            "w12-section-core-theory",
+            "w12-section-javascript-implementations",
+            "w12-section-worked-examples",
+            "w12-section-visual-explanations",
+            "w12-section-complexity-analysis",
+            "w12-section-common-mistakes",
+            "w12-section-interview-and-leetcode-pattern-recognition",
+            "w12-section-practice-exercises",
+            "w12-section-hints-and-worked-solutions",
+            "w12-section-sources-and-further-reading",
+            "w12-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w12-explain-graph-state",
+            "w12-prove-settlement",
+            "w12-implement-kahn",
+            "w12-implement-dijkstra",
+            "w12-trace-edge-cases",
+            "w12-select-graph-pattern",
+            "w12-review-complexity"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "93fdda40804570a4e8a3689c2c08da0c334244d772262cee01447429376b4b14"
+            },
+            {
+                "language": "output",
+                "hash": "fdf4bb3b16aaae846b288343c2c227223fbaff91f5199973eacc0b05fcaad520"
+            },
+            {
+                "language": "javascript",
+                "hash": "ab84a49089d1d69fa81040c93ce42521185a5b84b78c8e604bdee7477ceb316c"
+            },
+            {
+                "language": "output",
+                "hash": "fade933f72078e5b6d59663d4f2b09c96e396b4c6bc2aed444379aeb309afeee"
+            },
+            {
+                "language": "javascript",
+                "hash": "3d31798024d6997494a1f113e431c7fafb400cfb82ea65d8b17e93d6229e34a9"
+            },
+            {
+                "language": "output",
+                "hash": "cf607de4eb3572b2e500ac60c1d7ce7f72e11df66de97b6bbd59c698ccff1df9"
+            },
+            {
+                "language": "javascript",
+                "hash": "e8e948ef78828d63fd6b7b9b567de4f7e8ca62fb5f6cb6669ab93ca4fc9bc5df"
+            },
+            {
+                "language": "output",
+                "hash": "49ce5075964ca2184b81bd5ffb920eef4c8dfb01ae7be1423f23dce6f7cbe381"
+            },
+            {
+                "language": "text",
+                "hash": "de23e6b5230bc6cbef6dacff1ddaa67dbc54ddcc12e28b0f7556cf1f0f337f53"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "d17c78dc058ccdf4f3f58bf33e843d2513fd5e511300dd3900dabd0795c462f9"
+            }
+        ],
+        "tables": [
+            "605247a6df82fc91540cab11c88d225505be09fa5caf4aaa60a44429fc6ae464",
+            "ed250deb7bd773bce194ce2d84a2997c5c3e2de0e8c5cfb73b4b4df9db997b0a"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks09to12.js",
+            "https://leetcode.com/problems/course-schedule/",
+            "https://leetcode.com/problems/course-schedule/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/lecture-notes/",
+            "https://www.hackerrank.com/challenges/bfsshortreach/problem",
+            "https://www.hackerrank.com/challenges/bfsshortreach/problem",
+            "week-11.md",
+            "week-13.md",
+            "week-13.md"
+        ],
+        "math": [],
+        "proseWords": 2290
+    },
+    "docs/weekly_content/week-13.md": {
+        "headings": [
+            "# Week 13 - Greedy and Intervals",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w13-section-chapter-introduction",
+            "w13-section-learning-objectives",
+            "w13-section-prerequisite-knowledge",
+            "w13-section-core-theory",
+            "w13-section-javascript-implementations",
+            "w13-section-worked-examples",
+            "w13-section-visual-explanations",
+            "w13-section-complexity-analysis",
+            "w13-section-common-mistakes",
+            "w13-section-interview-and-leetcode-pattern-recognition",
+            "w13-section-practice-exercises",
+            "w13-section-hints-and-worked-solutions",
+            "w13-section-sources-and-further-reading",
+            "w13-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w13-prove-greedy-choice",
+            "w13-distinguish-objectives",
+            "w13-implement-intervals",
+            "w13-control-mutation",
+            "w13-test-boundaries",
+            "w13-explain-resource-matching",
+            "w13-review-assumptions"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "3c12bcea925aed7eb294e754d08385a99b206ce52a7e218e0580129f6ad7aef0"
+            },
+            {
+                "language": "output",
+                "hash": "a5b4d2a263c46ba8cbe8379f08974015f7dab70513a73539899ab90e6e886c3b"
+            },
+            {
+                "language": "javascript",
+                "hash": "483521d2da345bdc291dde36f72d3fc12772defa404b0368ccf7d7c89d04346b"
+            },
+            {
+                "language": "output",
+                "hash": "a19e439fe92fef7a9e8fb026703bce3f8e00f76de0c883663aa813fd83cc6343"
+            },
+            {
+                "language": "javascript",
+                "hash": "5a369fbf02da6c3757bbe14847a6a8f1c497e5281129afeb96f9564ce90771b3"
+            },
+            {
+                "language": "output",
+                "hash": "8a414018b18c37616efc7f7fb9f7104875d82331397f2389eec13cf4913e0210"
+            },
+            {
+                "language": "javascript",
+                "hash": "0e9ca25cbee8a68fc441cbef10a48563e8c27201a995e8ca608c4b75d1531a8f"
+            },
+            {
+                "language": "output",
+                "hash": "eb2d5f8f8c44ee8003788b7c37279cdb86cc3800280103f8a9b5db8c0b15bc2d"
+            },
+            {
+                "language": "text",
+                "hash": "1e2a09973cf2b416f13fbffdbfaa6c4def9b4151ad21e7eb62e6f69d332779bc"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "d2e2512226c2d50f5bb0f05a498a26fac03f8d0f71f15faf17d56fce9bb59e5f"
+            }
+        ],
+        "tables": [
+            "e47b5c62130471377c025a421e4b9230c4a47192bd81a0c51ec7b55f5e7c54b5",
+            "530c04768fdb009b98824b052c8811bc31a5ab9a7a2518e9e755989628bd4a9b"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks13to16.js",
+            "https://cusack.hope.edu/DAIADS/Content/Algorithms/Greedy/Interval%20Scheduling.html?path=Problems/Optimization/Interval+Scheduling",
+            "https://cusack.hope.edu/DAIADS/Content/Algorithms/Greedy/Interval%20Scheduling.html?path=Problems/Optimization/Interval+Scheduling",
+            "https://leetcode.com/problems/merge-intervals/",
+            "https://leetcode.com/problems/merge-intervals/",
+            "https://www.hackerrank.com/challenges/greedy-florist/problem",
+            "https://www.hackerrank.com/challenges/greedy-florist/problem",
+            "week-12.md",
+            "week-14.md",
+            "week-14.md"
+        ],
+        "math": [],
+        "proseWords": 2098
+    },
+    "docs/weekly_content/week-14.md": {
+        "headings": [
+            "# Week 14 - Dynamic Programming I",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w14-section-chapter-introduction",
+            "w14-section-learning-objectives",
+            "w14-section-prerequisite-knowledge",
+            "w14-section-core-theory",
+            "w14-section-javascript-implementations",
+            "w14-section-worked-examples",
+            "w14-section-visual-explanations",
+            "w14-section-complexity-analysis",
+            "w14-section-common-mistakes",
+            "w14-section-interview-and-leetcode-pattern-recognition",
+            "w14-section-practice-exercises",
+            "w14-section-hints-and-worked-solutions",
+            "w14-section-sources-and-further-reading",
+            "w14-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w14-define-dp-model",
+            "w14-explain-base-cases",
+            "w14-implement-two-evaluations",
+            "w14-preserve-dependencies",
+            "w14-trace-dp-states",
+            "w14-complete-external-practice",
+            "w14-review-state-design"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "b9d1c023f94900795abee9e4783de517f156e121ff19a400411cb65a7f673146"
+            },
+            {
+                "language": "output",
+                "hash": "b3b45d8c6a057649972bb70990c370408ff9d97a7aeb10197a42db9c88b81c0b"
+            },
+            {
+                "language": "javascript",
+                "hash": "ef70ba5d6653ef70241f54ce86b0da6e8bccb1be4b8cb63a616eaa018dd865f5"
+            },
+            {
+                "language": "output",
+                "hash": "6de85ecc46069979941ea829fdcd642a41f0531d71dfeebd1e73a95162ce2bde"
+            },
+            {
+                "language": "javascript",
+                "hash": "d7250d453f916e66df41e5e674fe5898128c4f9553adfcc914b9c7012c520de2"
+            },
+            {
+                "language": "output",
+                "hash": "e58e9618bafeeb0f6cdaf4e6337908829ec234e30b4846f90c7f09c159a3bbac"
+            },
+            {
+                "language": "javascript",
+                "hash": "4c542c24011d7fc86f29b82319867565b94d0dc0c5bc02f89a1ffe1005bb210a"
+            },
+            {
+                "language": "output",
+                "hash": "70f3894650ee288c0cf227c2cb6a37457ee2ed2f3acb787f8ada7a8aa6a3764a"
+            },
+            {
+                "language": "text",
+                "hash": "015b3be4bce185845c7fc2d057e808bdd20eeea1d8aed6079689658c6e755469"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "4d085145201be21929f6c45595b005ea812dc52af1643921bdcf9a3a63fb8787"
+            }
+        ],
+        "tables": [
+            "c4be247feea815d2c732347276a9c668fa333fd6446f52eb659d43c52e400735",
+            "0dfd83943799758901b194e6aee7874402044154c32a5014b7731ab913d1d04a"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks13to16.js",
+            "https://leetcode.com/problems/coin-change/",
+            "https://leetcode.com/problems/coin-change/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/b6d4083131dd16e7d97f56d04b6e858f_MIT6_006F11_lec19.pdf",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/b6d4083131dd16e7d97f56d04b6e858f_MIT6_006F11_lec19.pdf",
+            "https://www.hackerrank.com/challenges/ctci-fibonacci-numbers/problem",
+            "https://www.hackerrank.com/challenges/ctci-fibonacci-numbers/problem",
+            "week-13.md",
+            "week-15.md",
+            "week-15.md"
+        ],
+        "math": [],
+        "proseWords": 2406
+    },
+    "docs/weekly_content/week-15.md": {
+        "headings": [
+            "# Week 15 - Dynamic Programming II and Tries",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w15-section-chapter-introduction",
+            "w15-section-learning-objectives",
+            "w15-section-prerequisite-knowledge",
+            "w15-section-core-theory",
+            "w15-section-javascript-implementations",
+            "w15-section-worked-examples",
+            "w15-section-visual-explanations",
+            "w15-section-complexity-analysis",
+            "w15-section-common-mistakes",
+            "w15-section-interview-and-leetcode-pattern-recognition",
+            "w15-section-practice-exercises",
+            "w15-section-hints-and-worked-solutions",
+            "w15-section-sources-and-further-reading",
+            "w15-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w15-define-two-dimensional-state",
+            "w15-distinguish-path-history",
+            "w15-implement-grid-and-lcs",
+            "w15-implement-trie",
+            "w15-trace-compressed-dependencies",
+            "w15-complete-external-practice",
+            "w15-review-state-loss"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "5812ad56a4d165da72cdf36f0c6d9b52a13c07165adaa96239950ed83270a881"
+            },
+            {
+                "language": "output",
+                "hash": "3255babdd76ca5ec5ba8afa27b0850be62d65cb611886b3a341bdf0c425e05b2"
+            },
+            {
+                "language": "javascript",
+                "hash": "c56a24977dcfafeebae6469892246602c5e549c80a0782f59e98732e3d0bcbb7"
+            },
+            {
+                "language": "output",
+                "hash": "e332f360d2172a8b91a91fea4455c64342f214faef88bc398a0e3422d7c29af5"
+            },
+            {
+                "language": "javascript",
+                "hash": "5a2bb1877c0ef09f686d1ea2df70d21418bf9f572b16292ced292a56f92aeec2"
+            },
+            {
+                "language": "output",
+                "hash": "d78efaa51e70a381111f00b5b91a9fbc8efee571cdd8e1f0602929ae2222791f"
+            },
+            {
+                "language": "javascript",
+                "hash": "93f725afa8596347c2b2c41cdba877c4ab99d7c962733ca842704ef821c60c87"
+            },
+            {
+                "language": "output",
+                "hash": "ed8b2669c0444f19baf64db8997f380ff9d72dcedd9fe04054c4d8062e9fb234"
+            },
+            {
+                "language": "javascript",
+                "hash": "a864ad72c5393709e0dbb0d8af69776008e8dc60a63d7c57d691ed9698a28d25"
+            },
+            {
+                "language": "output",
+                "hash": "a5964dbb593c32099a6224f62039ebea77bfb1a4c31c12d26839977bd3488899"
+            },
+            {
+                "language": "javascript",
+                "hash": "05dfd68f9d72d914d9f62dfdf4bc7e828b1df973cc4e183022a0658ee5a2682a"
+            },
+            {
+                "language": "output",
+                "hash": "c51539731ec9b10fc0e339e8ae7e5a1ebab37f8310945635238f1b2e46295fac"
+            },
+            {
+                "language": "text",
+                "hash": "335c5b2ed8fd4c7b8491d7af678afa8d751c8a18ed54487944ed91ff7c783551"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "aba98f46b47ebda42047ada14c009a17c2c5c199951d4e6b528d45890699c340"
+            }
+        ],
+        "tables": [
+            "5384c18a7c17fd97d396e4102d59ae69465c0f64d2d680b4571b7e30a99afa57"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks13to16.js",
+            "https://leetcode.com/problems/longest-common-subsequence/",
+            "https://leetcode.com/problems/longest-common-subsequence/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf",
+            "https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf",
+            "https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf",
+            "https://www.hackerrank.com/challenges/contacts/problem",
+            "https://www.hackerrank.com/challenges/contacts/problem",
+            "week-11.md",
+            "week-14.md",
+            "week-16.md"
+        ],
+        "math": [],
+        "proseWords": 2844
+    },
+    "docs/weekly_content/week-16.md": {
+        "headings": [
+            "# Week 16 - Interview Consolidation",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w16-section-chapter-introduction",
+            "w16-section-learning-objectives",
+            "w16-section-prerequisite-knowledge",
+            "w16-section-core-theory",
+            "w16-section-javascript-implementations",
+            "w16-section-worked-examples",
+            "w16-section-visual-explanations",
+            "w16-section-complexity-analysis",
+            "w16-section-common-mistakes",
+            "w16-section-interview-and-leetcode-pattern-recognition",
+            "w16-section-practice-exercises",
+            "w16-section-hints-and-worked-solutions",
+            "w16-section-sources-and-further-reading",
+            "w16-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w16-justify-pattern-choice",
+            "w16-account-full-workload",
+            "w16-implement-core-mocks",
+            "w16-run-differential-checks",
+            "w16-complete-timed-mock",
+            "w16-transfer-counting-invariant",
+            "w16-write-failure-review",
+            "w16-demonstrate-independent-transfer"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "273816a475537146643c5e29ee1bc7c8d2aa3d79571be3907fed9ce03b189754"
+            },
+            {
+                "language": "output",
+                "hash": "651723e9b7eba8fa9dae2fb38ec106f3b0b240d6c466349b1efbfa67fe39f1a6"
+            },
+            {
+                "language": "javascript",
+                "hash": "45919b733edcec9de097a45a40b8bb2dad788ce18b0a47635ee1f0694c2f05ae"
+            },
+            {
+                "language": "output",
+                "hash": "4c269b48022b7f37284ff91f649a1d8eed9461f83ed24d805155d24196a9b383"
+            },
+            {
+                "language": "javascript",
+                "hash": "c6bcec70e927de4d3dd9720d402a07a7c232d2277744e0292498ca02e612aa73"
+            },
+            {
+                "language": "output",
+                "hash": "ad4df8a541a3717a1d267118d8d64b880adf364f39240baeaf25d299c977d77f"
+            },
+            {
+                "language": "text",
+                "hash": "2ee5a5dcc17713d6ee224f738231e195b06c58b07dd0684ea7b3e6e56baaadd5"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "9db8224e1b6935224592852702c73b3d5df46b1c61816d66aca9fce283d2cf3e"
+            }
+        ],
+        "tables": [
+            "6a7cd983a7dc9e75dcb4e7a848e11fbbe35467ad2e4daf8912a5659e19385999",
+            "1ab8c4f9521dc42d7254a01d104cd69cfe8d5dcd6ff14c19ec2c45a8f236c453"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks13to16.js",
+            "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+            "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+            "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf",
+            "https://www.hackerrank.com/challenges/ctci-ransom-note/problem",
+            "https://www.hackerrank.com/challenges/ctci-ransom-note/problem",
+            "week-11.md",
+            "week-11.md",
+            "week-12.md",
+            "week-13.md",
+            "week-14.md",
+            "week-15.md",
+            "week-15.md"
+        ],
+        "math": [],
+        "proseWords": 2749
+    },
+    "docs/weekly_content/week-17.md": {
+        "headings": [
+            "# Week 17 - Arrays and Array Operations",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Representation: A Sequence with Indexed Positions",
+            "## Indexing, Length, and Boundary Rules",
+            "## Traversal: Visiting the Right Entries",
+            "## Linear Search and Evidence from a Processed Prefix",
+            "## Inserting and Deleting: Position Movement",
+            "## End and Front Methods: push, pop, shift, unshift",
+            "## Interior Editing with splice and Ranges with slice",
+            "## Mutable and Immutable Workflows",
+            "## References, Values, and Shallow Copying",
+            "## Deep Cloning and Copying Only the Changed Path",
+            "## Membership, Equality, and First-Match Queries",
+            "## map, filter, and Callback Contracts",
+            "## reduce, Accumulators, and Side Effects",
+            "## Holes, undefined, and Shared Initialization",
+            "## Sorting and Reversing Without Losing Meaning",
+            "## Supplementary Array Vocabulary",
+            "## Two Pointers: Opposite Ends",
+            "## Reader and Writer: Stable In-Place Removal",
+            "## Prefix and Suffix Products: Excluding One Position",
+            "## Worked Examples: Trace State Before Updating",
+            "## Visual Explanations",
+            "## Complexity Analysis: Costs Under an Explicit Model",
+            "## Common Mistakes and Repair Strategies",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Independent Assessment",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [
+            "w17-section-chapter-introduction",
+            "w17-section-learning-objectives",
+            "w17-section-prerequisite-knowledge",
+            "w17-section-representation-a-sequence-with-indexed-positions",
+            "w17-section-indexing-length-and-boundary-rules",
+            "w17-section-traversal-visiting-the-right-entries",
+            "w17-section-linear-search-and-evidence-from-a-processed-prefix",
+            "w17-section-inserting-and-deleting-position-movement",
+            "w17-section-end-and-front-methods-push-pop-shift-unshift",
+            "w17-section-interior-editing-with-splice-and-ranges-with-slice",
+            "w17-section-mutable-and-immutable-workflows",
+            "w17-section-references-values-and-shallow-copying",
+            "w17-section-deep-cloning-and-copying-only-the-changed-path",
+            "w17-section-membership-equality-and-first-match-queries",
+            "w17-section-map-filter-and-callback-contracts",
+            "w17-section-reduce-accumulators-and-side-effects",
+            "w17-section-holes-undefined-and-shared-initialization",
+            "w17-section-sorting-and-reversing-without-losing-meaning",
+            "w17-section-supplementary-array-vocabulary",
+            "w17-section-two-pointers-opposite-ends",
+            "w17-section-reader-and-writer-stable-in-place-removal",
+            "w17-section-prefix-and-suffix-products-excluding-one-position",
+            "w17-section-worked-examples-trace-state-before-updating",
+            "w17-section-visual-explanations",
+            "w17-section-complexity-analysis-costs-under-an-explicit-model",
+            "w17-section-common-mistakes-and-repair-strategies",
+            "w17-section-interview-and-leetcode-pattern-recognition",
+            "w17-section-practice-exercises",
+            "w17-section-independent-assessment",
+            "w17-section-hints-and-worked-solutions",
+            "w17-section-sources-and-further-reading",
+            "w17-section-weekly-summary"
+        ],
+        "checkpointIds": [
+            "w17-array-representation",
+            "w17-indexing-and-holes",
+            "w17-array-cost-model",
+            "w17-array-method-contracts",
+            "w17-reference-copy-depth",
+            "w17-scan-and-removal",
+            "w17-opposite-end-pointers",
+            "w17-prefix-suffix-products",
+            "w17-local-practice",
+            "w17-contains-duplicate-practice",
+            "w17-product-practice",
+            "w17-stock-running-minimum",
+            "w17-independent-assessment",
+            "w17-reflect-on-error",
+            "w17-explain-optimization"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "d6cb6355e065eace45e62462e919ccae7513b8622f2f624c623bb431b6785499"
+            },
+            {
+                "language": "output",
+                "hash": "c1c3175fc6681f38777630ea8ac968c023b973a0f10c51395845ec4892c44582"
+            },
+            {
+                "language": "javascript",
+                "hash": "94dc9b98453447b31f7932d04692e36a3f53dfa2ca88afbf2c1417958abb2b5e"
+            },
+            {
+                "language": "output",
+                "hash": "cf8a13595303fa6c96a3480c16e31882c3ce748cc6b4d10309b4f4e8ad41eac2"
+            },
+            {
+                "language": "javascript",
+                "hash": "46b130c39af77d10642f19b8447da047d9ab1b64f8b78995e734b9752dc7a59c"
+            },
+            {
+                "language": "output",
+                "hash": "c69ffba8ae55fc8c99c0131f0ab3a4d046a3a2b97452922eb7a2e7af77c1dd3a"
+            },
+            {
+                "language": "javascript",
+                "hash": "7add9407af43432f5ba76d4e362a72c149158f0931d91eb2fb56b66004297803"
+            },
+            {
+                "language": "output",
+                "hash": "66b618cc8e8dbec5733d6bffeb895fa3dd122d3bec01d4117267c865e96c379d"
+            },
+            {
+                "language": "javascript",
+                "hash": "2b05f19c49b46f8f5d2c968ef1698e8764d7b02e49927370d744e28b3a942e76"
+            },
+            {
+                "language": "output",
+                "hash": "77348d946298b42dfd2f33b661145cd464908f9ce08c549dd3242f520ef54c16"
+            },
+            {
+                "language": "javascript",
+                "hash": "091ceeb28e68e870df610c1bb8cb5b02ba80087ac140d1af24be5183879ba6a3"
+            },
+            {
+                "language": "output",
+                "hash": "5315794d22894e5e19b63b975541b80ebb5f2a554dca868fdab2eff710141e5d"
+            },
+            {
+                "language": "javascript",
+                "hash": "7ea2dc520e00d611cfb1bb0ed36ee111706e3f6244bec5bbfff666d8f22041c1"
+            },
+            {
+                "language": "output",
+                "hash": "63ed4c2a65ae96492fc0220a20cf7a9501a12393689df700a70aa3bc2ba03d56"
+            },
+            {
+                "language": "javascript",
+                "hash": "a91a67aacdbf567953150e58a64729448a263c15b0f054fca8ad5a98ed76afbc"
+            },
+            {
+                "language": "output",
+                "hash": "2c99a13d2d5459a8b7437a1debe5bb0c2347c27f2f621839cae43fe59ba22cf5"
+            },
+            {
+                "language": "javascript",
+                "hash": "57ec67c330ce81d999814a6b25f4d5369a9c14e197c8a04b337cc371a210c894"
+            },
+            {
+                "language": "output",
+                "hash": "ec168399c98fec238f1e4abb134765aa4fd4ac583d6c7a92a12e1453558e05de"
+            },
+            {
+                "language": "javascript",
+                "hash": "4b6102888723a6bd3e6d3ed5a3bd874c4e171fdda2c81a674b8489492e2ba771"
+            },
+            {
+                "language": "output",
+                "hash": "8a59949483a458e3b2359e44b44eb0afb3413f23271dacc8399588243ef009cf"
+            },
+            {
+                "language": "javascript",
+                "hash": "47bda50c8b09f5fa2b9c0f37e4d7c6be419c221c6119a2b1f3690ba9aae8bae0"
+            },
+            {
+                "language": "output",
+                "hash": "68f30f92f40057ff972f99d0d5f13f613848315640a56992d058a94d0247af86"
+            },
+            {
+                "language": "javascript",
+                "hash": "43079fd5afcc81015beef1ddcf60288261acdf6e1589de30e8047dca7fd3df88"
+            },
+            {
+                "language": "output",
+                "hash": "66d7f850b4625d96befa0902f65f3e16079e167a64d6d57d66ed04f3e498d9f5"
+            },
+            {
+                "language": "javascript",
+                "hash": "361e4f30c5ef1616c5b5e27c30d201a833d43fc7a0a8845f0f46d7c0309f9a69"
+            },
+            {
+                "language": "output",
+                "hash": "d0263e34a42c428f3461c0559f27f098a910ac53d40967fc23506751d8eb2284"
+            },
+            {
+                "language": "javascript",
+                "hash": "d83114ee8c4c0bc595ce0217b9b1d147649f6e0f4e699ffefb8966d976c23a56"
+            },
+            {
+                "language": "output",
+                "hash": "2eb701907e1b0871193c9788cba9757da9e8021a5e09c84fd75f3b61fb48e866"
+            },
+            {
+                "language": "javascript",
+                "hash": "a60a9a73ce18947fe2800f368737a9f7d36dd80592e2e0da20fc14321d35f6ef"
+            },
+            {
+                "language": "output",
+                "hash": "b3d6d4ff8b36f0bac104f4eb33e3dbffa386a848646bd8ecd3563d1a4c1475f3"
+            },
+            {
+                "language": "javascript",
+                "hash": "9cdca7c5eb755e5e7595ffe5f7d5d4110f6c5a2c3df0759ee07e967454a9ac0c"
+            },
+            {
+                "language": "output",
+                "hash": "c6241c8cb6d1d872e804267c083cacc26f691c43109c55e673c1d2cff18e52a8"
+            },
+            {
+                "language": "text",
+                "hash": "ddb15301b7eddfb1aceef43d7bd285c8d8626999f10cf991bc2627eca84d7e44"
+            },
+            {
+                "language": "text",
+                "hash": "a1672a60ace2746e9152428c2f9a33bc7be7d2ad413746e3dfaa78d88c99fa37"
+            },
+            {
+                "language": "text",
+                "hash": "3a280eab35624d6e33870c69d4ecf0255af8a619d041d468ef14be5a966515dd"
+            },
+            {
+                "language": "javascript",
+                "hash": "992d2c183b48d7bb7d72b35c2e3fe87f404ffab302f844e72f4816329758fd35"
+            },
+            {
+                "language": "output",
+                "hash": "de8c723296626909fc7db7a4a33f411d0deedffb4825a22df708d927fa13a293"
+            },
+            {
+                "language": "javascript",
+                "hash": "dbed7c01ac16e40f94d50134ce4916f60bc7bdcf21d96ef0ec445f171415d6e4"
+            },
+            {
+                "language": "output",
+                "hash": "adc7588aa2708484e1b541e222160e3ea87eee3e67e398d371b15176e7802010"
+            },
+            {
+                "language": "javascript",
+                "hash": "8382e2022236db169e4f7fad29b3a9bf629b5e6444e94092cd7fbd9d6081ffda"
+            },
+            {
+                "language": "output",
+                "hash": "ae97ee6a1a95a4c22cdb8046dd7357b5483132d5d1afd7fea6175c1ff773f452"
+            },
+            {
+                "language": "javascript",
+                "hash": "b84fd4e98ec5a7a882a00f5e91210ae71b9d9cbc53483387a4efeede92e129e1"
+            },
+            {
+                "language": "output",
+                "hash": "56b71e66878f0d4320c06d087bb47fd5e02a87581e284298f8d4712937034de7"
+            },
+            {
+                "language": "javascript",
+                "hash": "29733bbd7293c3201c8305a1d2a9fc735ecc902cd21d4f28bfb6172ba6a8e867"
+            },
+            {
+                "language": "output",
+                "hash": "430d6bb97a55cc8f1fb792f955c9ca5297f625c28afda0df75b508ceb3300c65"
+            },
+            {
+                "language": "javascript",
+                "hash": "bcc0c365bcc83a9a37c9dea54d9f75ee6cdc6e48b8880cb37507dd4a9b207bcb"
+            },
+            {
+                "language": "output",
+                "hash": "6636c9091e584a771f5374cb31d9f59d48a230b946454f3225bf3a011142a02b"
+            },
+            {
+                "language": "javascript",
+                "hash": "52abe80fa3bc766ede5721729431a3376c40b56ee8b57ff4f7ca6524a152e9a7"
+            },
+            {
+                "language": "output",
+                "hash": "e5f5fabd43bbaf78eb0c8c231f4ecc536c46273cdcbada6da58d42167b2760e8"
+            }
+        ],
+        "tables": [
+            "0d7b852eea4591c7791f63ba45f8d26cdb9c0f7c78ffb175e813c1a85edbf8e7"
+        ],
+        "links": [
+            "archive/week-01-complexity-and-arrays.md",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort",
+            "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/",
+            "https://leetcode.com/problems/contains-duplicate/",
+            "https://leetcode.com/problems/product-of-array-except-self/",
+            "https://opendsa.org/",
+            "week-01.md",
+            "week-01.md",
+            "week-02.md",
+            "week-02.md",
+            "week-02.md",
+            "week-03.md"
+        ],
+        "math": [
+            "copy[0].n = 7"
+        ],
+        "proseWords": 7242
+    },
+    "docs/weekly_content/archive/week-01-complexity-and-arrays.md": {
+        "headings": [
+            "# Week 1 - Complexity and Arrays",
+            "## Learning Objectives",
+            "## Prerequisite Knowledge",
+            "## Core Theory",
+            "## JavaScript Implementations",
+            "## Worked Examples",
+            "## Visual Explanations",
+            "## Complexity Analysis",
+            "## Common Mistakes",
+            "## Interview and LeetCode Pattern Recognition",
+            "## Practice Exercises",
+            "## Hints and Worked Solutions",
+            "## Sources and Further Reading",
+            "## Weekly Summary",
+            "## Weekly Progress Checklist"
+        ],
+        "lessonIds": [],
+        "checkpointIds": [
+            "w1-bounds-and-cases",
+            "w1-dependent-loop-costs",
+            "w1-amortized-growth",
+            "w1-space-accounting",
+            "w1-array-method-contracts",
+            "w1-reference-copy-depth",
+            "w1-scan-and-removal",
+            "w1-prefix-suffix-products",
+            "w1-local-practice",
+            "w1-contains-duplicate-practice",
+            "w1-product-practice",
+            "w1-stock-running-minimum",
+            "w1-reflect-on-error",
+            "w1-explain-optimization"
+        ],
+        "blocks": [
+            {
+                "language": "javascript",
+                "hash": "807089a7987a755fb264cb5cfd3e546e58165fd012d5fa740924f52d1e889019"
+            },
+            {
+                "language": "output",
+                "hash": "4c3529ecdc504c89ef3a41205054cf93a150258a7617b42e888d45e2e29fc450"
+            },
+            {
+                "language": "javascript",
+                "hash": "5b20cf25d6480c279fb14a2012f8469bec15bc049a7ec4c9d6d9e6c7ab04294f"
+            },
+            {
+                "language": "output",
+                "hash": "fab6f6f714b1b9f04861069d71741cce7251e39c42e98b1a316700887fb5dd5f"
+            },
+            {
+                "language": "javascript",
+                "hash": "b5502e9df93c3f5836ad4aaeeee19619a475754a2d734d3f40f46577efe83c2d"
+            },
+            {
+                "language": "output",
+                "hash": "605ec96ac286f0175a4c39d9978bc9ae26458092850ff7cc7b79a8f5cac79ee4"
+            },
+            {
+                "language": "javascript",
+                "hash": "f0d1b87f6324b917a329efc86a09f4cc63028bb0630624d5d0401e3c264ea429"
+            },
+            {
+                "language": "output",
+                "hash": "228aadcbb220559736806c551babd0192a0d793a5f24ff8bd876c7f8084884d8"
+            },
+            {
+                "language": "javascript",
+                "hash": "07e642abe33a9525fe4e42da8900a2125a81c273234b7a597a234934566543ea"
+            },
+            {
+                "language": "output",
+                "hash": "60e40196c265fb7bae88458f779a838857202b43fa8a892e595e6345b917e724"
+            },
+            {
+                "language": "javascript",
+                "hash": "af96eed59fa77b09f43ce44e04d6b726e689f20416c3c99d0980c4afdfe7ba5c"
+            },
+            {
+                "language": "output",
+                "hash": "56b71e66878f0d4320c06d087bb47fd5e02a87581e284298f8d4712937034de7"
+            },
+            {
+                "language": "javascript",
+                "hash": "fca004d5f998488681eccf056bdca7d713a227cc2cdd108355964c59c71a9b43"
+            },
+            {
+                "language": "output",
+                "hash": "5fdc47bbb5ecaca412929fcbb799c9b5817680622026d91d7476a857a76e3d1e"
+            },
+            {
+                "language": "javascript",
+                "hash": "b8b64f3b641b1ef839d66004c45aa2bb7cee9e224f9c02d4e6c96b27086a238b"
+            },
+            {
+                "language": "output",
+                "hash": "6636c9091e584a771f5374cb31d9f59d48a230b946454f3225bf3a011142a02b"
+            },
+            {
+                "language": "javascript",
+                "hash": "113710c00ef82e446eaf0c0befb81ee45f8f4237d4bd7af2c87f18a48a618d51"
+            },
+            {
+                "language": "output",
+                "hash": "d2a62c412cd71f5e78ea631549f2a336570c4bf8ea6c5d8c8727caca1e38684b"
+            },
+            {
+                "language": "javascript",
+                "hash": "54fc7a60071fefa04db547c1498157308ea74fec02d6a362d30c23964b2a04d4"
+            },
+            {
+                "language": "output",
+                "hash": "ae97ee6a1a95a4c22cdb8046dd7357b5483132d5d1afd7fea6175c1ff773f452"
+            },
+            {
+                "language": "text",
+                "hash": "718a2ca526ca456317732254208c2428e6fb6b72fbf6486c41363fa3a3b59eb7"
+            },
+            {
+                "language": "text",
+                "hash": "ccc3f51fa8154ec0e146264cd0e59c84142080f547d8869d5d66fb04380ffd88"
+            },
+            {
+                "language": "javascript-bug",
+                "hash": "142ff00dc47ba6c89e100b2d555163dd1ccf457bfac77c042745157a92edf2f8"
+            },
+            {
+                "language": "javascript",
+                "hash": "ba6999830ab056c9c2f6f80a79c75599281b6aef1eedf4c917392dc502a12b26"
+            },
+            {
+                "language": "output",
+                "hash": "cbe312d1873040df376d31da7eab270644e199fa5b416f261fffff721a37f21a"
+            }
+        ],
+        "tables": [
+            "fbfe7086134ce9e1136030522a5d2803145651bd59968d824101742c5990f7e2"
+        ],
+        "links": [
+            "../../shared/curriculum.js",
+            "../../shared/textbook/weeks01to04.js",
+            "https://cs50.harvard.edu/x/2024/notes/3/",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+            "https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/01.md",
+            "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/",
+            "https://leetcode.com/problems/contains-duplicate/",
+            "https://leetcode.com/problems/product-of-array-except-self/",
+            "week-02.md",
+            "week-02.md",
+            "week-03.md",
+            "week-04.md"
+        ],
+        "math": [
+            "T(n) ∈ O(g(n))",
+            "T(n) ∈ Ω(g(n))",
+            "T(n) ∈ Θ(g(n))",
+            "c1 g(n) ≤ T(n) ≤ c2 g(n)",
+            "n ≥ n0",
+            "n ≥ 1",
+            "(1 + 2 + ... + n) / n = (n + 1) / 2",
+            "n + n",
+            "(n−1) + (n−2) + ... + 1 = n(n−1)/2",
+            "n = 8",
+            "n = 4",
+            "3n ≤ 3n + 7 ≤ 10n",
+            "n ≤ n²"
+        ],
+        "proseWords": 5013
+    }
+}

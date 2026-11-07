@@ -15,6 +15,8 @@ import {
 import { savePracticeProgress } from './practiceService.js';
 import { practiceCatalog } from '../../shared/practiceCatalog.js';
 import { hashPassword } from './passwords.js';
+import { getSavedProgress, saveLessonProgress } from './progressService.js';
+import { loadLesson } from './markdownLesson.js';
 
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) });
 const pool = createDatabasePool();
@@ -159,6 +161,93 @@ try {
         connect: async () => nestedClient,
         query: (...args) => client.query(...args)
     };
+    const chapter = await loadLesson(1);
+    const [first, second, third] = chapter.lessons;
+    // Prove the reported failure using the original production SQL, then roll
+    // back that statement before exercising the actual fixed service.
+    await client.query('SAVEPOINT original_checkpoint_query');
+    await assert.rejects(
+        client.query(
+            "UPDATE user_progress SET completed_lesson_count = $1, total_lesson_count = $2, completion_status = CASE WHEN $1 = $2 AND $2 > 0 THEN 'completed' ELSE 'started' END WHERE user_id = $3 AND week_number = $4",
+            [1, chapter.lessons.length, owners[1], 1]
+        ),
+        { code: '42883' }
+    );
+    await client.query('ROLLBACK TO SAVEPOINT original_checkpoint_query');
+    await client.query('RELEASE SAVEPOINT original_checkpoint_query');
+    const initialOther = await getSavedProgress(isolatedPool, owners[0]);
+    await saveLessonProgress(isolatedPool, owners[1], first.id, true);
+    const firstTimestamp = (
+        await client.query(
+            "UPDATE lesson_progress SET completed_at = '2020-01-01T00:00:00Z'::timestamptz WHERE user_id=$1 AND lesson_id=$2 RETURNING completed_at",
+            [owners[1], first.id]
+        )
+    ).rows[0].completed_at;
+    await saveLessonProgress(isolatedPool, owners[1], second.id, true);
+    const duplicate = await saveLessonProgress(isolatedPool, owners[1], first.id, true);
+    assert.ok(duplicate.completedCheckpoints.includes(first.id));
+    assert.ok(duplicate.completedCheckpoints.includes(second.id));
+    assert.deepEqual(
+        (
+            await client.query(
+                'SELECT completed_at FROM lesson_progress WHERE user_id=$1 AND lesson_id=$2',
+                [owners[1], first.id]
+            )
+        ).rows[0].completed_at,
+        firstTimestamp
+    );
+    assert.equal(
+        (
+            await client.query(
+                'SELECT count(*)::integer AS count FROM user_activity WHERE user_id=$1',
+                [owners[1]]
+            )
+        ).rows[0].count,
+        2,
+        'Duplicates do not create duplicate activity'
+    );
+    assert.equal(
+        (await saveLessonProgress(isolatedPool, owners[1], first.id, false, true)).completed,
+        true,
+        'A stale start cannot reopen completed work'
+    );
+    const failingPool = {
+        connect: async () => ({
+            release() {},
+            query(sql, values) {
+                if (sql.startsWith('INSERT INTO user_activity')) {
+                    throw Object.assign(new Error('private-fixture-details'), { code: 'XX000' });
+                }
+                return nestedClient.query(sql, values);
+            }
+        })
+    };
+    await assert.rejects(saveLessonProgress(failingPool, owners[1], third.id, true));
+    assert.ok(
+        !(await getSavedProgress(isolatedPool, owners[1])).completedCheckpoints.includes(third.id),
+        'Activity failure rolls back lesson and module changes'
+    );
+    for (const lesson of chapter.lessons.slice(2)) {
+        await saveLessonProgress(isolatedPool, owners[1], lesson.id, true);
+    }
+    assert.ok((await getSavedProgress(isolatedPool, owners[1])).completedWeeks.includes(1));
+    await saveLessonProgress(isolatedPool, owners[1], 'w1-0', false);
+    assert.ok(
+        (await getSavedProgress(isolatedPool, owners[1])).completedWeeks.includes(1),
+        'A mastery toggle cannot clear completed reading progress'
+    );
+    const reopened = await saveLessonProgress(isolatedPool, owners[1], first.id, false);
+    assert.ok(!reopened.completedWeeks.includes(1));
+    assert.ok(reopened.startedLessons.includes(first.id));
+    assert.equal(reopened.completedCheckpoints.length, chapter.lessons.length - 1);
+    assert.deepEqual(
+        await getSavedProgress(isolatedPool, owners[0]),
+        initialOther,
+        'No other account progress changed'
+    );
+    await assert.rejects(saveLessonProgress(isolatedPool, owners[1], 'w1-section-deleted', true), {
+        code: 'UNKNOWN_LESSON'
+    });
     await updateSettings(isolatedPool, owners[0], {
         appearance: { theme: 'light' },
         learning: { dailyMinutes: 45 },
@@ -204,7 +293,7 @@ try {
         1
     );
     console.info(
-        'PASS: additive migration reruns, PostgreSQL settings/practice persistence, account isolation, safe export, session revocation and fixture deletion cascades. All test changes will be rolled back.'
+        'PASS: original checkpoint SQL reproduced 42883; fixed checkpoint transactions, duplicate saves, stale starts, rollback on failure, module completion/reopening, account isolation, migration reruns, settings/practice persistence, safe export and sessions. All fixture changes will be rolled back.'
     );
 } catch (error) {
     logDatabaseError(error, 'isolated-learning-integration');

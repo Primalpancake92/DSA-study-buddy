@@ -19,6 +19,7 @@ import {
 import { curriculumPreview } from '../../shared/curriculumPreview.js';
 import { weekCatalog, moduleIds, isModuleId } from '../../shared/curriculum.js';
 import { loadLesson } from './markdownLesson.js';
+import { getSavedProgress, saveLessonProgress } from './progressService.js';
 import { recoveryEmailError } from '../../shared/recoveryEmail.js';
 import { createPracticeRouter } from './practiceRoutes.js';
 import { createSettingsRouter } from './settingsRoutes.js';
@@ -775,29 +776,43 @@ app.post('/api/auth/reset-password', authLimiter, csrfProtection, async (req, re
     }
 });
 
-app.get('/api/progress', requireAuth, async (req, res, next) => {
+function respondToProgressError(error, res, operation) {
+    logDatabaseError(error, operation);
+    if (error.status && ['UNKNOWN_LESSON', 'AUTH_REQUIRED'].includes(error.code)) {
+        return errorResponse(res, error.status, error.code, error.message);
+    }
+    const unavailable = [
+        '42P01',
+        '42703',
+        '23514',
+        'ENOENT',
+        'ETIMEDOUT',
+        'ECONNREFUSED',
+        'ENOTFOUND',
+        'EAI_AGAIN',
+        '57P01'
+    ].includes(error.code);
+    const loading = operation === 'checkpoint-load';
+    return errorResponse(
+        res,
+        unavailable ? 503 : 500,
+        unavailable
+            ? 'PROGRESS_UNAVAILABLE'
+            : loading
+              ? 'PROGRESS_LOAD_FAILED'
+              : 'PROGRESS_SAVE_FAILED',
+        loading
+            ? 'Your saved progress could not be loaded. Please try again shortly.'
+            : 'Your progress could not be saved. Please try again shortly.'
+    );
+}
+
+app.get('/api/progress', requireAuth, async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
     try {
-        const [weeks, lessons] = await Promise.all([
-            pool.query(
-                "SELECT week_number FROM user_progress WHERE user_id = $1 AND completion_status = 'completed' ORDER BY week_number",
-                [req.session.userId]
-            ),
-            pool.query(
-                'SELECT lesson_id, status, updated_at FROM lesson_progress WHERE user_id = $1 ORDER BY updated_at DESC',
-                [req.session.userId]
-            )
-        ]);
-        res.json({
-            completedWeeks: weeks.rows.map((row) => row.week_number),
-            completedCheckpoints: lessons.rows
-                .filter((row) => row.status === 'completed')
-                .map((row) => row.lesson_id),
-            startedLessons: lessons.rows
-                .filter((row) => row.status === 'started')
-                .map((row) => row.lesson_id)
-        });
+        res.json(await getSavedProgress(pool, req.session.userId));
     } catch (error) {
-        next(error);
+        respondToProgressError(error, res, 'checkpoint-load');
     }
 });
 
@@ -840,78 +855,32 @@ app.put('/api/progress', requireAuth, csrfProtection, async (req, res, next) => 
     }
 });
 
-app.patch(
-    '/api/progress/lessons/:lessonId',
-    requireAuth,
-    csrfProtection,
-    async (req, res, next) => {
-        const lessonId = z.string().min(1).max(120).safeParse(req.params.lessonId);
-        const completed = z
-            .boolean()
-            .default(true)
-            .safeParse(req.body?.completed ?? true);
-        if (!lessonId.success || !completed.success)
-            return res.status(400).json({ error: 'Invalid lesson progress payload.' });
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-            await client.query(
-                "INSERT INTO lesson_progress (user_id, lesson_id, status, completed_at) VALUES ($1, $2, $3, CASE WHEN $3 = 'completed' THEN now() ELSE NULL END) ON CONFLICT (user_id, lesson_id) DO UPDATE SET status = EXCLUDED.status, completed_at = EXCLUDED.completed_at, updated_at = now()",
-                [req.session.userId, lessonId.data, completed.data ? 'completed' : 'started']
-            );
-            const weekMatch = lessonId.data.match(/^w(\d+)-\d+$/);
-            const sectionMatch = lessonId.data.match(/^w(\d+)-section-/);
-            if (sectionMatch) {
-                const chapter = await loadLesson(Number(sectionMatch[1]));
-                if (!chapter || !chapter.lessons.some((item) => item.id === lessonId.data)) {
-                    await client.query('ROLLBACK');
-                    return res.status(400).json({ error: 'Unknown learning section.' });
-                }
-                const count = await client.query(
-                    "SELECT count(*)::int AS count FROM lesson_progress WHERE user_id = $1 AND lesson_id = ANY($2::text[]) AND status = 'completed'",
-                    [req.session.userId, chapter.lessons.map((item) => item.id)]
-                );
-                await client.query(
-                    "UPDATE user_progress SET completed_lesson_count = $1, total_lesson_count = $2, completion_status = CASE WHEN $1 = $2 AND $2 > 0 THEN 'completed' ELSE 'started' END, updated_at = now() WHERE user_id = $3 AND week_number = $4",
-                    [count.rows[0].count, chapter.lessons.length, req.session.userId, chapter.id]
-                );
-            }
-            if (weekMatch) {
-                const week = Number(weekMatch[1]);
-                const count = await client.query(
-                    "SELECT count(*)::int AS count FROM lesson_progress WHERE user_id = $1 AND lesson_id ~ $2 AND status = 'completed'",
-                    [req.session.userId, `^w${week}-[0-9]+$`]
-                );
-                await client.query(
-                    "UPDATE user_progress SET completed_lesson_count = $1, completion_status = CASE WHEN $1 >= total_lesson_count AND total_lesson_count > 0 THEN 'completed' ELSE 'started' END, updated_at = now() WHERE user_id = $2 AND week_number = $3",
-                    [count.rows[0].count, req.session.userId, week]
-                );
-            }
-            await client.query('COMMIT');
-            await pool.query(
-                "INSERT INTO user_activity (user_id, activity_type, title, detail, metadata) VALUES ($1, 'learning', $2, $3, $4)",
-                [
-                    req.session.userId,
-                    sectionMatch
-                        ? completed.data
-                            ? 'Lesson completed'
-                            : 'Lesson started'
-                        : completed.data
-                          ? 'Lesson checkpoint completed'
-                          : 'Lesson checkpoint reopened',
-                    lessonId.data,
-                    { lessonId: lessonId.data }
-                ]
-            );
-            res.json({ lessonId: lessonId.data, completed: completed.data });
-        } catch (error) {
-            await client.query('ROLLBACK');
-            next(error);
-        } finally {
-            client.release();
-        }
+app.patch('/api/progress/lessons/:lessonId', requireAuth, csrfProtection, async (req, res) => {
+    const id = z.string().min(1).max(120).safeParse(req.params.lessonId);
+    const payload = z
+        .object({
+            completed: z.boolean().default(true),
+            startedOnly: z.boolean().default(false)
+        })
+        .strict()
+        .safeParse(req.body || {});
+    if (!id.success || !payload.success || (payload.data.startedOnly && payload.data.completed)) {
+        return errorResponse(res, 400, 'INVALID_PROGRESS', 'Invalid lesson progress request.');
     }
-);
+    res.set('Cache-Control', 'private, no-store');
+    try {
+        const result = await saveLessonProgress(
+            pool,
+            req.session.userId,
+            id.data,
+            payload.data.completed,
+            payload.data.startedOnly
+        );
+        res.json(result);
+    } catch (error) {
+        respondToProgressError(error, res, 'checkpoint-save');
+    }
+});
 
 app.get('/api/journal', requireAuth, async (req, res, next) => {
     try {

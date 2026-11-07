@@ -1,32 +1,49 @@
 # Week 1 - Introduction to Algorithm Complexity
+<!-- lesson-id:w1-section-chapter-introduction -->
 
-An algorithm can be correct on three values and still become impractical on three million. This chapter teaches you to predict that change before running a large experiment. You will turn small JavaScript traces into operation counts, then turn those counts into precise statements about growth. No previous knowledge of logarithms or mathematical proofs is assumed.
+Suppose your program gives the right answer for three values. What will happen when someone gives it three million? Correctness alone cannot tell you whether the program will finish in a useful amount of time. This week, we will learn to answer that second question by following small JavaScript examples one step at a time, counting their work, and explaining how those counts grow. You do not need to know logarithms or mathematical proofs yet; we will build those ideas as we use them.
 
-Work through the fifteen lessons in order. You need variables, functions, comparisons, conditionals, and basic loops. Arrays appear only as generic sequences of input values: their length tells us how much input exists, and an index identifies a position. Array methods and copying techniques belong in the separate [Arrays module](week-17.md).
+Work through the fifteen lessons in order, with variables, functions, comparisons, conditional branches, and basic loops as your starting tools. When an array appears, you can read it simply as a sequence of input values. Its length tells us how many values we have, and an index is the number identifying one position. We will leave array methods and copying techniques to the separate [Arrays module](week-17.md), so you can concentrate here on explaining work.
 
-Use the independent assessment and final weekly progress checklist to record what you can explain without the answers. You will learn to justify a growth claim from actual code, rather than treating a familiar notation as a substitute for reasoning.
+Use the independent assessment and final weekly progress checklist to check what you can explain with the answers closed. The goal is to be able to point to the actions a program performs and defend a claim about their growth. Recognizing a notation is useful, but you also need to explain why it describes this particular program.
 
-Every fenced JavaScript example is independent, uses small bounded inputs, and requires no packages in a current Node.js runtime. Its immediately following output block shows the exact console output. Predict that output before running the example. Counting examples count named events rather than measuring milliseconds. Answers to lesson prompts, exercises, and assessment appear in **Hints and Worked Solutions**, which the study interface can collapse. Attempt each question before opening it.
+You can run each fenced JavaScript example on its own in a current Node.js runtime without installing packages. The inputs are deliberately small and bounded, and the next output block gives the exact console output. Predict those lines before running a demonstration: the difference between your prediction and the result often reveals the most useful lesson.
+
+Our counters measure named events, such as comparing a value with a target, rather than milliseconds. Keep that distinction in mind whenever you read a count. Answers to the lesson prompts, exercises, and assessment live in **Hints and Worked Solutions**, which the study interface can collapse. Give yourself an honest attempt before opening that section.
 
 ## Introduction to algorithms and algorithm analysis
+<!-- lesson-id:w1-section-introduction-to-algorithms-and-algorithm-analysis -->
 
-An **algorithm** is a finite, unambiguous procedure for solving a specified problem. Its contract describes valid inputs and the required result. “Find a value” is incomplete: do we return its position, return a boolean, or report every occurrence? A clear contract lets us establish correctness before discussing speed. A fast procedure that returns the wrong answer is not an improvement.
+An **algorithm** is a finite, unambiguous procedure for solving a specified problem. In everyday terms, it is a set of clear steps that eventually finishes and answers the question you actually asked. We describe that question with a **contract**: which inputs are allowed, and what result must be produced for them.
 
-Imagine checking numbered seats for a lost notebook. Looking at every seat in order is an algorithm. If you inspect one seat each step, twice as many seats can require twice as many inspections. That relationship is the beginning of analysis. **Algorithm analysis** models resource use as a function of input size, usually time or memory. It describes scaling under explicit assumptions, rather than predicting an exact elapsed duration on every computer.
+For example, “find a value” leaves several decisions open. Do you need its position, a boolean such as true or false, or every place it occurs? Settle that first. We can only judge correctness against a specified result, and making an incorrect answer arrive faster does not fix the problem.
 
-Separate three questions: Does the procedure terminate? Does it produce the specified answer? How much work can it require? For a search that advances one position each iteration, the remaining unchecked positions decrease, establishing termination. Correctness requires that a reported position really matches and that failure is reported only after all candidates are excluded. Complexity counts how many candidates may be examined.
+Imagine looking for a notebook among numbered seats. You could inspect the seats in order until you find it or run out of seats. If you inspect one seat per step, doubling the number of seats can double the inspections you need. We have already started analyzing the procedure by connecting the amount of input to the work.
 
-As a first worked trace, searching for 8 in `[4, 8, 2]` examines 4 and then 8. It performs two value comparisons and stops. Searching for 7 examines all three. The same algorithm has different counts on different inputs of equal size. We will formalize that distinction later.
+**Algorithm analysis** models resource use as a function of input size, usually time or memory. A function here is a rule connecting a size to a cost. We state the assumptions behind that rule so we can discuss scaling: how resource use changes as input grows. This does not promise an exact duration on every computer.
 
-**Misconception:** a shorter program necessarily uses less work. One function call can hide a complete traversal. **Try it:** describe a procedure for finding a missing target, including its termination condition, required result, and one operation worth counting. Explain why source-code length does not answer the resource question.
+Keep three questions separate as you reason: will the procedure finish, will its answer meet the contract, and how much work can it require? To show **termination**, meaning that it finishes, notice that a search advancing one position per loop leaves fewer unchecked positions each time. Eventually there are none.
+
+To show correctness, explain why any reported position really contains the target and why a failure result is possible only after every candidate has been ruled out. To analyze complexity, count how many candidates the search may inspect. These explanations support one another, but answering one does not automatically answer the others.
+
+Let's **trace** a search, meaning follow its actions in order. To find 8 in `[4, 8, 2]`, we first compare 4 with 8, then compare 8 with 8 and stop. That is two value comparisons. Searching for 7 needs all three comparisons before we can report failure. Both inputs have three entries, yet their counts differ. Later, we will give precise names to these different cases.
+
+**Misconception:** fewer lines of source code must mean less work. A single function call can visit an entire input; a longer-looking function might inspect just one position. Execution frequency is what matters.
+
+**Try it:** describe how you would search when the target is missing. State when the procedure stops, what it returns, and one operation you would count. Then explain why counting written lines would not answer the resource question.
 
 ## Elementary operations
+<!-- lesson-id:w1-section-elementary-operations -->
 
-Choose a **cost model**: a set of actions treated as fixed-cost units. Here, reading a known input position, assigning a scalar, comparing bounded numbers, and adding bounded numbers each take constant time. Constant time does not mean exactly one nanosecond; the modeled cost does not grow with input length.
+Before counting, choose what one unit of work means. This choice is a **cost model**: a set of actions we treat as having fixed costs. In this chapter, reading a known input position, assigning a scalar (a single value such as a number), comparing bounded numbers, and adding bounded numbers each take constant time. “Bounded” means their representation does not keep growing with the input we are measuring.
 
-Counting selected events is often clearer than counting every language action. In a search, count equality comparisons. In pair enumeration, count pair visits. An exact count must name its event: “three comparisons” and “three total operations” make different claims. Loop tests, counter updates, and setup still exist when our selected-event counter omits them.
+Constant time says that the modeled cost stays independent of input length. It does not say an action takes exactly one nanosecond, or that all constant-time actions take equal time on real hardware.
 
-Here the counted event is evaluating `values[i] > 0`. The counter is instrumentation: it observes the event but is not part of the original task's required result.
+You will often get a clearer argument by counting one meaningful event instead of every action in the language. For a search, that might be an equality comparison; when listing pairs, it might be a visit to one pair. Always name the event. “Three comparisons” is a narrower claim than “three total operations.” Setup, loop-condition tests, and counter updates still happen even when the selected-event counter leaves them out.
+
+Let's count how often we ask whether an entry is positive by evaluating `values[i] > 0`. That yes-or-no test is also called a **predicate**. The extra counter is **instrumentation**, meaning bookkeeping added to observe the program; the original task would only need the number of positive values.
+
+### Demonstration 1 — Count positive-value checks separately from results
 
 ```javascript
 function countPositiveChecks(values) {
@@ -49,29 +66,39 @@ countPositiveChecks([]);
 0 0
 ```
 
-The first trace tests −2, 5, and 0; exactly one passes. Empty input performs no predicate evaluations, although entering the function and checking its loop condition still costs something. This distinction explains constant terms in running-time functions.
+In **Demonstration 1**, `[-2, 5, 0]` supplies three entries, so `checks` increases three times. Only 5 satisfies the predicate, so `positives` increases once and we print `3 1`. With `[]`, the loop body never starts and both counters stay zero. Entering the function and testing the loop condition still require work, though. That leftover work helps explain why a running-time formula can include a fixed term even at zero entries.
 
-The model has limits. Arithmetic on arbitrarily long integers depends on their bit lengths. Printing long text depends on its length and the output device. For these small numeric examples, treat a printed item as one output event; that is not a universal guarantee about console performance. **Try it:** identify two actions omitted from the `checks` counter, and explain why their omission does not make the predicate count incorrect.
+Our model has limits you should be able to name. Arithmetic on integers allowed to grow arbitrarily long depends on how many bits, or binary digits, represent them. Printing a long message depends on its length and the output device. Here we treat printing one small numeric item as one output event; this is an accounting choice, not a general promise about console performance.
+
+**Try it:** identify two real actions that `checks` does not count. Explain why leaving them out still gives an accurate count of predicate evaluations, while preventing us from calling that counter the total work.
 
 ## Understanding input size n
+<!-- lesson-id:w1-section-understanding-input-size-n -->
 
-The symbol **n** names a measure of input size. It is not automatically the numerical value of an argument. For a sequence, n commonly means entry count. For text, it might mean characters or encoded bytes. For a graph, two parameters—vertices and edges—often communicate more than one. State the measure before writing a complexity expression.
+When we write **n**, we mean a chosen measure of input size. Decide what it measures before writing a complexity expression. For a sequence, it usually counts entries. For text, it might count characters or encoded bytes, the storage units representing the text. A graph, which represents things and their connections, often needs two measures: vertices for the things and edges for the connections. One number would hide a useful distinction.
 
-Consider `[900, 3, 12]`: its length is three, even though its largest value is 900. A full scan has three visits. Replacing 900 with 9000 adds no visits under our bounded-number model; adding a fourth entry does. Length is therefore useful for this analysis.
+Take `[900, 3, 12]`. There are three entries, so scanning every entry takes three visits. Replacing 900 with 9000 changes the data but adds no visits under our bounded-number model. Appending a fourth entry does add a visit. That is why length, rather than the largest value, captures the size that matters to this scan.
 
-A numeric input needs special care. A loop from 1 through an integer N performs N iterations, but encoding N in binary needs only about `log₂ N` bits. A procedure linear in the numeric value can be exponential in its encoding length. Our counting laboratories sometimes use n as a loop limit; they explicitly measure that limit rather than claiming a bit-complexity result.
+A numeric argument needs a little more care. Counting from 1 through an integer N takes N loop iterations, but writing N in binary needs only about `log₂ N` bits. We will explain logarithms shortly; the key here is that doubling N adds roughly one binary digit while doubling the loop count. A procedure linear in the numeric value can therefore be exponential in the length of its representation.
 
-Two independent sequences of lengths n and m need separate parameters. Inspecting every cross-sequence pair takes nm visits, not necessarily n². Calling both sizes n assumes they grow together. If one length is fixed at three, the work is 3n and grows linearly in the other length.
+When our counting laboratories use n as a loop limit, they measure that limit explicitly. They are not claiming a **bit-complexity** result, which would measure work against the number of binary digits used to encode the input.
 
-**Worked trace:** matching each of two candidate names against each of five allowed names creates ten comparisons when all pairs are checked. Three candidates create fifteen. **Misconception:** input size means the biggest number seen. **Try it:** choose size measures for a document search, a sequence search, and comparing every student in one class with every student in another. State assumptions about item lengths.
+If you receive two sequences whose lengths can vary independently, call the lengths n and m. Checking every pair with one entry from each sequence takes nm visits. Writing n² instead silently assumes a relationship between their sizes. For example, if the second sequence always has three entries, the count is 3n and grows linearly as the first sequence grows.
+
+**Worked trace:** two candidate names compared with five allowed names require five comparisons for the first candidate and five for the second: ten in total. Adding a third candidate raises that to fifteen if we check every pair. If names can be long, comparing a name may itself require additional work.
+
+**Misconception:** input size always means the biggest number in the data. **Try it:** choose size measures for searching a document, searching a sequence, and comparing every student in one class with every student in another. State whether item lengths are fixed or need their own measure.
 
 ## Deriving the running-time function T(n)
+<!-- lesson-id:w1-section-deriving-the-running-time-function-t-n -->
 
-**T(n)** denotes work for inputs of size n under a stated model and case. It may count selected events or weighted elementary operations. Start with code, identify repetition, and add the parts. Simplify only after obtaining a defensible count.
+We use **T(n)** to name the work required for size n, after choosing a model and a case. It can count one selected event or combine elementary operations with different fixed costs; those different costs are called weights. Start by following the code, identifying what repeats, and adding those contributions. Keep the evidence visible before simplifying the expression.
 
-For a loop starting at zero, testing `i < n`, advancing by one, and never returning early, there are n body executions, n counter updates, and n + 1 condition evaluations. The extra check is the failed test that exits. At n = 3, the condition is checked with i equal to 0, 1, 2, and 3; the body runs only for the first three values.
+Consider a loop that starts at zero, tests `i < n`, advances by one, and has no early return. The body runs n times, and the index advances n times. The condition is evaluated n + 1 times because we need one final false result to leave the loop. At n = 3, check the condition for i equal to 0, 1, 2, and 3. Only the first three checks allow the body to run. Writing those four checks out is a reliable way to avoid losing the final one.
 
-Start with ordinary linear search before adding any instrumentation:
+Let's first follow ordinary linear search without extra counters. We want to see which statements execute on a successful search, a failed search, and an empty input.
+
+### Demonstration 1 — Follow returns in an ordinary linear search
 
 ```javascript
 function linearSearch(arr, target) {
@@ -95,7 +122,7 @@ console.log(linearSearch([], 12));
 -1
 ```
 
-For the missing target, list what actually executes rather than counting source lines:
+In **Demonstration 1**, searching `[3, 6, 9]` for 6 checks indexes 0 and 1 and returns 1 immediately. The increment after that second comparison never executes. Searching for 12 checks all three values, fails the next loop test, and reaches the final return. Empty input reaches that final return without comparing an element. For an absent target, we can record the executed events as follows:
 
 | Event                              | Executions on an absent target |
 | ---------------------------------- | ------------------------------ |
@@ -106,11 +133,15 @@ For the missing target, list what actually executes rather than counting source 
 | Execute the inner return           | 0                              |
 | Execute the final return           | 1                              |
 
-If each listed event costs one unit, this particular bookkeeping gives `3n + 3`. We bundled the indexed read into the comparison and the length read into the loop test; another model could charge those separately. The inner return is **not** executed n times merely because it appears inside the loop. It executes once when a match is found, or not at all when the target is absent. For 100 entries and an absent target, there are 100 element comparisons. The final failed loop test is a different kind of comparison and is not counted as an element comparison.
+Charging one unit for each listed event gives `3n + 3`. This bookkeeping includes the indexed read in the element comparison and the length read in the loop test. You could charge them separately, provided you say so and stay consistent.
 
-Suppose a simplified scheme instead charges seven units for setup and completion, plus three per entry. Then `T(n) = 3n + 7`. At n = 0 the cost is seven; at n = 1 it is ten; at n = 4 it is nineteen. This is an **illustrative cost model**, not the exact count for the supplied linear-search code and not a claim about a JavaScript engine's machine-instruction count. The fixed overhead changes between schemes, but both functions have linear growth.
+Be especially careful with the inner return. Its location inside the loop does **not** mean it executes n times. It runs once on a match and zero times for an absent target. With 100 entries and a missing target, you get 100 element comparisons. The final failed loop test is another comparison, but it compares the index with the length, not an element with the target.
 
-The following laboratory evaluates that formula with an explicit three-event body. It illustrates fixed and repeated contributions.
+Now suppose we choose a simplified scheme with seven units for setup and completion, then three units per entry. That gives `T(n) = 3n + 7`: seven units at n = 0, ten at n = 1, and nineteen at n = 4. Treat this as an **illustrative cost model**. It is neither the exact count for Demonstration 1 nor a count of the machine instructions a JavaScript engine will execute. Changing the accounting changes the fixed overhead, but both formulas still describe linear growth.
+
+To separate the fixed contribution from the repeated contribution, let's build the illustrative formula directly. The body adds three modeled units per repetition, while the initial seven stays the same for every input size.
+
+### Demonstration 2 — Build fixed overhead and per-entry work into a counter
 
 ```javascript
 function modeledWork(n) {
@@ -133,11 +164,16 @@ console.log(modeledWork(4));
 19
 ```
 
-Two reasonable accounting conventions can yield `3n + 7` and `8n + 12` while agreeing on linear growth. **Misconception:** deriving T(n) means immediately discarding constants. Preserve the evidence first; simplify when discussing growth classes. **Try it:** derive a function for four setup events, two events per repetition, and one final event. Evaluate it at n = 0 and n = 3.
+In **Demonstration 2**, `modeledWork(4)` starts at seven and adds three on each of four iterations: ten, thirteen, sixteen, then nineteen. At zero, no iteration changes the initial seven. This makes it clear which term depends on size.
+
+Two reasonable accounting conventions can yield `3n + 7` and `8n + 12` while still agreeing that growth is linear. **Misconception:** deriving T(n) means throwing away constants immediately. First preserve the count you can justify; then simplify when discussing its growth family.
+
+**Try it:** derive a function with four setup events, two events per repetition, and one final event. Evaluate it at n = 0 and n = 3, showing where each contribution enters.
 
 ## Growth families
+<!-- lesson-id:w1-section-growth-families -->
 
-A **growth family** groups functions with comparable long-run behavior. Ask how much extra work appears when input grows. Constant work stays bounded. Linear work roughly doubles when n doubles. Quadratic work roughly quadruples. Logarithmic work gains only a fixed number of steps when n is multiplied by a fixed factor.
+A **growth family** groups functions that scale in comparable ways once inputs become large. You can start understanding a family by asking what happens when you increase the input. Constant work stays bounded by a fixed amount. Linear work roughly doubles when n doubles, while quadratic work roughly quadruples. Logarithmic work adds only a fixed number of steps when you multiply n by a fixed factor. The table gives representative functions so we can put numbers to these descriptions.
 
 | Family       | Representative | Counting situation                 | At n = 8 and n = 16   |
 | ------------ | -------------- | ---------------------------------- | --------------------- |
@@ -150,53 +186,73 @@ A **growth family** groups functions with comparable long-run behavior. Ask how 
 | Exponential  | 2ⁿ             | Explore all binary choice patterns | 256, 65536            |
 | Factorial    | n!             | Enumerate every ordering           | 40320, 20922789888000 |
 
-These are representative values, not benchmarks. For fixed polynomial degree k, exponential growth eventually exceeds nᵏ. Factorial growth eventually exceeds any fixed-base exponential. “Eventually” matters: startup costs and coefficients can reverse comparisons at small sizes.
+Read these values as counts from representative functions, not as benchmark timings. A polynomial uses a fixed power such as n² or n³; its degree is that power. For any fixed polynomial degree k, exponential growth eventually exceeds nᵏ. Factorial growth, which multiplies the positive integers up through n, eventually exceeds any exponential with a fixed base.
 
-A **logarithm** asks how many factors of a base produce a number. Since `2³ = 8`, `log₂ 8 = 3`. Halving 8 gives 4, then 2, then 1: three halvings. For non-powers of two, rounding depends on the stopping condition. Different fixed logarithm bases differ by a constant factor, so they share an asymptotic family.
+The word “eventually” matters. A coefficient multiplying the repeated work, or a startup cost paid before it begins, can change which implementation is cheaper on small inputs. A growth family describes the long-run trend without erasing those engineering costs.
 
-**Worked comparison:** n² events means 10000 at n = 100, whereas 1000n means 100000. The quadratic count is smaller there. At n = 10000, they become 100000000 and 10000000. **Misconception:** the better eventual family always wins immediately. **Try it:** predict the effect of doubling n for constant, linear, quadratic, and exponential functions. Explain why asymptotic ranking does not replace measurement for a specific small workload.
+A **logarithm** answers a repeated-multiplication question: how many factors of a chosen base produce this number? Since `2³ = 8`, we write `log₂ 8 = 3`. You can read the same relationship backward by halving 8 to 4, then 2, then 1. Three halvings undo three doublings.
+
+When the input is not an exact power of two, the loop's stopping condition determines how we round its count. Different fixed logarithm bases differ by a constant factor. That is why they belong to the same asymptotic family: the same family of growth as size becomes large.
+
+**Worked comparison:** at n = 100, n² gives 10000 events while 1000n gives 100000, so the quadratic function is cheaper there. At n = 10000, the counts become 100000000 and 10000000. Now the linear function wins because its fixed multiplier no longer outweighs the extra factor of n.
+
+**Misconception:** a better eventual growth family must win immediately. **Try it:** predict how doubling n affects a constant, a linear, a quadratic, and an exponential function. Explain why that ranking still cannot replace measurement for a particular small workload.
 
 ## Big O upper bounds
+<!-- lesson-id:w1-section-big-o-upper-bounds -->
 
-**Big O** states an eventual upper bound up to a positive constant multiplier. Formally, `T(n) ∈ O(g(n))` if positive constants c and n₀ exist such that `0 ≤ T(n) ≤ c g(n)` for every n ≥ n₀ in the size domain. Constants must be independent of n. Think of c g(n) as a ceiling remaining above the cost after a starting point.
+Suppose we want a ceiling for a cost function after some starting size. **Big O** gives that eventual upper bound, allowing a positive constant multiplier. Formally, `T(n) ∈ O(g(n))` if positive constants c and n₀ exist such that `0 ≤ T(n) ≤ c g(n)` for every n ≥ n₀ in the size domain. Here g is the reference growth function, c scales it, and n₀ is the size from which the claim must hold.
 
-For `T(n) = 3n + 7`, take c = 10 and n₀ = 1. Since 7 ≤ 7n for n ≥ 1, `3n + 7 ≤ 10n`. This proves O(n). Checking n = 1 gives equality; increasing n makes the seven easier to absorb. The proof covers all later sizes, not merely a few observations.
+Choose c independently of n. Once chosen, the same ceiling c g(n) must remain above the cost for every later valid size. You cannot adjust the multiplier whenever an inconvenient input size appears.
 
-The same function is O(n²): for n ≥ 1, `3n + 7 ≤ 10n ≤ 10n²`. This is true but less informative. Upper bounds need not be tight. Give the strongest justified conventional description and name the case, such as “worst-case Θ(n), hence O(n).”
+Let's prove an upper bound for `T(n) = 3n + 7`. Choose c = 10 and n₀ = 1. For n ≥ 1, 7 ≤ 7n, so `3n + 7 ≤ 10n`. We have now proved O(n). At n = 1, both sides are equal; as n increases, the fixed seven fits more easily beneath the allowance of 7n. The inequality, rather than a handful of measured examples, is what covers all later sizes.
 
-Big O does not inherently mean worst case. You can upper-bound a best-case function, worst-case function, or defined expected-cost function. Specify which function you are bounding. One comparison on a particular search input does not invalidate a linear worst-case bound.
+The same function also belongs to O(n²), because for n ≥ 1, `3n + 7 ≤ 10n ≤ 10n²`. That ceiling is valid but leaves much more room than necessary. An upper bound need not be **tight**, meaning it need not match the function's growth closely. Prefer the strongest conventional description you can justify, and say which case it describes—for example, “worst-case Θ(n), hence O(n).” We will define Θ precisely shortly.
 
-**Misconception:** choosing c = n makes any function constant. That multiplier is disallowed because c must remain fixed as n varies. **Try it:** find c and n₀ proving `5n + 2 ∈ O(n)`. Explain why two small timings cannot prove the definition.
+Keep the choice of case separate from the direction of the bound. Big O itself does not mean worst case. You can place an upper bound on a best-case function, a worst-case function, or an expected-cost function defined using probabilities. First say which function you selected, then bound it. A search taking one comparison on one input is perfectly compatible with a linear worst-case bound.
+
+**Misconception:** you can choose c = n and make any cost look constant. That breaks the definition: c must be a fixed number while n varies.
+
+**Try it:** find a positive c and a threshold n₀ that prove `5n + 2 ∈ O(n)`. Show the inequality for every size from that threshold onward, and explain why two small timing measurements could not establish the same claim.
 
 ## Big Omega lower bounds
+<!-- lesson-id:w1-section-big-omega-lower-bounds -->
 
-**Big Omega** gives an eventual lower bound up to a positive constant multiplier. Write `T(n) ∈ Ω(g(n))` when positive c and n₀ exist such that `0 ≤ c g(n) ≤ T(n)` for every n ≥ n₀. Picture a floor beneath the selected cost function.
+Now imagine placing a floor underneath the selected cost function. **Big Omega** gives an eventual lower bound, again allowing a positive constant multiplier. We write `T(n) ∈ Ω(g(n))` when positive c and n₀ exist such that `0 ≤ c g(n) ≤ T(n)` for every n ≥ n₀. From the chosen threshold onward, the cost must stay at or above that floor. As with Big O, the constants do not change as n changes.
 
-For `3n + 7`, c = 3 and n₀ = 1 work because `3n ≤ 3n + 7`. Thus it is Ω(n). It is also Ω(1), but the linear lower bound says more about growth.
+For `3n + 7`, choose c = 3 and n₀ = 1. The inequality `3n ≤ 3n + 7` proves Ω(n): the fixed seven cannot make the work smaller than 3n. The function is also Ω(1), but that weaker floor tells you less about its growth. When a stronger lower bound is justified, use it to communicate more of what you know.
 
-Be precise about what receives the bound. A full scan that always visits n entries has an Ω(n) visit count on every length-n input. Early-return search does not require n comparisons on every input. Its **worst-case comparison function**, however, has an Ω(n) bound because a missing target forces n comparisons. That is a lower bound on a chosen function, not a statement that every execution is linear.
+Be precise about the function underneath the notation. A scan that always visits all n entries has an Ω(n) visit count on every length-n input. An early-return search can stop at its first entry, so we cannot say that every execution needs n comparisons.
 
-A lower bound on a whole problem needs further reasoning. For an unsorted sequence with no extra information, membership may require inspecting every entry: an uninspected entry could contain the target. This depends on the access model and assumptions. Sorted input supplies information permitting a different algorithm.
+We can still give that search's **worst-case comparison function** an Ω(n) bound: for each size, a missing target forces all n comparisons. This lower-bounds the maximum cost at that size. It does not turn every individual execution into a linear one.
 
-**Worked trace:** a missing target in `[2, 4, 6, 8]` forces a scan to rule out four candidates. Skipping the last position cannot distinguish this sequence from one whose final value matches. **Try it:** prove `5n + 2 ∈ Ω(n)` and explain why “Omega means the first element matches” confuses bounds with cases.
+A lower bound for an entire problem requires another argument, beyond counting one implementation. Suppose a sequence is unsorted and you have no extra information about its entries. To determine whether a target is present, you may need to inspect them all: any unchecked position could hold it. That reasoning depends on how you can access the data and what information is available. Sorted input changes those assumptions and makes a different search strategy possible.
+
+**Worked trace:** when a target is absent from `[2, 4, 6, 8]`, an ordinary scan must rule out four candidates. If it skips the last position, it cannot distinguish this input from an otherwise identical sequence whose final entry is the target.
+
+**Try it:** prove `5n + 2 ∈ Ω(n)` with fixed constants. Then explain the mistake in “Omega means the first element matches.” Identify separately the input case and the kind of bound.
 
 ## Big Theta tight bounds
+<!-- lesson-id:w1-section-big-theta-tight-bounds -->
 
-**Big Theta** bounds a function above and below by positive multiples of the same reference function after a threshold. Formally, `T(n) ∈ Θ(g(n))` if positive c₁, c₂, and n₀ exist such that `0 ≤ c₁g(n) ≤ T(n) ≤ c₂g(n)` for all n ≥ n₀. It combines O and Ω bounds.
+Sometimes we can put both a floor and a ceiling around the cost using the same reference function. **Big Theta** expresses this tight growth bound: above and below, the cost stays within positive constant multiples after a threshold. Formally, `T(n) ∈ Θ(g(n))` if positive c₁, c₂, and n₀ exist such that `0 ≤ c₁g(n) ≤ T(n) ≤ c₂g(n)` for all n ≥ n₀. It combines an O upper bound and an Ω lower bound using that same g(n).
 
-Think of two rails enclosing a cost curve. The curve need not coincide with n, and the distance between the rails can grow. Fixed multiples of n must contain it. For `3n + 7`, the preceding bounds use the same reference n and establish Θ(n).
+Picture two rails surrounding the cost curve. The curve does not have to equal n, and the gap between the rails does not have to stay a constant width. What stays fixed is each rail's multiplier of n. For `3n + 7`, our upper and lower bounds both use n as the reference function, so together they establish Θ(n).
 
-For `n² + n`, n² is a lower bound and 2n² is an upper bound when n ≥ 1, since n ≤ n² there. Thus the function is Θ(n²). The linear term remains in the exact count but no longer determines the growth family. Similar reasoning applies to polynomials of fixed degree with positive leading coefficients.
+Try the same reasoning on `n² + n`. When n ≥ 1, the extra n is no larger than n². That places the full function between n² and 2n², proving Θ(n²). We have not removed the linear term from the exact count; we have shown why it does not determine the growth family. This argument extends to polynomials of fixed degree with a positive leading coefficient, the positive multiplier on their highest-power term.
 
-Theta does not mean average case. A full traversal may have best, worst, and average costs all in Θ(n). A short-circuit search has a constant best-case function and linear worst-case function. Both admit tight bounds of their own.
+Theta does not select an average case. For a full traversal, the best, worst, and average cost functions may all belong to Θ(n). A search that stops as soon as it finds an answer—a **short-circuit** search—has a constant best-case function and a linear worst-case function. You can give each of those functions its own tight bound.
 
-**Misconception:** any known upper and lower bounds prove Theta. Knowing Ω(n) and O(n²) leaves a gap; many functions fit between them. **Try it:** bound `2n² + 3n + 1` using multiples of n² for n ≥ 1. Supply actual constants, then distinguish its exact expression from its tight family.
+**Misconception:** any upper bound plus any lower bound establishes Theta. Knowing Ω(n) and O(n²) leaves a gap containing many growth rates. The reference function must match on both sides.
+
+**Try it:** bound `2n² + 3n + 1` using positive multiples of n² for n ≥ 1. Supply actual constants and show why they work, then explain the difference between the exact expression and the tight family you proved.
 
 ## Constants and thresholds
+<!-- lesson-id:w1-section-constants-and-thresholds -->
 
-Constants allow vertical scaling; **n₀** marks where the inequalities must begin holding. Neither may change with n. A threshold excludes a finite initial region, but every later size still needs coverage. Think of choosing two rails once, then showing that the entire remaining cost curve stays between them.
+The multipliers let us scale our reference function vertically. The **threshold n₀** tells us where the inequalities must start holding. You choose these numbers once; none may change with n. A threshold lets a proof leave out a finite set of small sizes, but it still has to cover every size afterward. In the rails picture, we must show that the whole remaining curve stays enclosed, not just the points we happened to plot.
 
-For `T(n) = 3n + 7` and `g(n) = n`, choose **c₁ = 3, c₂ = 10, n₀ = 1**. For every integer n ≥ 1, `3n ≤ 3n + 7`. Also n ≥ 1 implies `7 ≤ 7n`, so `3n + 7 ≤ 3n + 7n = 10n`. Consequently `0 ≤ 3n ≤ 3n + 7 ≤ 10n` throughout the required domain, proving Θ(n).
+Let's assemble the whole proof for `T(n) = 3n + 7` with `g(n) = n`. Choose **c₁ = 3, c₂ = 10, n₀ = 1**. The lower side works for every integer n ≥ 1 because `3n ≤ 3n + 7`. For the upper side, use n ≥ 1 to get `7 ≤ 7n`, then `3n + 7 ≤ 3n + 7n = 10n`. Putting both sides together gives `0 ≤ 3n ≤ 3n + 7 ≤ 10n` throughout the required domain. That complete chain proves Θ(n); the table helps you inspect a few points in the proof.
 
 | n   | c₁n = 3n | T(n) = 3n + 7 | c₂n = 10n | Both bounds hold?  |
 | --- | -------- | ------------- | --------- | ------------------ |
@@ -206,43 +262,56 @@ For `T(n) = 3n + 7` and `g(n) = n`, choose **c₁ = 3, c₂ = 10, n₀ = 1**. Fo
 | 5   | 15       | 22            | 50        | Yes                |
 | 10  | 30       | 37            | 100       | Yes                |
 
-With those constants, **n₀ = 0 fails**: the upper bound at zero requires seven to be at most zero. No finite c₂ makes `7 ≤ c₂ × 0` true. This does not contradict Θ(n); the definition requires some valid threshold, and one works. Empty input can be meaningful operationally even when a growth proof starts at one.
+Why does the zero row fail? With these constants, **n₀ = 0 fails** because the upper inequality would demand that seven be at most zero. No finite multiplier c₂ can make `7 ≤ c₂ × 0` true. There is no contradiction with Θ(n): the definition asks for some valid threshold, and one is valid. You can still analyze what the program does on empty input even when the long-run proof begins at one.
 
-Constants still matter in engineering. A linear algorithm with expensive per-item work can lose to a quadratic algorithm on a small bounded workload. Analysis identifies scaling risks; profiling helps choose implementations for actual conditions. **Misconception:** the threshold is a guarantee about when one real implementation becomes faster than another. It only establishes the stated mathematical inequalities. **Try it:** retain c₁ = 3, replace c₂ with 4, and find the smallest integer threshold. Explain why the inequalities prove more than the table alone.
+In engineering, constants still affect your decision. A linear algorithm doing expensive work per entry can lose to a quadratic one on a small, bounded workload. Growth analysis exposes scaling risks; **profiling**, or measuring where an actual execution spends resources, helps you decide under real conditions.
+
+**Misconception:** n₀ tells you when one real implementation starts running faster than another. Here it only tells you when these mathematical inequalities hold. **Try it:** keep c₁ = 3, change c₂ to 4, and find the smallest integer threshold. Explain why your algebra establishes more than a table of sample values could establish alone.
 
 ## Best worst and average cases
+<!-- lesson-id:w1-section-best-worst-and-average-cases -->
 
-For fixed n, **best-case cost** is the minimum over valid inputs of that size; **worst-case cost** is the maximum. **Average-case cost** is an expectation under a stated probability distribution. Choose a case first, then bound its function.
+First hold n fixed and compare the valid inputs of that size. The smallest cost is the **best-case cost**; the largest is the **worst-case cost**. To define an **average-case cost**, we also need a probability distribution: a rule saying how likely each input is. Its expectation is the cost averaged with those likelihoods as weights. Choose this case function first, and only then ask whether an O, Ω, or Θ bound describes it.
 
-For nonempty linear search, count target comparisons. Best case is one when the first entry matches. Worst case is n when the target is last or absent. A successful-search average requires an explicit model: assume the target is present exactly once and its position is **uniformly distributed across all n positions**. Each has probability 1/n, so
+For nonempty linear search, let's count comparisons with the target. A first-entry match gives a best case of one. A match at the last entry, or no match, gives a worst case of n. For a successful-search average, assume the target occurs exactly once and is **uniformly distributed across all n positions**. Uniform means every position is equally likely, with probability 1/n. The possible costs are one through n, so their weighted average is
 
 `E[C(n)] = (1 + 2 + ... + n)/n = [n(n + 1)/2]/n = (n + 1)/2`.
 
-For n = 4, possible counts are 1, 2, 3, and 4, with mean 2.5. An average need not be an integer although individual counts are integers. The expectation is Θ(n): halving a linear function preserves its family.
+At n = 4, add the possible counts 1, 2, 3, and 4, then divide by four to get a mean of 2.5. No individual search performs half a comparison; the fraction summarizes many possible executions. The expectation is Θ(n) because multiplying a linear function by one half does not change its growth family.
 
-If absence has probability p and otherwise the successful position is uniform, expectation becomes `pn + (1 − p)(n + 1)/2`. Other distributions change the formula. If the first position is always requested, average successful cost is one. “Average input” is not a complete mathematical assumption.
+Now allow the target to be absent with probability p, and otherwise keep its successful position uniform. Absence costs n, so the expectation becomes `pn + (1 − p)(n + 1)/2`. The two terms weight failure and success separately. Change the distribution and the formula can change: if every request targets the first position, the average successful cost is one. Simply saying “average input” does not specify enough to calculate an expectation.
 
-Empty input requires zero target comparisons, so our best-case statement explicitly restricts n ≥ 1. **Misconception:** average always means halfway between minimum and maximum. That happens here because of the uniform model. **Try it:** compute expected comparisons for n = 3 when positions 0, 1, and 2 have probabilities 1/2, 1/4, and 1/4. Write the weighted sum first.
+Empty input performs zero target comparisons, which is why the one-comparison best-case claim explicitly assumes n ≥ 1. **Misconception:** the average must lie exactly halfway between the minimum and maximum. That happens in the uniform successful-search model, but unequal probabilities can pull the expectation toward cheaper or more expensive inputs.
+
+**Try it:** for n = 3, give positions 0, 1, and 2 probabilities 1/2, 1/4, and 1/4. Write the weighted sum of comparison costs before calculating its value.
 
 ## Time versus space
+<!-- lesson-id:w1-section-time-versus-space -->
 
-**Time complexity** describes work; **space complexity** describes storage. State what you include. Input storage exists before the function starts. Auxiliary space is additional working storage; output space holds the required result. Some conventions include output in auxiliary space, so separate them explicitly when needed.
+Counting actions and counting storage answer different questions. **Time complexity** describes work, while **space complexity** describes storage. Say what your storage count includes. Input storage holds data already supplied to the function. **Auxiliary space** is additional working storage used while solving the problem, and **output space** holds the required result. Because some conventions include output in auxiliary space, make the separation explicit whenever it affects your claim.
 
-A scan can take Θ(n) time with Θ(1) auxiliary space because it retains only a few counters regardless of length. An n-entry result occupies Θ(n) output space even if one variable names it. Space counts retained information, not variable names or assignments executed.
+A scan can do Θ(n) work while using Θ(1) auxiliary space. It visits more entries as n grows but may keep only a fixed number of counters. Conversely, a single variable can refer to an n-entry result occupying Θ(n) output space. Count the information kept in memory, rather than the number of variable names or the number of assignments made over time.
 
-For example, a running sum updates one scalar n times. Peak auxiliary space stays constant. Retaining all n partial sums stores n numeric values. Both procedures can take linear time, but their storage differs. Keeping history may be justified when it is required output; otherwise it stores information the contract does not require.
+For example, a running sum replaces one scalar's old value with a new value n times. It does not keep all those versions, so its peak auxiliary space stays constant. If you retain every partial sum, you keep n numeric values instead. Both approaches can take linear time, but their storage differs. Keep the history when the contract needs it; otherwise ask whether those saved values serve any purpose.
 
-Count **peak simultaneous storage**, not total allocation events across the execution. Recursive calls also consume stack frames. A depth-n recursion with constant-size frames uses Θ(n) stack space, even without an explicit collection. Our iterative search below retains only a few scalars.
+Measure **peak simultaneous storage**: the largest amount that must be kept at one time. Adding all allocation events across an execution answers a different question. Also remember the call stack, which stores unfinished function calls. Each stored call uses a **stack frame**, holding information needed to resume it. A recursion reaching depth n with constant-size frames uses Θ(n) stack space even without an explicit collection. The iterative searches in **Worked JavaScript examples** keep only a few scalars instead.
 
-Printing n items needs n output events without retaining all items in the algorithm's own memory. We exclude console buffers and runtime infrastructure from auxiliary-space claims. **Worked accounting:** n input numbers, two counters, a running total, and a scalar result mean Θ(n) input storage, Θ(1) auxiliary storage, and Θ(1) result storage under fixed-size numeric assumptions. **Misconception:** linear time forces linear extra memory. **Try it:** explain why n successive counter updates do not imply Θ(n) space.
+Printing n items requires n output events, but you can print each item as you reach it instead of saving every item first. Our auxiliary-space claims exclude console buffers and the runtime's own infrastructure.
+
+**Worked accounting:** suppose you receive n input numbers and keep two counters, a running total, and a scalar result. Under fixed-size numeric assumptions, that is Θ(n) input storage, Θ(1) auxiliary storage, and Θ(1) result storage. **Misconception:** linear time necessarily needs linear extra memory. **Try it:** explain why updating a counter n successive times does not require Θ(n) space.
 
 ## Counting loops and sequential operations
+<!-- lesson-id:w1-section-counting-loops-and-sequential-operations -->
 
-Add sequential work; sum dependent repetition counts. Two complete scans perform `n + n = 2n` visits, giving Θ(n). A scan followed by all ordered pairs performs `n + n²`, giving Θ(n²). Multiply only when each outer execution repeats the same number of inner events, or a proven bound justifies it.
+When one piece of work finishes before another begins, add their counts. Two complete scans make `n + n = 2n` visits, so together they are Θ(n). A scan followed by visiting all ordered pairs gives `n + n²`, hence Θ(n²). For nested repetition, inspect how much the inner loop does on each outer iteration. Multiplication is justified when that amount is the same each time, or when you have proved suitable bounds; otherwise write the sum first.
 
-An n-iteration outer loop with three inner repetitions performs 3n events: nested but linear. For pairs with `j = i + 1`, inner counts are `n − 1, n − 2, ..., 0`. Their sum is `n(n − 1)/2`, quadratic despite shrinking inner work. This counts unordered pairs of distinct positions, unlike n² ordered pairs including self-pairs.
+An outer loop with n iterations and exactly three inner repetitions performs 3n events. It is nested and still linear. Now let pair enumeration start at `j = i + 1`. The inner counts become `n − 1, n − 2, ..., 0`, whose sum is `n(n − 1)/2`. This decreasing sum still grows quadratically. It counts each unordered pair of distinct positions once: swapping the positions does not create another pair. That differs from n² ordered pairs, which include both orders and self-pairs.
 
-Now let an outer width grow through 1, 2, 4, and so on through n. If inner work equals width, the sum is `1 + 2 + ... + 2ᵏ`, with 2ᵏ ≤ n < 2ᵏ⁺¹. The sum `2ᵏ⁺¹ − 1` is at least n and less than 2n for positive integer n, giving Θ(n). If every outer iteration instead processes n items, total work is Θ(n log n).
+Next let a width double through 1, 2, 4, and so on, stopping at the largest power of two no greater than n. When the inner work equals that width, the total is `1 + 2 + ... + 2ᵏ`, with 2ᵏ ≤ n < 2ᵏ⁺¹. This is a **geometric sum**, meaning successive terms grow by a fixed multiplier. Its value `2ᵏ⁺¹ − 1` is at least n and less than 2n for positive integer n, proving Θ(n).
+
+If the inner loop instead processes n items on every outer iteration, each doubling round pays a full n. There are logarithmically many rounds, giving Θ(n log n). Let's compare the shrinking-pair sum and the matching-width sum with actual counters.
+
+### Demonstration 1 — Count triangular pairs and doubling-width work
 
 ```javascript
 function loopCounts(n) {
@@ -269,17 +338,24 @@ loopCounts(8);
 28 15
 ```
 
-**Amortized analysis** bounds the total cost of a sequence, then divides by its length. Suppose an abstract process charges one unit per step, with maintenance at steps 1, 2, 4, 8, ... costing that step number. Across N steps, ordinary work is N and maintenance is less than 2N. Total work is less than 3N, so amortized cost is O(1), although an individual maintenance step can cost Θ(N). This deterministic argument requires no probability distribution.
+In **Demonstration 1**, `loopCounts(4)` counts pair visits as three, then two, then one, then zero: six altogether. The doubling widths are one, two, and four, contributing seven events. At eight, the pair sum becomes twenty-eight and the width sum becomes fifteen. The number of written loops has stayed the same, but their bounds produce different growth families.
 
-**Misconception:** every nested loop is quadratic, or amortized means random average. Both ignore the actual sum. **Try it:** compare matching-width work with fixed-n inner work at n = 8. Explain why a constant amortized guarantee does not promise constant latency for every step.
+**Amortized analysis** spreads the total cost of a sequence across its operations: first bound the total, then divide by the number of steps. Suppose a process charges one ordinary unit each step and also performs maintenance at steps 1, 2, 4, 8, and so on, costing that step number. Across N steps, ordinary work totals N, and the geometric maintenance sum is less than 2N. The total is therefore less than 3N, giving O(1) amortized cost per step.
+
+An individual maintenance step can still cost Θ(N). The sequence guarantee does not promise that every operation finishes quickly. This argument is deterministic—it holds without assuming any random input or probability distribution.
+
+**Misconception:** all nested loops are quadratic, or amortized cost means a random average. In both cases, writing the actual sum exposes the mistake. **Try it:** compare matching-width work with fixed-n inner work at n = 8. Then explain why a constant amortized cost does not imply constant **latency**, the time you wait for an individual step to finish.
 
 ## Worked JavaScript examples
+<!-- lesson-id:w1-section-worked-javascript-examples -->
 
-These examples use the fixed-cost numeric and indexed-access model. A function's name does not establish its complexity: trace control flow and count events. Inputs are ordinary dense sequences; searching excludes preprocessing.
+Let's apply the counting habits to five complete programs. We will treat numeric operations and known-index access as fixed-cost actions. Inputs are ordinary dense sequences, with a value at every position; any work preparing a search input is excluded and must be accounted for separately. Follow the branches, loops, and returns yourself. A familiar function name is a clue to investigate, not proof of its complexity.
 
 ### One position: firstElement
 
-The contract returns the first value, or `undefined` for empty input. Nonempty input requires exactly one indexed read regardless of length; empty input requires zero. There is always one emptiness check. Time, auxiliary space, and scalar result space are all Θ(1).
+The contract is to return the first value, with `undefined` representing the absence of an entry on empty input. We always check for emptiness once. For nonempty input we then read one index, regardless of length; for empty input we read none. Time, auxiliary space, and scalar result space are all Θ(1). Let's see why merely receiving many values does not force the function to visit them.
+
+### Demonstration 1 — Read one known position after checking emptiness
 
 ```javascript
 function firstElement(values) {
@@ -297,11 +373,15 @@ console.log(firstElement([]));
 undefined
 ```
 
-The trace checks length three, reads position zero, and returns 7; it never reads 4 or 9. **Misconception:** receiving n entries forces n work. **Try it:** predict indexed reads for a million-entry nonempty input.
+In **Demonstration 1**, `[7, 4, 9]` has length three, so the empty branch is skipped and position zero supplies 7. Values 4 and 9 are never read. For `[]`, the early return prevents even the position-zero read. **Misconception:** a function receiving n entries must do n work. **Try it:** predict the indexed-read count for a nonempty input with a million entries and explain what stays unchanged.
 
 ### Every position: printElements
 
-This contract prints every numeric value once, then returns the number of value-output events. There are n indexed reads, n value-print calls, n count increments, and n index updates. The condition is checked n + 1 times. Time is Θ(n + 1), conventionally Θ(n) for n ≥ 1. Auxiliary space is Θ(1), excluding console infrastructure. The caller's printing of the returned count is a separate output event.
+Here the contract requires printing every numeric value once and returning the number of value-output events. That means n indexed reads, n value-print calls, n counter increments, and n index updates, plus n + 1 loop-condition checks. Time is Θ(n + 1), conventionally written Θ(n) for n ≥ 1. Auxiliary space is Θ(1) when console infrastructure is excluded: the function does not save every printed value.
+
+Watch the caller as well as the loop. Printing the returned count is another output event, separate from printing an input value.
+
+### Demonstration 2 — Separate value prints from the returned count
 
 ```javascript
 function printElements(values) {
@@ -324,11 +404,15 @@ console.log(printElements([]));
 0
 ```
 
-Iterations use indexes 0, 1, and 2; a failed test at 3 ends the loop. **Try it:** distinguish the function's three value prints from the five console lines in the complete example.
+In **Demonstration 2**, `[2, 5, 8]` makes the loop visit indexes 0, 1, and 2. Each visit prints one value and increases `count`. The failed test at index 3 ends the loop, and the caller prints the returned three. Empty input prints no values inside the function but still returns zero for the caller to print. **Try it:** identify which of the five console lines are the function's three value prints and which come from its caller.
 
 ### Every ordered pair: printPairs
 
-This contract includes self-pairs and both orders. It executes n² pair-print calls, 2n² indexed reads, and n² count increments. Outer conditions are evaluated n + 1 times; inner conditions n(n + 1) times in total. Time is Θ(n²) for n ≥ 1. Two indexes and a counter use Θ(1) auxiliary space; streamed output contains n² pairs without storing an n²-entry result.
+For this contract, order matters and a value can pair with itself. Each of n choices for the first position is combined with all n choices for the second position. We therefore get n² pair-print calls, 2n² indexed reads, and n² counter increments. The outer condition is checked n + 1 times; the inner condition is checked n(n + 1) times in total.
+
+Time is Θ(n²) for n ≥ 1, while two indexes and a counter take Θ(1) auxiliary space. We **stream** the output, producing each pair as we reach it, so n² printed pairs do not require an n²-entry result in our own memory.
+
+### Demonstration 3 — Print every ordered pair including self-pairs
 
 ```javascript
 function printPairs(values) {
@@ -354,11 +438,13 @@ console.log(printPairs([]));
 0
 ```
 
-The outer index stays zero as the inner visits zero and one, then becomes one and restarts the inner scan. **Try it:** count pair prints at n = 3 and explain why the triangular formula does not apply.
+In **Demonstration 3**, input `[2, 5]` first holds the outer index at zero while the inner index visits zero and one. That prints `2 2` and `2 5`. The outer index then advances to one and the inner loop starts over at zero, printing `5 2` and `5 5`. The returned count is four. **Try it:** count pair prints for n = 3 and explain why restarting the inner loop at zero prevents use of the triangular distinct-pair formula.
 
 ### Early stopping: linear search
 
-Return the first matching position or −1, together with target comparisons. Each failed comparison excludes a position. Before iteration i, no earlier position matches; this **loop invariant** supports correctness. All cases use Θ(1) auxiliary space.
+Now we return both an answer and the evidence needed for its cost: the first matching position or −1, together with the number of target comparisons. After a comparison fails, we know that position cannot answer the query. Before iteration i, no earlier position matches. This is a **loop invariant**, a statement that remains true whenever the loop reaches the same stage of another iteration. It explains why the first returned match really is the first one. All cases use Θ(1) auxiliary space.
+
+### Demonstration 4 — Count comparisons until the first match or exhaustion
 
 ```javascript
 function linearSearch(values, target) {
@@ -382,11 +468,15 @@ console.log(JSON.stringify(linearSearch([], 7)));
 {"index":-1,"comparisons":0}
 ```
 
-The first call stops before the last value; the second exhausts candidates. **Try it:** choose a best-case target and state its tight time bound separately from the worst-case bound.
+In **Demonstration 4**, searching `[4, 8, 2]` for 8 fails at index zero, succeeds at index one, and returns after two comparisons. Searching for 7 fails at all three positions and returns −1 with three comparisons. Empty input returns −1 with zero comparisons. **Try it:** choose a target giving the best case on the nonempty array. State its tight time bound separately from the search's worst-case time bound.
 
 ### Halving candidates: binary search
 
-Binary search requires input already sorted ascending. It checks the middle candidate and discards the half that cannot contain the target. This version returns any matching position, not necessarily the first duplicate. Its interval includes both low and high. Arithmetic midpoint calculation avoids bitwise conversion.
+Binary search needs a **precondition**, a requirement the input must satisfy before the algorithm starts: values must already be sorted in ascending order. Then a comparison with the middle value can rule out an entire half of the candidates. This version may return any matching position, so it does not promise the first occurrence among duplicates.
+
+The remaining interval includes both `low` and `high`. We calculate its midpoint using arithmetic and rounding down, avoiding conversion to a bitwise integer representation. As you trace it, explain why each discarded half cannot contain the target.
+
+### Demonstration 5 — Halve a sorted search interval
 
 ```javascript
 function binarySearch(values, target) {
@@ -418,13 +508,18 @@ console.log(JSON.stringify(binarySearch([], 5)));
 {"index":-1,"probes":0}
 ```
 
-For 12, probe 8 at index 3, then search indexes 4 through 6 and probe 12 at index 5. For 5, probe 8, 4, and 6 before the interval becomes empty. Each probe makes at most two target comparisons; probe and comparison counts differ by only a constant factor.
+In **Demonstration 5**, finding 12 starts by probing, or inspecting, 8 at index 3. Since 12 is larger, only indexes 4 through 6 remain eligible; the next midpoint is index 5, containing 12. For target 5, the probed values are 8, then 4, then 6. The updates then leave an empty interval and the search reports failure.
 
-After k unsuccessful probes, remaining candidates are at most n/2ᵏ. Worst-case probes for n ≥ 1 are at most `floor(log₂ n) + 1`, giving O(log n) as n grows. Some targets require logarithmically many probes, establishing worst-case Θ(log n). Best case is Θ(1), and auxiliary space is Θ(1). Preparing sorted input requires separate accounting. **Try it:** explain why unsorted input breaks correctness despite quick termination.
+A probe is not exactly one target comparison here. We may test equality and then ordering, so each probe makes at most two such comparisons. Their counts differ by only a constant factor, which preserves the growth family.
+
+After k unsuccessful probes, at most n/2ᵏ candidates remain. Each halving contributes another factor of two in that denominator. For n ≥ 1, worst-case probes are at most `floor(log₂ n) + 1`, where floor means rounding down, so the worst-case function is O(log n) as n grows. Some targets need logarithmically many probes, supplying the matching lower bound and establishing worst-case Θ(log n).
+
+The best case is Θ(1) when the first midpoint matches, and auxiliary space is Θ(1). If your input needs sorting first, include that preparation in the larger task's accounting. **Try it:** explain why an unsorted input can make this program terminate quickly with a wrong answer. Point to the missing justification for discarding candidates.
 
 ## Common misconceptions
+<!-- lesson-id:w1-section-common-misconceptions -->
 
-Use these corrections to diagnose reasoning, rather than memorizing labels.
+Use the table as a way to diagnose an argument. For each claim, try explaining the counterexample in your own words before accepting the correction. That habit will help when you meet code that does not look like a familiar textbook example.
 
 | Claim                             | Correction and counterexample                                        |
 | --------------------------------- | -------------------------------------------------------------------- |
@@ -439,171 +534,186 @@ Use these corrections to diagnose reasoning, rather than memorizing labels.
 | Amortized means random average    | A deterministic sequence bound can allow expensive individual steps. |
 | O(n²) proves quadratic growth     | A linear function also satisfies that loose upper bound.             |
 
-Name the event, input size, case, and storage convention before giving a label. If two answers disagree, compare those choices first. One person might count all ordered pairs while another counts only distinct unordered pairs; different contracts produce different formulas.
+Before giving a complexity label, name the event, the meaning of input size, the case, and what storage you include. When two answers disagree, compare those choices first. Someone counting all ordered pairs is solving a different counting problem from someone counting each distinct unordered pair once. Different contracts legitimately produce different formulas; no notation can resolve an unstated contract.
 
-**Worked correction:** “It visits half the entries, so it is logarithmic” is wrong for a loop advancing by two. Its count is about n/2, still Θ(n). Repeatedly halving the remaining region produces logarithmic work; visiting every second position does not. **Try it:** correct “This search was fast on my example, so its worst case is constant” in one sentence.
+**Worked correction:** suppose someone says, “It visits half the entries, so it is logarithmic,” about a loop advancing by two. At n = 100, it still visits about fifty positions; doubling n roughly doubles that count. About n/2 visits is Θ(n). Logarithmic work comes from repeatedly halving what remains, not from visiting every second entry.
+
+**Try it:** correct this statement in one sentence: “This search was fast on my example, so its worst case is constant.” Make clear what a single execution can and cannot establish.
 
 ## Practice exercises and module assessment
+<!-- lesson-id:w1-section-practice-exercises-and-module-assessment -->
 
-Keep solutions separate from the answer section. For every analysis, state size, counted operation, case, formula or bound, and auxiliary space where applicable. These tasks are independent of an external judge and require only this chapter.
+Write your own solutions somewhere separate from the answers so you can compare the reasoning afterward. For each analysis, tell the reader what size measures, what operation you count, which case you analyze, and the formula or bound you obtain. Include auxiliary space wherever it applies. You need only this chapter for these tasks; they do not depend on an external judge or submission system.
 
 ### Lesson practice record
 
-Complete each **Try it** prompt in lessons 1–14. Number them by lesson in your notes; label the five worked-example prompts 13a–13e. This fifteenth lesson's practice is the assessment below. Explanations matter more than bare labels.
+Work through every **Try it** prompt from lessons 1–14 and number your notes by lesson. Use 13a–13e for the five prompts in **Worked JavaScript examples**, whose demonstrations are numbered 1–5 within that lesson. For this fifteenth lesson, use the assessment here as your practice. An answer such as “linear” is only the conclusion; include the reasoning that makes it defensible.
 
 ### Beginner assessment
 
-**B1.** Six setup events precede four selected events per input. Derive T(n), evaluate it at n = 0 and n = 5, and give a tight growth bound.
+**B1.** You pay six setup events once, then four selected events for each input entry. Build T(n) from those contributions, evaluate it at n = 0 and n = 5, and justify a tight growth bound. Keep the fixed contribution visible in your exact expression.
 
-**B2.** A loop visits indexes 0 through n − 1. Count successful condition tests, failed tests, and body executions. Include empty input.
+**B2.** A loop visits indexes 0 through n − 1. Count separately the condition tests that allow another iteration, the tests that fail, and the executions of the body. Explain what each count becomes on empty input instead of assuming the loop starts.
 
-**B3.** For firstElement, printElements, and printPairs, give selected-event counts at n = 4, time families, and auxiliary-space families. Name the events.
+**B3.** Revisit firstElement, printElements, and printPairs from **Worked JavaScript examples**. For each, choose and name a selected event, count it at n = 4, and give the time and auxiliary-space families. Explain your output-storage convention so the printing examples are unambiguous.
 
-**B4.** Trace linear search for 9 in `[3, 6, 9, 12]`. Record inspected positions and comparisons. What changes for target 5?
+**B4.** Search `[3, 6, 9, 12]` linearly for 9. Write the inspected positions in order and count comparisons with the target. Then repeat for target 5. Explain how the return path changes when all candidates fail.
 
 ### Intermediate assessment
 
-**I1.** Prove `6n + 4 ∈ Θ(n)` with positive constants and a threshold. Do those constants work at zero?
+**I1.** Prove `6n + 4 ∈ Θ(n)` by supplying positive lower and upper multipliers and a threshold. Show the inequalities, then substitute zero to check whether those same constants would permit the proof to start there.
 
-**I2.** One procedure scans n entries twice sequentially. Another has n outer iterations with inner indexes zero through i inclusive. Derive both body-event counts and families.
+**I2.** One procedure completes two length-n scans in sequence. Another runs n outer iterations, and its inner indexes go from zero through i inclusive. Derive the body-event count of each procedure before naming its growth family. Make the different reasons for addition and summation explicit.
 
-**I3.** A successful target is uniform across five positions. Compute expected linear-search comparisons. Recompute when the first position has probability 1/2 and the others each have probability 1/8.
+**I3.** Assume a successful target is equally likely to occupy any of five positions. Calculate the expected comparisons for linear search. Then give the first position probability 1/2 and each remaining position probability 1/8, and calculate again. Show how each probability weights its position's cost.
 
-**I4.** Trace binary search for 13 in `[1, 3, 5, 7, 9, 11, 13]`. Record low, high, and mid before each probe; give result, probe count, and auxiliary space.
+**I4.** Find 13 by binary search in `[1, 3, 5, 7, 9, 11, 13]`. Before every probe, record low, high, and mid. Use that trace to report the returned result and probe count, then explain the auxiliary-space bound from the state kept between probes.
 
 ### Advanced assessment
 
-**A1.** Width doubles from 1 while width ≤ n. One inner loop performs width events; another version performs n events. Derive totals at n = 16 and justify families for general positive integer n.
+**A1.** Start width at 1 and double it while width ≤ n. In one version, the inner loop performs width events; in another, it performs n events each round. Derive both totals at n = 16, then justify both growth families for general positive integer n. Do not rely only on the power-of-two example.
 
-**A2.** A process has one ordinary event per step and maintenance costing k at steps k = 1, 2, 4, 8, .... Bound total work over N steps. Distinguish worst individual, amortized, and expected cost without inventing probabilities.
+**A2.** Each step costs one ordinary event. At steps k = 1, 2, 4, 8, ..., maintenance also costs k. Bound all work across the first N steps, then distinguish the worst individual cost from the amortized cost. Explain what information an expected-cost claim would require; do not invent probabilities the task has not supplied.
 
-**A3.** A task must print every ordered pair of n input values. Can O(n) time meet the contract under a one-event-per-pair output model? Give a lower bound and explain whether quadratic time forces quadratic auxiliary storage.
+**A3.** Your contract requires printing every ordered pair of n input values. Under a model charging one event per printed pair, could O(n) time satisfy it? Justify a lower bound using the required output. Separately explain whether doing quadratic work forces you to retain quadratic auxiliary storage.
 
-**A4.** Scan independent inputs of lengths n and m sequentially, then check every cross-input pair. Derive total selected events and a tight bound for n,m ≥ 1. Analyze m = 3 separately. What assumption permits Θ(n²)?
+**A4.** First scan two independent inputs of lengths n and m in sequence, then check every pair taking one entry from each input. Derive the total selected events and a tight bound for n,m ≥ 1. Reanalyze the expression with m fixed at 3. State the extra relationship between lengths that would permit Θ(n²).
 
 ### Module completion standard
 
-Beginner readiness means correct counts with named events. Intermediate readiness adds proofs, traces, and probability assumptions. Advanced readiness adds justified sums and distinctions between individual, sequence, and expected costs. Attempt each tier independently. After checking solutions, explain one correction in your own words and solve the same task with a different small input.
+Use each tier to locate the next skill to practice. At beginner level, aim for correct counts tied to named events. At intermediate level, support them with proofs, traces, and explicit probability assumptions. At advanced level, justify sums and distinguish the cost of one operation, a whole sequence, and a probabilistic expectation. Attempt each tier independently before checking it. Then choose one correction, explain why it was needed in your own words, and retry that task with a different small input.
 
 ## Visual Explanations
+<!-- lesson-id:w1-section-visual-explanations -->
 
-The study interface's interactive complexity lab attaches here through the `visual-explanations` anchor. Use its growth comparisons to connect changing input size with the counts derived above. This chapter remains usable without the interactive interface: the growth table and traces supply the numerical reasoning.
+The study interface connects its interactive complexity lab to this section through the `visual-explanations` anchor. Use the comparisons there to connect a change in input size with counts you have already derived. If you are reading the Markdown without that interface, you can do the same reasoning with the growth table and the traces in this chapter; the lab is not required to follow the argument.
 
-Before changing input size, predict doubling behavior. Linear counts double, quadratic counts quadruple, and base-two logarithmic counts gain one. Compare at the same size and check whether displayed curves use raw or normalized counts. Visual steepness depends on axis scaling and does not prove an asymptotic bound.
+Before moving an input-size control, predict what doubling will do. A representative linear count doubles, a quadratic count quadruples, and a base-two logarithmic count gains one. Compare curves at the same size, and check whether their counts are raw or normalized—rescaled to make comparisons easier. The axes can make a curve appear steeper or flatter. That appearance helps intuition but does not replace an inequality proving an asymptotic bound.
 
-For a paper version, draw columns for n = 2, 4, 8, and 16 and plot n and n². Next draw eight candidate positions for binary search. After each unsuccessful middle probe, cross out the impossible half. The picture explains how one probe excludes many candidates; the logarithm expresses repeated reduction mathematically.
+On paper, make columns for n = 2, 4, 8, and 16, calculate n and n², and plot the results. Then draw eight candidate positions for binary search. After each unsuccessful middle probe, cross out the half that sorted order rules out. Explain aloud why that half is impossible. The drawing shows how one probe removes many candidates; the logarithm describes how many repeated reductions are needed.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w1-section-hints-and-worked-solutions -->
 
-All exercise answers are collected here so the study interface can keep them collapsed. Read the relevant hint first, then cover the answer while retrying the question.
+This section gathers all exercise answers so the study interface can keep them closed while you work. Start with the relevant hint and try again before revealing a complete answer. After reading a solution, cover it and reconstruct the reasoning yourself. Being able to follow an explanation and being able to produce one are different stages of learning.
 
 ### Lesson hints
 
-For lessons 1–4, write exactly what changes at each step and what stops execution. For lessons 5–9, identify the dominant term and find fixed constants bounding the remaining terms. For lessons 10–12, distinguish weighted expectations, peak storage, and deterministic repetition sums. For lesson 13, inspect actual bounds and return statements. For lesson 14, distinguish one observation from a claim about every growing size.
+For lessons 1–4, write the state changes in order and identify what eventually stops execution. In lessons 5–9, find the term that controls long-run growth, then use fixed constants to bound the other contributions. For lessons 10–12, keep three questions separate: how probabilities weight costs, how much storage exists at once, and how repetition counts add without randomness. In lesson 13, follow the actual loop bounds and return paths. For lesson 14, ask whether the claim concerns one observed execution or every later size.
 
 ### Lesson answers
 
-**1.** Inspect positions in order, return the first match's index, and return −1 after exhaustion. Count target comparisons. Advancing the index eventually empties the unchecked suffix. Source length does not determine execution frequency.
+**1.** Inspect each position in order and return its index as soon as it matches. If no candidates remain, return −1. Count comparisons with the target. Each index advance shortens the unchecked suffix, meaning the still-unexamined end of the sequence, until none remains. This gives a stopping argument. Source-code length cannot give the comparison count because the same written comparison can execute many times.
 
-**2.** Condition checks and index increments are omitted. Every predicate evaluation is still counted once; the claim concerns a selected event rather than all work.
+**2.** The counter omits loop-condition checks and index increments, among other actions. That does not invalidate its predicate count: every evaluation of the positivity test still increases it exactly once. The key is to describe the result as a selected-event count instead of claiming it includes all the program's work.
 
-**3.** Use document characters and possibly query length for text search; entry count for bounded-number sequence search; separate class sizes n and m for cross-class comparisons. Variable-length names can add a further item-length cost. State when items have fixed size.
+**3.** For document search, count document characters and, where relevant, query length. For a sequence of bounded numbers, count entries. For comparisons across two classes, keep class sizes n and m separate. If student names have variable length, comparing one pair of names may add another length-dependent cost. State explicitly when you treat each item as fixed size.
 
-**4.** Four setup events, two per repetition, and one final event give `2n + 5`: five at zero and eleven at three.
+**4.** Add the four setup events and the one final event to obtain five fixed events. Then add two for each repetition, giving `2n + 5`. At zero repetitions you still pay five; at three, you add six more and reach eleven. The final event belongs in the fixed contribution because it runs once.
 
-**5.** Doubling n preserves a constant, doubles n, quadruples n², and multiplies 2ⁿ by 2ⁿ. For example, 2⁴ = 16 becomes 2⁸ = 256. Coefficients and overhead can reverse small-input rankings.
+**5.** A constant stays unchanged when n doubles; n doubles; n² quadruples. For 2ⁿ, doubling n multiplies the old value by another factor of 2ⁿ. For example, 2⁴ = 16 becomes 2⁸ = 256. These scaling patterns describe the representative functions. Actual coefficients and fixed overhead can still reverse the ranking on small workloads.
 
-**6.** For n ≥ 1, `5n + 2 ≤ 7n`; c = 7 and n₀ = 1 work. Two timings do not establish an inequality for all later sizes and can reflect runtime effects outside the model.
+**6.** Choose c = 7 and n₀ = 1. For n ≥ 1, the fixed two is at most 2n, so `5n + 2 ≤ 7n`. This proves the required upper inequality for every later size. Two timings cannot cover all those sizes and may also reflect runtime effects our operation-count model does not include.
 
-**7.** Choose c = 5 and n₀ = 1 because `5n ≤ 5n + 2`. A first-position match selects a best-case input; Omega describes a lower bound on a selected function.
+**7.** Use c = 5 and n₀ = 1: `5n ≤ 5n + 2` supplies the lower bound. Saying that the first position matches identifies a best-case input for search. Saying Omega identifies a direction of bound on a function. You still need to specify which case function you are lower-bounding.
 
-**8.** For n ≥ 1, `2n² ≤ 2n² + 3n + 1 ≤ 6n²`, since n ≤ n² and 1 ≤ n². Thus c₁ = 2, c₂ = 6, n₀ = 1 prove Θ(n²). The exact expression retains its smaller contributions.
+**8.** For n ≥ 1, use n ≤ n² to absorb the linear term and 1 ≤ n² to absorb the constant. Then `2n² ≤ 2n² + 3n + 1 ≤ 6n²`. Positive choices c₁ = 2, c₂ = 6, n₀ = 1 prove Θ(n²). The exact expression still records every contribution; the tight family summarizes how the whole expression scales.
 
-**9.** The upper inequality becomes `3n + 7 ≤ 4n`, equivalent to n ≥ 7. The lower inequality always holds for nonnegative n. The smallest integer threshold is seven. Algebra covers every later size; a finite table cannot do that alone.
+**9.** With the smaller upper multiplier, you need `3n + 7 ≤ 4n`. Subtracting 3n shows that this is equivalent to n ≥ 7. The lower inequality already holds for nonnegative n, so seven is the smallest integer threshold satisfying both. Algebra establishes the result for every later size, whereas a finite table only checks its listed rows.
 
-**10.** Expectation is `(1/2) × 1 + (1/4) × 2 + (1/4) × 3 = 7/4 = 1.75`. The distribution is not uniform, so the uniform formula is inapplicable.
+**10.** A match at positions zero, one, and two costs one, two, and three comparisons respectively. Weight each by its supplied probability to get `(1/2) × 1 + (1/4) × 2 + (1/4) × 3 = 7/4 = 1.75`. The distribution favors the first position, so the uniform-position formula would answer a different question.
 
-**11.** Each update overwrites a counter's earlier value. Only one is retained, giving Θ(1) peak auxiliary space in the bounded-number model.
+**11.** Each counter update replaces the previous value instead of saving another version. Only one counter value needs to exist at a time. Under the bounded-number model, that gives Θ(1) peak auxiliary space even when the counter is updated n times. Repetition increases work without necessarily increasing retained storage.
 
-**12.** At eight, matching-width work is `1 + 2 + 4 + 8 = 15`; fixed-n work is `8 × 4 = 32`. Families are Θ(n) and Θ(n log n). Maintenance may be linear on a particular step despite linear total work across the sequence.
+**12.** At n = 8, widths one, two, four, and eight give matching-width work `1 + 2 + 4 + 8 = 15`. Paying eight in each of the four rounds gives fixed-n work `8 × 4 = 32`. Their families are Θ(n) and Θ(n log n), respectively. Likewise, maintenance may cost linear work at one particular step while the total across a whole sequence remains linear.
 
-**13a.** A million-entry nonempty input still requires one indexed read. **13b.** Three value prints plus the caller's two count prints yield five lines. **13c.** At three, there are nine pair prints; starting every inner loop at zero prevents the triangular restriction. **13d.** Target 4 gives Θ(1) best-case time, while worst-case time is Θ(n). **13e.** Without sorted order, a middle comparison cannot justify excluding a half; the target could be discarded. Termination does not guarantee correctness.
+**13a.** **Worked JavaScript examples, Demonstration 1** still makes one indexed read on a million-entry nonempty input: it never traverses the remaining values.
 
-**14.** A fast execution describes only that input; a constant worst-case claim must cover the most expensive valid input at every growing size, which missing targets defeat for linear search.
+**13b.** **Worked JavaScript examples, Demonstration 2** prints three input values inside the function. Its caller prints the counts returned by both calls, adding two lines and making five overall.
+
+**13c.** **Worked JavaScript examples, Demonstration 3** makes nine pair prints at n = 3. Each inner scan starts at zero, so it includes self-pairs and both orders; the triangular restriction does not apply.
+
+**13d.** In **Worked JavaScript examples, Demonstration 4**, target 4 matches immediately, giving Θ(1) best-case time. A last or missing target still gives Θ(n) worst-case time.
+
+**13e.** **Worked JavaScript examples, Demonstration 5** relies on sorted order to discard a half after a middle comparison. Without that order, the discarded half might contain the target. Finishing the loop proves termination, not correctness.
+
+**14.** One fast execution tells you about that input alone. A constant worst-case claim must cover the most expensive valid input at each growing size. For linear search, a missing target forces a full scan, so those inputs prevent a constant worst-case bound even if your first test was quick.
 
 ### Beginner solutions
 
-**B1.** `T(n) = 4n + 6`, so T(0) = 6 and T(5) = 26. For n ≥ 1, `4n ≤ 4n + 6 ≤ 10n`, proving Θ(n).
+**B1.** Start with the six fixed setup events, then add four per entry: `T(n) = 4n + 6`. Substitution gives T(0) = 6 and T(5) = 26. For n ≥ 1, `4n ≤ 4n + 6 ≤ 10n`, because the fixed six is at most 6n. These matching linear bounds prove Θ(n).
 
-**B2.** There are n successful tests, one failed test, and n body executions. At zero, the initial condition fails, leaving zero successful tests and executions.
+**B2.** Each of the n body executions needs a successful condition test. After them, one failed test stops the loop. That gives n successful tests, one failed test, and n body executions. On empty input, the initial test is already false: no successful tests and no body executions occur, but the one failed test remains.
 
-**B3.** Count firstElement's indexed reads, printElements' value prints, and printPairs' pair prints. At four, counts are 1, 4, and 16. Time is Θ(1), Θ(n), and Θ(n²), respectively; each uses Θ(1) auxiliary space under the streaming-output convention. Counting all pair-function indexed reads instead gives 32 without changing the family.
+**B3.** Choose indexed reads for firstElement, value prints for printElements, and pair prints for printPairs. At n = 4, those counts are 1, 4, and 16. The time families are Θ(1), Θ(n), and Θ(n²), respectively. Under our streaming-output convention, each keeps Θ(1) auxiliary state. If you instead count every indexed read in the pair function, you get 32 because each pair reads two entries. That changes the event count, not the growth family.
 
-**B4.** Target 9 inspects positions 0, 1, and 2, then returns index 2 after three comparisons. Target 5 inspects all four positions and returns −1 after four comparisons.
+**B4.** For target 9, positions 0 and 1 fail, then position 2 matches. The answer is index 2 after three comparisons; positions and counts start differently because indexes start at zero. For target 5, all four positions fail and the search returns −1 after four comparisons. No early return can settle that absent-target query.
 
 ### Intermediate solutions
 
-**I1.** Choose c₁ = 6, c₂ = 10, n₀ = 1. Then `6n ≤ 6n + 4 ≤ 10n`. At zero the upper inequality requires 4 ≤ 0, so the same proof cannot begin there.
+**I1.** Positive choices c₁ = 6, c₂ = 10, n₀ = 1 work. For every n ≥ 1, the fixed four is at most 4n, giving `6n ≤ 6n + 4 ≤ 10n`. At zero, the upper inequality would require 4 ≤ 0. That fails, so these bounds establish the family from one onward rather than from zero.
 
-**I2.** Two scans have 2n body events and Θ(n) growth. Inner counts 1 through n total `n(n + 1)/2`, giving Θ(n²). At four, counts are eight and ten; the formulas and inequalities justify the families beyond those examples.
+**I2.** The two sequential scans contribute n each, making 2n body events and Θ(n) growth. For the dependent inner loop, i = 0 contributes one event, i = 1 contributes two, and so on through n. The sum `n(n + 1)/2` is Θ(n²). At n = 4, the totals are eight and ten. Those values illustrate the difference, while the formulas and their bounds justify it for growing input sizes.
 
-**I3.** Uniform expectation is `(1 + 2 + 3 + 4 + 5)/5 = 3`. Altered expectation is `(1/2) × 1 + (1/8) × (2 + 3 + 4 + 5) = 9/4 = 2.25`.
+**I3.** With equal likelihoods, the expected count is `(1 + 2 + 3 + 4 + 5)/5 = 3`. Under the changed distribution, calculate `(1/2) × 1 + (1/8) × (2 + 3 + 4 + 5) = 9/4 = 2.25`. More probability now belongs to the cheapest position, so the expectation falls even though the search algorithm and possible counts are unchanged.
 
-**I4.** Before probes, `(low, high, mid)` is `(0, 6, 3)`, `(4, 6, 5)`, and `(6, 6, 6)`. Values are 7, 11, and 13. Return index 6 after three probes. Fixed scalar state gives Θ(1) auxiliary space.
+**I4.** The successive states before probing are `(low, high, mid)` equal to `(0, 6, 3)`, `(4, 6, 5)`, and `(6, 6, 6)`. The inspected values are 7, 11, and 13. Each of the first two is too small, so low moves just past its midpoint. The final probe returns index 6, making three probes in total. Only fixed scalar state is retained, giving Θ(1) auxiliary space.
 
 ### Advanced solutions
 
-**A1.** At sixteen, widths 1, 2, 4, 8, and 16 give matching-width total 31 and fixed-n total 80. For general n, let k = floor(log₂ n). The first total is `2ᵏ⁺¹ − 1`, between n and 2n, giving Θ(n). The second is `n(k + 1)`, giving Θ(n log n) as n grows; the extra one accounts for n = 1.
+**A1.** At n = 16, the widths are 1, 2, 4, 8, and 16. Their sum is 31, while doing sixteen events in each of five rounds gives 80. For general n, let k = floor(log₂ n), so k identifies the last doubling exponent. The matching-width total is `2ᵏ⁺¹ − 1`, between n and 2n, which proves Θ(n). The fixed-n total is `n(k + 1)`, giving Θ(n log n) as n grows. Keep the extra one in the exact expression: n = 1 still performs one round.
 
-**A2.** Ordinary work is N. Maintenance is `2ᵏ⁺¹ − 1 < 2N`, with k = floor(log₂ N). Total is between N and 3N, hence Θ(N), with Θ(1) amortized cost. The largest maintenance step exceeds N/2, so worst individual cost in the prefix is Θ(N). An expected-cost calculation needs a probability model that the question does not supply.
+**A2.** Ordinary work contributes N. Taking k = floor(log₂ N), the maintenance total is `2ᵏ⁺¹ − 1 < 2N`. Combined work lies between N and 3N, establishing Θ(N); dividing by N gives Θ(1) amortized cost. The largest maintenance step exceeds N/2, however, so the most expensive individual step in this prefix costs Θ(N). These are compatible statements about different quantities. An expected-cost calculation would need a probability model, and none is supplied.
 
-**A3.** Required output has n² pairs, forcing Ω(n²) time under the model. O(n) cannot suffice for unbounded n. Nested loops attain Θ(n²) while streaming with Θ(1) auxiliary state. Retaining every pair would instead add Θ(n²) output storage.
+**A3.** The contract requires n² output pairs, and each pair costs one output event. That alone forces Ω(n²) time, ruling out O(n) for unbounded n. Nested loops attain Θ(n²) time while printing each pair immediately and retaining Θ(1) auxiliary state. If you changed the contract to retain every pair, the saved result would also require Θ(n²) output storage.
 
-**A4.** Total selected events are `n + m + nm`. For positive sizes, `nm ≤ n + m + nm ≤ 3nm`, establishing Θ(nm). With m = 3 the expression is `4n + 3`, hence Θ(n). Writing Θ(n²) requires m to scale proportionally to n, such as m = n; the independent-input contract does not establish that.
+**A4.** Add both scans and all cross-input pairs to get `n + m + nm`. For positive sizes, each of n and m is at most nm, so `nm ≤ n + m + nm ≤ 3nm` proves Θ(nm). Fixing m = 3 changes the expression to `4n + 3`, which is Θ(n). To write Θ(n²), you need m to scale proportionally to n, for example m = n. Independent input lengths alone give no such relationship.
 
 ## Sources and Further Reading
+<!-- lesson-id:w1-section-sources-and-further-reading -->
 
-The explanations, traces, exercises, and JavaScript examples are original teaching material. These references offer established treatments and language documentation for further study. Their inclusion does not claim that pages were browsed or examples externally verified.
+The explanations, traces, exercises, and JavaScript examples here are original teaching material. Use these references when you want another established treatment or the language documentation behind an operation. Listing a reference does not mean its page was browsed during this rewrite or that the examples were verified externally. Choose a reading according to the part of the chapter you want to strengthen.
 
-- [MIT OpenCourseWare: Introduction to Algorithms, 6.006](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/) — official course materials on algorithmic thinking, cost models, and asymptotic analysis. Extend the mathematical foundation after completing the beginner tasks.
-- [OpenDSA](https://opendsa.org/) — open instructional resources with algorithm-analysis explanations and visual learning material. Look for growth rates, asymptotic bounds, and case analysis; module organization differs between editions.
-- [MDN: Loops and iteration](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration) — JavaScript loop behavior used in the counting examples.
-- [MDN: Math.floor](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor) — rounding used in binary-search midpoints.
-- [MDN: Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number) — numeric representation and background for the limits of a bounded-number cost model.
+- [MIT OpenCourseWare: Introduction to Algorithms, 6.006](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/) — use these official course materials to continue studying algorithmic thinking, cost models, and asymptotic analysis after you finish the beginner tasks. They extend the mathematical foundation used here.
+- [OpenDSA](https://opendsa.org/) — explore its open explanations and visual learning material for another view of algorithm analysis. Look for growth rates, asymptotic bounds, and case analysis; editions may organize their modules differently.
+- [MDN: Loops and iteration](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration) — consult this when you need to check the JavaScript loop behavior on which our counts depend.
+- [MDN: Math.floor](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor) — read this to review the rounding operation used to select a binary-search midpoint.
+- [MDN: Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number) — use this background on numeric representation to understand why our bounded-number cost model has limits.
 
 ## Weekly Summary
+<!-- lesson-id:w1-section-weekly-summary -->
 
-Analysis begins with a contract, input-size measure, and counted operation. Derive an expression or justified sum before choosing a growth family. Sequential work adds; repeated work requires inspecting each repetition's bounds. Repeated multiplicative reduction yields logarithmic counts, while dependent loops may produce triangular or geometric sums.
+When you analyze a program, begin by saying what it must do, how you measure its input, and which action you count. Derive an expression or justify a sum before naming the growth family. Add work done in sequence. For repeated work, inspect the bounds of each repetition instead of classifying the code by its appearance. Repeated reduction by a fixed multiplier leads to logarithmic counts; dependent loops can lead to triangular or geometric sums.
 
-O gives an upper bound, Ω a lower bound, and Θ matching bounds. Cases select the cost function; average cases require probabilities. Amortized guarantees can follow from deterministic sequence totals. Constants and thresholds make proofs precise, while time and peak auxiliary space answer different questions.
+Keep two decisions separate: the case selects the cost function, and the notation describes its bounds. O gives an upper bound, Ω a lower bound, and Θ matching bounds. An average case needs probabilities, while an amortized guarantee can follow from a deterministic total across a sequence. Fixed constants and thresholds make the inequalities precise. Time and peak auxiliary space remain different resource questions, even when they describe the same program.
 
-You are ready to apply this material when you can explain a count from a trace, defend a bound with fixed constants, and state the assumptions behind both. Carry those habits into later algorithms instead of memorizing a label for every code shape.
+You are ready to carry these ideas forward when you can reconstruct a count from a trace, defend a growth bound using fixed constants, and explain the assumptions behind both. Practice doing that aloud on a small unfamiliar input. Those habits let you analyze later algorithms even when their code shape does not match an example you remember.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] I can define a contract, input size, and counted event. <!-- checkpoint:w1-analysis-foundations -->
-- [ ] I can distinguish O, Ω, and Θ from best, worst, and average cases. <!-- checkpoint:w1-bounds-and-cases -->
-- [ ] I can prove the 3n + 7 bounds and explain the failed zero threshold. <!-- checkpoint:w1-constants-thresholds -->
-- [ ] I can derive sequential, triangular, geometric, and logarithmic counts. <!-- checkpoint:w1-dependent-loop-costs -->
-- [ ] I can distinguish amortized cost from probabilistic average cost. <!-- checkpoint:w1-amortized-growth -->
-- [ ] I can separate input, output, and peak auxiliary storage. <!-- checkpoint:w1-space-accounting -->
+- [ ] I can state what a contract promises, choose an input-size measure, and name the event I count. <!-- checkpoint:w1-analysis-foundations -->
+- [ ] I can explain why O, Ω, and Θ describe bounds while best, worst, and average select cases. <!-- checkpoint:w1-bounds-and-cases -->
+- [ ] I can prove the bounds for 3n + 7 and show exactly why a zero threshold fails. <!-- checkpoint:w1-constants-thresholds -->
+- [ ] I can derive counts for sequential work, triangular and geometric sums, and repeated halving. <!-- checkpoint:w1-dependent-loop-costs -->
+- [ ] I can explain a deterministic amortized bound separately from an average weighted by probabilities. <!-- checkpoint:w1-amortized-growth -->
+- [ ] I can account separately for input storage, returned output, and the peak auxiliary storage kept at once. <!-- checkpoint:w1-space-accounting -->
 
 ### JavaScript
 
-- [ ] I can trace firstElement, printElements, and printPairs with named events. <!-- checkpoint:w1-counting-examples -->
-- [ ] I can explain early termination and the linear-search invariant. <!-- checkpoint:w1-linear-search-analysis -->
-- [ ] I can trace binary search and justify its sorted-input requirement. <!-- checkpoint:w1-binary-search-analysis -->
+- [ ] I can trace firstElement, printElements, and printPairs and identify the event counted in each. <!-- checkpoint:w1-counting-examples -->
+- [ ] I can explain what early termination skips and why the linear-search invariant establishes the first match. <!-- checkpoint:w1-linear-search-analysis -->
+- [ ] I can trace a binary search and explain why sorted input makes each discarded half safe. <!-- checkpoint:w1-binary-search-analysis -->
 
 ### Practice
 
-- [ ] I attempted each lesson prompt before reading answers. <!-- checkpoint:w1-lesson-practice -->
-- [ ] I completed the beginner assessment with explicit counts. <!-- checkpoint:w1-beginner-assessment -->
-- [ ] I attempted intermediate proofs, traces, and expectation questions. <!-- checkpoint:w1-intermediate-assessment -->
-- [ ] I attempted advanced sums, lower bounds, and two-size analysis. <!-- checkpoint:w1-advanced-assessment -->
+- [ ] I wrote an attempt at every lesson prompt before opening its answer. <!-- checkpoint:w1-lesson-practice -->
+- [ ] I completed the beginner assessment and showed the counts supporting my answers. <!-- checkpoint:w1-beginner-assessment -->
+- [ ] I attempted the intermediate proofs, search traces, and probability-weighted expectations. <!-- checkpoint:w1-intermediate-assessment -->
+- [ ] I attempted the advanced sums, output lower bounds, and analysis with two independent sizes. <!-- checkpoint:w1-advanced-assessment -->
 
 ### Reflection
 
-- [ ] I recorded a mistaken prediction and the reasoning that corrected it. <!-- checkpoint:w1-reflect-on-error -->
-- [ ] I can explain a complexity argument aloud without reading a solution. <!-- checkpoint:w1-explain-complexity -->
+- [ ] I recorded one prediction that failed and explained the reasoning that corrected it. <!-- checkpoint:w1-reflect-on-error -->
+- [ ] I can give a complexity argument aloud, including its assumptions, with the solution closed. <!-- checkpoint:w1-explain-complexity -->

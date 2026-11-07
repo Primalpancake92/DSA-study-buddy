@@ -25,7 +25,9 @@ async function getCsrf() {
     try {
         response = await fetch(`${apiBase}/api/auth/csrf`, { credentials: 'include' });
     } catch {
-        throw new Error('The API is unreachable. Check the Render service URL.');
+        throw Object.assign(new Error('The API is unreachable. Check the Render service URL.'), {
+            code: 'NETWORK_ERROR'
+        });
     }
     const payload = await parseApiResponse(response);
     csrf = payload.csrfToken;
@@ -50,7 +52,9 @@ export async function apiRequest(path, options = {}) {
             credentials: 'include'
         });
     } catch {
-        throw new Error('The API is unreachable. Check the Render service URL.');
+        throw Object.assign(new Error('The API is unreachable. Check the Render service URL.'), {
+            code: 'NETWORK_ERROR'
+        });
     }
     const payload = await parseApiResponse(response);
     if (payload.csrfToken) csrf = payload.csrfToken;

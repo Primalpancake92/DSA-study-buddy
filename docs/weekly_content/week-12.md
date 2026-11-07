@@ -1,50 +1,69 @@
 # Week 12 - Advanced Graphs
+<!-- lesson-id:w12-section-chapter-introduction -->
 
-This week, you will be learning directed cycle detection, topological sorting, weighted shortest paths, and Dijkstra's algorithm. These ideas power course planning, build systems, and routing, where ordinary reachability alone does not answer the question.
+This week, we will learn to answer graph questions that require more than knowing whether a route exists. Can you finish a group of tasks if some depend on each other in a circle? If roads have different costs, which route is cheapest? These questions appear in course planning, software build systems, and routing.
 
-We will start by distinguishing active DFS paths from finished work, then order dependencies with indegrees and implement Dijkstra with a real binary min-heap. An itinerary extension will contrast visiting vertices with consuming every edge.
+We will distinguish work still on the current exploration path from work already finished, then put prerequisites into a legal order. For weighted routes, we will build Dijkstra's algorithm with a binary min-heap, a tree-shaped structure that efficiently retrieves the smallest pending cost. An itinerary extension will ask how to use every ticket exactly once.
 
-By the end, you should be able to choose the right graph algorithm, defend its assumptions, reconstruct weighted routes, and trace stale entries without confusing discovery with settlement.
+By the end, you should be able to defend each algorithm's assumptions, recover weighted routes, and explain outdated heap entries. In particular, you will distinguish discovering a possible route from settling a vertex: proving that its cheapest distance is final.
 
-There will be a checklist at the end of this lesson covering Theory, JavaScript, Practice, and Reflection. Use it to record evidence in your progress logs.
+Use the Theory, JavaScript, Practice, and Reflection checklist at the end to record evidence in your progress logs. Include traces showing what each kind of graph state means.
 
 ## Learning Objectives
+<!-- lesson-id:w12-section-learning-objectives -->
 
-- Detect directed cycles using active/finished DFS states and Kahn's algorithm.
-- Explain the remaining-indegree invariant and validate a topological order.
-- Implement nonnegative weighted shortest paths with relaxation and stale-entry skipping.
-- Reconstruct routes and account for unreachable vertices.
-- Distinguish vertex traversal, shortest paths, and Euler trails.
+- Detect directed cycles through active and finished DFS work, and through Kahn's prerequisite-removal algorithm.
+- Explain why incoming-edge counts represent prerequisites still remaining, and validate a proposed topological order.
+- Find shortest routes with nonnegative weights by improving tentative distances and skipping outdated heap entries.
+- Recover routes through parent links and represent vertices that the source cannot reach.
+- Distinguish exploring vertices, minimizing route cost, and taking an Euler trail that consumes every edge once.
 
 ## Prerequisite Knowledge
+<!-- lesson-id:w12-section-prerequisite-knowledge -->
 
-Review adjacency lists, discovery-time marking, and unweighted BFS in [Week 11](week-11.md). You need array indexes, `Map`, and the heap invariant: a parent's priority is no larger than either child's. A heap is not a sorted array; it guarantees only that the minimum is at the root. Greedy correctness will be studied more generally in [Week 13](week-13.md).
+Review neighbor lists, marking on discovery, and equal-cost BFS in [Week 11](week-11.md). You will use array indexes and `Map`. For heaps, remember the invariant: a parent's priority is no larger than either child's. Following that relationship down the tree shows that the minimum is at the root. It does not make the whole backing array sorted. We will study the broader question of why a local choice is safe in [Week 13](week-13.md).
 
 ## Core Theory
+<!-- lesson-id:w12-section-core-theory -->
 
 ### Directed cycles need more than a visited bit
 
-Consider A→B→D and A→C→D. Reaching D twice does not form a cycle. In recursive DFS, distinguish undiscovered, active, and finished vertices. An edge to an active vertex returns to an ancestor on the current call path and closes a cycle. An edge to a finished vertex may merely join previously explored work. Mark active before visiting outgoing edges, then finished afterward. Start from every undiscovered vertex so disconnected cycles are included.
+Consider A→B→D and A→C→D. Both branches reach D, but that alone gives no route returning to A. Repeated discovery is therefore insufficient evidence of a directed cycle.
+
+Give each vertex three possible states. Undiscovered means exploration has not begun. Active means its recursive call has started but has not returned, so it lies on the current chain of calls. Finished means all outgoing edges have been explored. An edge returning to an active ancestor closes a cycle because that ancestor already has a directed path to the current vertex. Reaching a finished vertex may merely join another branch's completed work.
+
+Mark active before exploring outgoing edges and finished afterward. Start from every undiscovered vertex, since a disconnected region can contain a cycle even when the first region does not.
 
 ### Topological order describes prerequisites
 
-A topological order places the source of every directed edge before its destination. Such an order exists exactly for a directed acyclic graph, or DAG. Kahn's algorithm stores each vertex's indegree: initially its number of incoming edges, then its number of incoming edges from vertices not yet removed. A zero-indegree vertex is ready. Output it, remove its outgoing edges by decrementing the corresponding counts, and enqueue each newly ready vertex.
+A topological order places the source of every directed edge before its destination. If u→v means “u must finish before v,” that is exactly a legal prerequisite order. Such an order exists precisely for a directed acyclic graph, or DAG: a directed graph without cycles.
 
-Every output step is legal because the chosen vertex has no remaining prerequisite. If the queue empties before all vertices are output, every remaining vertex has a remaining predecessor. Following predecessors in a finite graph must repeat a vertex, revealing a cycle. Not every blocked vertex is itself on that cycle: a task downstream from a cycle is also blocked. Several valid orders may exist; FIFO does not promise the smallest lexicographic order.
+Kahn's algorithm counts each vertex's incoming edges, called its indegree. Initially this is the full prerequisite count. During processing, it counts incoming edges from vertices not yet removed. That remaining-count meaning is the invariant. A zero-indegree vertex is ready: output it, decrement the counts for its outgoing edges, and enqueue each vertex whose count becomes zero.
+
+Every output step is legal because no remaining prerequisite points into the chosen vertex. What if the queue empties before every vertex is output? Each remaining vertex has a remaining predecessor. Following predecessors in a finite graph must eventually repeat a vertex, revealing a cycle. A blocked task need not itself lie on that cycle; it may depend on a cyclic group.
+
+Several valid orders may exist. A first-in, first-out queue chooses a legal available order, but does not promise the lexicographically smallest one, meaning the smallest under label-by-label comparison.
 
 ### Dijkstra: discovery is not settlement
 
-For each vertex, store the cheapest route discovered so far. Relaxing u→v with weight w asks whether `distance[u] + w` improves `distance[v]`. BFS processes edge-count layers; Dijkstra processes increasing tentative cost using a priority queue. With nonnegative weights, popping a current minimum settles its shortest distance.
+For each vertex, keep the cheapest route discovered so far. Its cost is tentative because another route may improve it. Relaxing u→v with weight w means asking whether `distance[u] + w` improves `distance[v]`, then updating v if it does.
 
-Why is that safe? Suppose the chosen vertex u had a cheaper route. On that route, consider the first unsettled vertex x. Its settled predecessor already relaxed the edge into x. Thus x has a tentative distance no larger than the cost of that route's prefix. Nonnegative remaining edges make that prefix no more expensive than the whole cheaper route. Then x should have been popped before u, a contradiction. The role of nonnegativity is explicit; it is not a cosmetic input restriction. MIT's [Dijkstra notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf) discuss relaxation and shortest-path ordering.
+BFS processes layers of equal edge count. Dijkstra instead removes the smallest tentative cost from a priority queue. With nonnegative weights, removing a current minimum settles that vertex's shortest distance.
 
-A lazy heap inserts a fresh entry whenever a distance improves. The old entry remains but becomes stale. Compare the popped cost with the current distance and skip stale entries. Do not permanently mark a vertex when inserting it: a cheaper route may be found before it reaches the heap root. Strict improvement, rather than `<=`, also prevents zero-cost cycles from creating endless equal-cost entries.
+Here is the proof. Suppose the chosen vertex u actually has a cheaper route. On that route, take the first unsettled vertex x. Its settled predecessor has already relaxed the edge into x, so x's tentative distance is no larger than the route's cost up to x. Nonnegative remaining edges mean that prefix costs no more than the entire cheaper route. Then x should be removed before u, contradicting the choice of u as the current minimum.
+
+The nonnegative condition is doing real work: continuing a route cannot lower its cost. MIT's [Dijkstra notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf) discuss this relaxation and processing-order argument.
+
+Our lazy heap inserts a fresh entry whenever a distance improves instead of editing an existing entry. The old entry becomes stale: its cost no longer matches the distance array. Skip such entries when removed. Do not permanently mark on insertion, since a cost-eight offer can later improve to three. Require strict improvement rather than `<=`; otherwise zero-cost cycles can keep generating equal-cost entries forever.
 
 ## JavaScript Implementations
+<!-- lesson-id:w12-section-javascript-implementations -->
 
 ### Three-color cycle detection
 
-The adjacency array represents vertices 0 through n−1 with valid integer neighbors. Recursive depth can reach n; use the following iterative topological method for very deep inputs.
+We will encode undiscovered, active, and finished as zero, one, and two. Supply an adjacency array for vertices 0 through n−1 with valid integer neighbors. Recursive depth can reach n and exceed JavaScript's call-stack limit. For deep inputs, the iterative topological approach in **Demonstration 2** also detects whether a cycle prevents completion.
+
+### Demonstration 1 — Distinguish a directed diamond from a cycle
 
 ```javascript
 function hasCycle(graph) {
@@ -79,9 +98,13 @@ true
 false
 ```
 
+In **Demonstration 1**, 0→1→3 finishes before the branch through 2 reaches 3. Color two at 3 is safe because its call has returned. In the second input, 0→1→2→0 reaches active color one and reports a cycle. The outer loop checks disconnected regions too. Empty input contains no cycle.
+
 ### Kahn's algorithm
 
-Edges here are `[before, after]`. Convert a Course Schedule pair `[course, prerequisite]` into that direction before calling. Parallel edges are supported because increments and decrements match. `null` means impossible; `[]` is the valid empty order.
+We now want a legal prerequisite order. Edges are `[before, after]`, so convert a Course Schedule pair `[course, prerequisite]` into that direction. Parallel edges, meaning repeated edges between the same endpoints, are supported because every increment has a matching decrement. The result is `null` when impossible and `[]` for the valid empty order.
+
+### Demonstration 2 — Release tasks after all prerequisites are removed
 
 ```javascript
 function topologicalOrder(n, edges) {
@@ -122,9 +145,15 @@ null
 []
 ```
 
+In **Demonstration 2**, the diamond starts with counts `[0,1,1,2]`. Removing 0 releases 1 and 2. Removing 1 leaves one prerequisite for 3; removing 2 finally releases 3. In the cyclic input, the queue cannot release the whole graph, so the output-length check returns `null`. With n zero, an empty order already includes every vertex.
+
 ### Complete binary-heap Dijkstra with route reconstruction
 
-Vertices are integer indexes. Each adjacency entry is `[destination, weight]`. We require finite, nonnegative weights and finite accumulated costs; exact integer answers additionally require safe-integer sums. The function validates edges even in unreachable regions. A single-source run returns all distances and a route function. `Infinity` represents unreachable vertices; print it directly because JSON converts infinity to `null`.
+We will use a heap to find the cheapest pending route and record parents to recover it. Vertices are integer indexes, and each adjacency entry is `[destination, weight]`. We require finite nonnegative weights and finite accumulated costs. Exact integer answers also require safe-integer sums, within the range `Number` represents exactly.
+
+The function validates every edge, even in unreachable regions. One source search returns all distances and a route function. Unreachable vertices retain `Infinity`; print it directly because JSON changes infinity into `null`.
+
+### Demonstration 3 — Improve and settle routes with a lazy min-heap
 
 ```javascript
 class MinHeap {
@@ -240,13 +269,19 @@ null
 0,0
 ```
 
-Heap insertion repairs only the new leaf-to-root path. Removal moves the last leaf to the root and repairs downward through the smaller child. The complete-tree shape bounds either path by logarithmic height. Equal priorities need no lexical tie-break because this contract asks for one shortest route.
+In **Demonstration 3**, removing source 0 offers eight for vertex 1 and two for vertex 2. Removing 2 improves vertex 1 to three and offers eleven for vertex 3. Removing 1 improves vertex 3 to five. Later costs eight and eleven fail the stale-entry check and do no edge work. Parents trace 3→1→2→0; reversing gives the returned route. Vertex 4 stays unreachable. The zero-cost cycle stops because equal offers are not improvements.
 
-Read each heap entry as a pair of facts: the cost at the moment it was inserted, and the vertex to which that cost belongs. The heap compares only the first field. The distance array is the authoritative current answer; the heap contains work proposals that may be outdated. This separation explains why skipping a stale entry is safe: a newer, cheaper proposal has already been inserted for that vertex, so expanding the old proposal would only repeat inferior work. Parent links change at the same moment as a successful improvement, keeping the reconstructed route consistent with the stored cost.
+The heap compares each entry's first field, its cost when inserted. Insertion repairs the new leaf-to-root path. Removal moves the last leaf to the root and repairs downward through the smaller child. Its complete-tree shape fills levels before starting new ones, bounding either path by logarithmic height. Equal priorities need no label tie-break because we promise one shortest route.
+
+Read the distance array as the authoritative current answer and the heap as dated work proposals. Skipping an outdated proposal is safe because its cheaper replacement was already scheduled. Parent changes occur together with successful distance improvements, keeping the recoverable route consistent with its cost.
 
 ### Extension: consuming edges with an Euler itinerary
 
-Reconstruct Itinerary asks to use each ticket exactly once, permits revisiting airports, and promises a valid complete itinerary from JFK. Under that promise, Hierholzer's algorithm follows unused edges and appends vertices when stuck, then reverses the result. Reverse-sorting destinations lets `pop` choose the smallest available destination. Delayed output places dead-end segments after the detours that must precede them.
+Reconstruct Itinerary asks for every ticket exactly once, permits revisiting airports, and promises a complete itinerary from JFK. A walk consuming every edge once is an Euler trail. Under the existence promise, Hierholzer's algorithm follows unused edges, records airports when stuck, then reverses those records.
+
+Reverse-sorting destinations lets `pop` choose the smallest available label. Delayed output is essential: a dead end belongs after the detours that must precede it, even if we encounter it early.
+
+### Demonstration 4 — Use every ticket with delayed itinerary output
 
 ```javascript
 function itinerary(tickets) {
@@ -280,13 +315,16 @@ console.log(JSON.stringify(itinerary([])));
 ["JFK"]
 ```
 
-This is not a general validator. On arbitrary inputs, even a route of E+1 vertices can contain an invalid consecutive pair. Validate against the ticket multiset or check Euler-trail conditions if the existence promise is removed. Duplicate tickets remain separate list entries.
+In **Demonstration 4**, JFK takes KUL first, but KUL has no departure and enters reverse output. The stack still contains JFK, allowing JFK→NRT→JFK to be consumed. Reversing the recorded sequence puts KUL last. Empty tickets leave just JFK.
+
+Keep the existence promise attached to this implementation. It is not a general validator: even E+1 returned vertices can contain an invalid consecutive pair on arbitrary input. Without the promise, validate against the ticket multiset, which records each ticket's multiplicity, or check Euler-trail conditions. Duplicate tickets remain separate consumable entries.
 
 ## Worked Examples
+<!-- lesson-id:w12-section-worked-examples -->
 
-For Kahn's diamond, initial indegrees are `[0,1,1,2]`. Removing 0 releases 1 and 2. Removing 1 decreases 3 to one, so it still waits. Removing 2 releases 3. This is why “one prerequisite completed” is not the same as “all prerequisites completed.”
+Revisit **Demonstration 2** in **JavaScript Implementations**. Initial diamond indegrees are `[0,1,1,2]`. Removing 0 releases 1 and 2, but 3 must wait for both. Its count becomes one after removing 1 and zero after removing 2. Completing one prerequisite is different from completing them all.
 
-For the Dijkstra example:
+Here is the removal trace for **Demonstration 3** in **JavaScript Implementations**:
 
 | Current pop | Relaxations | Logical pending entries afterward |
 | --- | --- | --- |
@@ -297,11 +335,14 @@ For the Dijkstra example:
 | (8,1) | stale; skip | (11,3) |
 | (11,3) | stale; skip | empty |
 
-The table lists pending entries by priority for readability, not the heap's literal array order. Vertex 4 stays unreachable. Route reconstruction walks 3→1→2→0 and reverses it.
+The pending entries are shown in priority order for readability; that is not the heap's literal array layout. Vertex 4 remains unreachable. Walking parents from 3 gives 3→1→2→0; reversing gives a route whose edge costs sum to five.
 
-In the itinerary, KUL is popped into reverse output first because it has no outgoing tickets. Traversal then consumes JFK→NRT→JFK. Reversing the completed sequence puts KUL last; committing it immediately as the second output airport would strand the other tickets.
+In **Demonstration 4** in **JavaScript Implementations**, KUL enters reverse output before JFK→NRT→JFK is consumed. Committing JFK,KUL immediately as the forward answer would strand the remaining tickets. Recording an exhausted airport and committing the final route are deliberately different operations.
 
 ## Visual Explanations
+<!-- lesson-id:w12-section-visual-explanations -->
+
+Read the diamond's converging arrows as shared finished work, and the cycle's return arrow as a return to an active ancestor. In the weighted diagram, compare a direct offer with a later cheaper offer before deciding a distance is final.
 
 ```text
 Directed diamond:       Directed cycle:
@@ -318,21 +359,29 @@ Weighted routes:
 ```
 
 ## Complexity Analysis
+<!-- lesson-id:w12-section-complexity-analysis -->
 
-V counts vertices and E counts directed edges, including parallel edges. DFS colors and Kahn traversal take O(V+E) time. DFS uses O(V) colors and worst-case call stack; Kahn builds O(V+E) adjacency plus O(V) counts and queue. Its output is O(V).
+Let V count vertices and E count directed edges, including parallel edges. DFS coloring and Kahn's traversal take O(V+E) time because each vertex and adjacency entry is processed once. DFS uses O(V) colors and, in the worst case, O(V) nested calls. Kahn builds O(V+E) adjacency storage plus O(V) counts and queue; its order output takes O(V).
 
-The lazy Dijkstra above creates at most E+1 heap entries over the run. Each successful relaxation adds one; every settled vertex's outgoing edges are scanned once. The heap can contain O(E+1) entries, so the general bound is **O(V+E+(E+1) log(E+2)) time and O(V+E) auxiliary space** beyond the supplied graph. A reconstructed route takes O(V) time and output space. For simple graphs E≤V², this implies the familiar O((V+E) log(V+1)) bound. An indexed decrease-key heap instead maintains O(V) entries; do not silently attribute that memory bound to the lazy implementation.
+For **Demonstration 3** in **JavaScript Implementations**, start with one heap entry and add one per successful relaxation. Each settled vertex's outgoing edges are scanned once, so at most E+1 entries are created over the run. The heap may contain O(E+1) entries. Including validation and initialization gives **O(V+E+(E+1) log(E+2)) time and O(V+E) auxiliary space** beyond the supplied graph.
 
-Itinerary sorting costs O(E log(E+1)) comparisons in the worst case, followed by O(E) edge consumption. Graph, stack, and output take O(E+1) space. These bounds treat airport labels as bounded-length strings. Sorting complexity assumes a conventional efficient comparison-sort implementation; JavaScript does not mandate one algorithm.
+Recovering a route adds O(V) time and output space in the worst case. For simple graphs, without parallel edges, E≤V² implies the familiar O((V+E) log(V+1)) bound. An indexed decrease-key heap updates existing priorities and maintains O(V) entries. That entry-count guarantee does not apply to our lazy implementation.
+
+Itinerary sorting costs O(E log(E+1)) comparisons in the worst case, then edge consumption costs O(E). Graph, stack, and output require O(E+1) space. This treats airport labels as bounded-length strings and assumes an efficient comparison sort. JavaScript does not mandate a particular sorting algorithm.
 
 ## Common Mistakes
+<!-- lesson-id:w12-section-common-mistakes -->
 
-- Treating every edge to a visited node as a directed cycle rejects diamonds.
-- Reversing prerequisite edges can yield an order that violates the question.
-- Stopping Dijkstra when a target is inserted can return an expensive initial route. Stop only on its current, nonstale pop.
-- Using negative weights breaks settlement. For S→A(2), S→B(5), B→A(−10), A's true distance is −5.
-- Sorting a queue on every pop is not a heap and does not have logarithmic queue cost.
-- A vertex-visited set cannot enforce “use every ticket”: tickets are edges.
+- Reaching a previously visited vertex is not enough to prove a directed cycle. A diamond can reach a finished vertex safely; inspect active state.
+- Convert prerequisite pairs into the declared edge direction. Correct processing of reversed edges still answers the wrong question.
+- Stop a target-specific Dijkstra search only on its current nonstale removal. First insertion may be an expensive offer.
+- Keep the nonnegative-weight assumption. For S→A(2), S→B(5), B→A(−10), A's true distance is −5 even though it can be removed at two first.
+- Sorting a whole queue on each removal is not a heap and does not provide logarithmic queue operations.
+- Track tickets as edges. A vertex-visited set cannot represent “use every ticket” and forbids legal returns to an airport.
+
+The deliberately broken fragment makes a first weighted discovery permanent. Trace an expensive first offer followed by a cheaper one to expose the mistake.
+
+### Demonstration 1 — Broken settlement at insertion time
 
 ```javascript-bug
 if (!visited.has(v)) {
@@ -341,7 +390,10 @@ if (!visited.has(v)) {
 }
 ```
 
+In broken **Demonstration 1**, source 0 first offers vertex 1 cost eight and marks it visited. Vertex 2 later offers cost three, but the mark blocks that improvement. Allow tentative distances to improve strictly and skip outdated removals. The first offer is not proof that a vertex is settled.
+
 ## Interview and LeetCode Pattern Recognition
+<!-- lesson-id:w12-section-interview-and-leetcode-pattern-recognition -->
 
 | Requested result | Candidate | Critical condition |
 | --- | --- | --- |
@@ -351,69 +403,76 @@ if (!visited.has(v)) {
 | Minimum weighted cost | Dijkstra | nonnegative weights |
 | Every ticket exactly once | Euler-trail algorithm | edge consumption and valid start |
 
-Course Schedule asks whether a valid order exists. Network Delay Time asks for the maximum finite shortest distance from a source, returning failure if any vertex is unreachable. A weighted DAG can use topological relaxation even with negative edges; a general graph with negative edges needs a different method such as Bellman–Ford. Do not choose from the word “graph” alone.
+Use the requested result to choose among these candidates. Course Schedule asks whether an order exists. Network Delay Time asks when all vertices can receive a signal: take the largest finite shortest distance, but report failure if any vertex is unreachable.
+
+Graph promises also matter. A weighted DAG supports topological relaxation even with negative edges because predecessors are processed first. A general graph with negative edges needs another method, such as Bellman–Ford. The word “graph” describes the model, not a complete algorithm choice.
 
 ## Practice Exercises
+<!-- lesson-id:w12-section-practice-exercises -->
 
 ### Conceptual
 
-1. Why is an edge to a finished DFS vertex different from an edge to an active vertex?
+1. Explain why reaching a finished DFS vertex differs from reaching an active one. Use a diamond and a cycle to identify which calls are still unfinished.
 
 ### Tracing
 
-2. Run Kahn on 0→1, 1→2, 2→1, 2→3, with isolated vertex 4. Which vertices remain, and which are on a cycle?
+2. Run Kahn on 0→1, 1→2, 2→1, 2→3, with isolated vertex 4. Record indegrees and removals. Which remaining vertices actually lie on a cycle?
 
 ### Debugging
 
-3. Use the weighted worked example to refute the broken visited fragment.
+3. Use **Demonstration 3** in **JavaScript Implementations** to refute broken **Demonstration 1** in **Common Mistakes**. Identify the frozen distance and rejected improvement.
 
 ### Implementation
 
-4. Adapt the Dijkstra result into a network-delay function. Handle an unreachable vertex explicitly.
-5. Validate a proposed topological order with a position array. Include duplicate and missing vertices.
+4. Adapt the Dijkstra result into network delay. Explicitly handle an unreachable vertex and explain why the maximum shortest distance answers the question.
+5. Validate a proposed topological order with a position array. Reject duplicate, missing, and invalid vertices before checking every edge.
 
 ### LeetCode + HackerRank
 
-- **[Course Schedule](https://leetcode.com/problems/course-schedule/)** — Platform: LeetCode. Difficulty: Medium. Concepts: directed cycles, indegrees, prerequisite modeling. Why: tests the conversion from `[course, prerequisite]` input to the correct dependency direction.
-- **[Breadth First Search: Shortest Reach](https://www.hackerrank.com/challenges/bfsshortreach/problem)** — Platform: HackerRank. Difficulty: Medium. Concepts: equal-weight shortest paths, unreachable vertices, output ordering. Why: its edges all cost six, so it tests whether you recognize when BFS still suffices instead of automatically using Dijkstra.
+- **[Course Schedule](https://leetcode.com/problems/course-schedule/)** — LeetCode, Medium. Practice directed cycles, indegrees, and prerequisite modeling. Explain the conversion from `[course, prerequisite]` into prerequisite-to-course direction as part of your solution.
+- **[Breadth First Search: Shortest Reach](https://www.hackerrank.com/challenges/bfsshortreach/problem)** — HackerRank, Medium. Every edge costs six, so BFS edge counts still determine minimum cost. Practice unreachable vertices and output order, and explain why equal weights make a heap unnecessary.
 
 ## Hints and Worked Solutions
+<!-- lesson-id:w12-section-hints-and-worked-solutions -->
 
-1. Active vertices lie on the current ancestor path, so a return edge closes a directed walk into a cycle. Finished vertices need not be ancestors; the diamond is the minimal useful contrast.
-2. Initial indegrees are `[0,2,1,1,0]`. Remove 0 and 4 in either available order. Vertices 1,2,3 remain. Only 1 and 2 lie on the cycle; 3 is blocked downstream.
-3. The fragment freezes vertex 1 at 8 after exploring 0. Vertex 2 later offers 2+1=3. Tentative discovery cannot be permanent; allow strict improvements and skip stale pops.
-4. Run the full source search. If any distance is `Infinity`, return −1; otherwise take the maximum with an initial maximum of zero. This adds O(V) work. Avoid spreading a huge array into `Math.max`, which can exceed argument limits.
-5. Require exactly V distinct valid vertex IDs. Assign each its index, then check `position[u] < position[v]` for every edge. That is O(V+E) time and O(V) space. Checking only adjacent output pairs misses dependencies spanning several positions.
-For Course Schedule, first convert prerequisite pairs into before→after edges. Returning whether Kahn outputs V vertices solves the boolean task. For Shortest Reach, compute BFS edge counts, multiply reachable counts by six, omit the source from the ordered result, and use the problem's unreachable sentinel. For itinerary practice, explain why a visited-vertex set would prevent legal returns to JFK.
+1. An active vertex is an ancestor on the current call path, so an edge returning to it closes a directed cycle. A finished vertex need not be an ancestor. The diamond reaches D from a second branch only after D's call has returned, without implying any path back.
+2. Start with `[0,2,1,1,0]`. Remove 0 and 4 in either available order. The count at 1 remains positive because of 2→1, and 1,2,3 stay blocked. Only 1 and 2 form the cycle; 3 depends on it downstream.
+3. The broken fragment freezes vertex 1 at eight while processing source 0. Vertex 2 later offers 2+1=3, but the visited condition refuses it. Permit strict distance improvements, schedule their new entries, and discard stale entries when removed.
+4. Finish the full source search. If any distance is `Infinity`, return −1; otherwise scan for the maximum starting at zero. This adds O(V) work. Avoid spreading a huge array into `Math.max`, since JavaScript's argument-count limits can be exceeded even when the array fits in memory.
+5. Require exactly V distinct valid IDs, assign each its output index, then check `position[u] < position[v]` for every edge. This costs O(V+E) time and O(V) space. Checking only adjacent output pairs misses prerequisites spanning multiple positions.
+
+For Course Schedule, convert pairs to before→after edges and return whether Kahn outputs V vertices. For Shortest Reach, multiply reachable BFS counts by six, omit the source, preserve the required order, and use the problem's special unreachable value. For itinerary practice, explain why revisiting JFK is legal and why marking airports permanently would forbid a necessary return.
 
 ## Sources and Further Reading
+<!-- lesson-id:w12-section-sources-and-further-reading -->
 
-- Canonical scope: [curriculum](../../shared/curriculum.js) and [weeks 9–12 textbook](../../shared/textbook/weeks09to12.js), including the itinerary extension.
-- MIT OCW, [Lecture 16 Dijkstra notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf): opened and consulted for relaxation, DAG paths, and nonnegative shortest paths. The lazy-heap analysis here is specific to this chapter's implementation.
-- MIT OCW, [lecture index](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/lecture-notes/): verified further-reading entry for lecture 14 on DFS/topological sorting; that lecture's PDF was not consulted.
-- LeetCode, [Course Schedule](https://leetcode.com/problems/course-schedule/), and HackerRank, [Breadth First Search: Shortest Reach](https://www.hackerrank.com/challenges/bfsshortreach/problem): official statements and displayed difficulty opened and verified; no editorials consulted.
+- The [curriculum](../../shared/curriculum.js) and [weeks 9–12 textbook](../../shared/textbook/weeks09to12.js) establish scope, including the itinerary extension.
+- MIT OCW's [Lecture 16 Dijkstra notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf) were consulted during earlier preparation for relaxation, DAG paths, and nonnegative shortest paths. The lazy-heap analysis describes this chapter's implementation.
+- MIT OCW's [lecture index](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/lecture-notes/) was previously verified as a further-reading entry for lecture 14 on DFS/topological sorting. That lecture's PDF was not consulted. This rewrite does not claim a new external-link verification.
+- The official [Course Schedule](https://leetcode.com/problems/course-schedule/) and [Breadth First Search: Shortest Reach](https://www.hackerrank.com/challenges/bfsshortreach/problem) statements and difficulties were checked during earlier preparation; no editorials were consulted.
 
 ## Weekly Summary
+<!-- lesson-id:w12-section-weekly-summary -->
 
-Directed cycles require active-path or remaining-indegree reasoning. Weighted paths require tentative costs and a justified processing order. Dijkstra's proof depends on nonnegative edges, while its actual heap design determines the precise cost bound. Euler itineraries consume edges and need a different invariant. Continue to [Week 13](week-13.md) to practice proving local choices safe.
+Tie each graph state to its purpose. Active-path state detects directed cycles, and remaining indegree identifies tasks ready to run. Tentative distance records the best offer so far; a current minimum removal settles it under nonnegative weights. The actual heap entry policy determines storage and runtime bounds. An Euler itinerary instead tracks unused edges and delays output. Continue to [Week 13](week-13.md) to practice proving that other local choices preserve a correct completion.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] Distinguish active, finished, ready, tentative, and settled state. <!-- checkpoint:w12-explain-graph-state -->
-- [ ] Explain the nonnegative-weight step in Dijkstra's proof. <!-- checkpoint:w12-prove-settlement -->
+- [ ] Explain active, finished, ready, tentative, and settled in your own words. <!-- checkpoint:w12-explain-graph-state -->
+- [ ] Identify the exact step of Dijkstra's proof that requires nonnegative weights. <!-- checkpoint:w12-prove-settlement -->
 
 ### JavaScript
 
-- [ ] Implement Kahn's algorithm with the correct edge direction. <!-- checkpoint:w12-implement-kahn -->
-- [ ] Implement heap-backed Dijkstra and reconstruct a route. <!-- checkpoint:w12-implement-dijkstra -->
+- [ ] Implement Kahn and explain the direction of every prerequisite edge. <!-- checkpoint:w12-implement-kahn -->
+- [ ] Build heap-backed Dijkstra and recover a route through parent links. <!-- checkpoint:w12-implement-dijkstra -->
 
 ### Practice
 
-- [ ] Trace stale entries and a cycle with a blocked downstream vertex. <!-- checkpoint:w12-trace-edge-cases -->
-- [ ] Separate shortest paths from consuming every ticket. <!-- checkpoint:w12-select-graph-pattern -->
+- [ ] Trace stale entries and separate a cycle from tasks blocked downstream. <!-- checkpoint:w12-trace-edge-cases -->
+- [ ] Explain why minimizing route cost differs from consuming every ticket. <!-- checkpoint:w12-select-graph-pattern -->
 
 ### Reflection
 
-- [ ] State the lazy heap's actual time and memory bounds aloud. <!-- checkpoint:w12-review-complexity -->
+- [ ] Derive the lazy heap's time and memory bounds aloud from its entry count. <!-- checkpoint:w12-review-complexity -->

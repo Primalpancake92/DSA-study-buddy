@@ -1,85 +1,93 @@
 # Week 1 - Complexity and Arrays
 
-This week, you will be learning how to predict the work a program performs as its input grows. We will connect Big O, Big Theta, and Big Omega to concrete JavaScript operations: reading an array, searching it, changing its contents, and constructing an answer. The aim is to explain your code before reaching for a stopwatch.
+This week, we will learn to explain how a program's work grows when its input gets larger. We will connect the mathematical bounds called Big O, Big Theta, and Big Omega to operations you can trace: reading an array entry, looking for a value, changing positions, and building an answer. Timing a program tells us about one run; counting its work helps us understand how that run will scale.
 
-We will start with positions, values, and movement in arrays, then build up to references, copying, method costs, and reusable prefix/suffix calculations. A known index gives direct access; a search needs evidence from individual entries; removing an early entry can move everything after it. Predict each example's output on paper before running it in a modern JavaScript runtime.
+We will begin by separating an entry's position from its value. From there, we will study object references, copying, array-method costs, and calculations we can reuse from either side of an array. Reading a known position avoids searching. Finding an unknown position needs comparisons. Removing an early entry can move later ones. Predict each example on paper before running it in a modern JavaScript runtime so you can compare your mental model with the result.
 
-By the end, you should be able to trace a scan, explain mutation and copying, derive loop costs, and improve repeated work with a reusable prefix or suffix. You will also be able to state the assumptions behind your answer, including dense-array behavior, numeric precision, and whether output storage counts toward a space claim.
+By the end, you should be able to follow a scan step by step, explain which changes copies share, and derive costs from the work loops actually perform. We will also reuse calculations for a prefix, the region before a position, and a suffix, the region after it. You will state assumptions about array storage, numeric precision, and whether memory for a returned answer is included in a space claim. Those assumptions are part of an explanation, not details to hide.
 
-There will be a checklist at the end of the module to complete your progress logs. Complete the practice before consulting its solutions, then use the final Weekly Progress Checklist to record your Theory, JavaScript, Practice, and Reflection progress, including any explanation you still need to revisit.
+Attempt the practice before consulting the worked answers. Then use the final Weekly Progress Checklist to update your progress logs under Theory, JavaScript, Practice, and Reflection. Record explanations that still need another pass as well as tasks you completed. A correct output is useful, but being able to explain the state and count the work is what will let you solve the next variation.
 
 ## Learning Objectives
 
-- Distinguish positions from values and specify whether a function returns an index, value, boolean, or collection.
-- Derive upper, lower, and tight growth bounds without confusing them with best and worst cases.
-- Count sequential, nested, dependent, logarithmic, and amortized work.
-- Use every array method named in the syllabus deliberately: `push`, `pop`, `shift`, `unshift`, `splice`, `slice`, `includes`, `indexOf`, `find`, `map`, `filter`, `reduce`, and `sort`.
-- Explain aliasing, shallow copying, selective copying, and deep cloning.
-- Implement search, duplicate detection, safe removal, and Product of Array Except Self; account for input, working, and output storage separately.
+- Separate an entry's position from its value, and state whether a function promises an index, a value, true or false, or a collection.
+- Derive upper, lower, and tight bounds on growth while keeping those bounds separate from the choice of best or worst input cases.
+- Count work in consecutive loops, nested and dependent loops, repeated halving, and sequences with occasional expensive operations.
+- Use all syllabus array methods with a clear purpose: `push`, `pop`, `shift`, `unshift`, `splice`, `slice`, `includes`, `indexOf`, `find`, `map`, `filter`, `reduce`, and `sort`.
+- Explain when names share one array, when only the outer container is copied, which nested levels a selective copy separates, and what deep cloning supports.
+- Build search, duplicate detection, safe removal, and Product of Array Except Self, reporting input storage, temporary working memory, and returned output separately.
 
 ## Prerequisite Knowledge
 
-You need variables, numeric comparisons, `if`, functions, `return`, and `for` loops. A function parameter is a local name for an argument. A return ends the function immediately; a loop does not continue after it. `const` prevents rebinding a name but does not freeze an array or its objects.
+You should be comfortable with variables, numeric comparisons, `if`, functions, `return`, and `for` loops. A parameter is the function's local name for an argument supplied by its caller. Executing return ends the function immediately, even from inside a loop. Also distinguish a fixed binding from fixed contents: `const` prevents assigning a different value to that name, but it does not freeze the array or objects the name refers to.
 
-An array of length three has indexes 0, 1, and 2. Reading index 3 normally produces `undefined`, rather than throwing an out-of-bounds exception. That convenience can disguise an incorrect loop bound. These chapters assume dense arrays unless stated otherwise: sparse arrays have holes, and different methods treat holes differently. Do not infer general sparse-array behavior from a dense-array trace.
+For an array of length three, the valid indexes are 0, 1, and 2. Reading index 3 normally returns `undefined` instead of throwing an out-of-bounds error, so an incorrect loop may appear to run successfully. We assume dense arrays, where the expected entries occupy the indexes, unless stated otherwise. Sparse arrays have missing slots, called holes, and methods handle them differently. A trace using a dense array is not evidence for every sparse-array behavior.
 
-All runnable blocks are self-contained. Arrays and records are usually logged with `JSON.stringify` so the output does not depend on a console's object-formatting preferences. Modern features in the supplementary examples require a current runtime; the core algorithms need no packages.
+You can run each runnable block on its own because it supplies its own data and definitions. We usually log arrays and records through `JSON.stringify`, which turns supported data into JSON text and makes displayed formatting predictable. Supplementary methods using newer JavaScript features need a current runtime. The core algorithms require no installed packages, so you can focus on their behavior rather than project setup.
 
 ## Core Theory
 
 ### What are we measuring?
 
-Let `n` be the number of input entries. We count an operation that captures the important work: comparisons in a search, assignments in a compaction, or multiplications in a product. We then ask how that count grows. Ten million simple operations can behave very differently from ten million network requests, so asymptotic analysis is a scaling model, not a latency forecast.
+Let `n` count the input entries. Choose an operation that reflects the task's main work: comparisons for search, assignments when packing survivors together, or multiplications for a product. Then ask how its count changes as n grows. This growth study is asymptotic analysis. It models scaling rather than predicting elapsed time: ten million tiny arithmetic operations and ten million network requests have very different real costs even if their counts match.
 
-In the ordinary dense-array model, reading a known index takes constant time. Searching for an unknown position is different: a missing target forces us to inspect every entry. JavaScript does not require arrays to be literal contiguous machine-memory blocks, so these costs describe the conventional algorithm model, not a promise about proxies, exotic accessors, or every engine representation.
+In our ordinary dense-array model, a known-index read takes constant time: its modeled work does not grow with the array's length. Searching is different because we do not know which index to read. If the target is missing, we must inspect every entry. JavaScript does not require arrays to occupy one literal consecutive block of machine memory. These are conventional algorithm-model costs, not guarantees for proxies, custom access behavior, or every representation an engine might choose.
 
-For nonnegative running-time functions, `T(n) ∈ O(g(n))` means that some constant multiple of `g(n)` eventually bounds `T(n)` from above. `T(n) ∈ Ω(g(n))` gives an eventual lower bound. `T(n) ∈ Θ(g(n))` means both bounds hold. Formally, Theta needs positive constants `c1`, `c2`, and a threshold `n0` such that `c1 g(n) ≤ T(n) ≤ c2 g(n)` for every `n ≥ n0`.
+Think of a growth bound as a comparison between cost curves once inputs are large enough. For nonnegative running-time functions, `T(n) ∈ O(g(n))` says some constant multiple of `g(n)` eventually stays above `T(n)`. `T(n) ∈ Ω(g(n))` says a constant multiple eventually stays below it. `T(n) ∈ Θ(g(n))` gives both, a tight growth description.
 
-Suppose a complete scan costs `3n + 7` elementary operations. For `n ≥ 1`, it lies between `3n` and `10n`, so its cost is Θ(n). It is also O(n²), but that loose upper bound hides what we know. Constants and smaller terms matter in real performance; they simply do not change this growth class.
+Formally, Theta requires positive constants `c1`, `c2`, and a threshold `n0` such that `c1 g(n) ≤ T(n) ≤ c2 g(n)` for every `n ≥ n0`. The threshold allows small-input exceptions; the constants let us compare growth without insisting the curves have the same height. Keep those quantifiers: the inequalities must hold for every size beyond that threshold.
 
-Best, average, and worst case select which inputs we discuss. Bound notation describes the resulting cost function. For linear search on nonempty input, the best case is Θ(1), when the first entry matches; the worst case is Θ(n), when the target is missing or last. Omega does **not** mean best case, and Big O does **not** inherently mean worst case. A worst-case cost can have an Omega bound too.
+Suppose counting a full scan gives `3n + 7` elementary operations. For `n ≥ 1`, the count is at least `3n` and at most `10n`, proving Θ(n). O(n²) is also true, because a quadratic upper bound eventually covers linear growth, but it hides the tighter information we have. The seven setup operations and the factor three can affect real performance; they simply do not change the growth class.
 
-An average requires a probability model. If a present target is equally likely at each of `n` positions, comparisons average `(1 + 2 + ... + n) / n = (n + 1) / 2`, hence Θ(n). If almost every request asks for the first entry, that distribution changes the average. Say your assumption instead of treating “average” as an intrinsic property of a function.
+Choose the input case separately from choosing a bound. Best, average, and worst case tell us which cost function to study. Big O, Omega, and Theta describe that function's growth. Linear search on nonempty input has a Θ(1) best case when the first entry matches and a Θ(n) worst case when the target is absent or last. Omega does **not** mean best case, and Big O does **not** inherently mean worst case. The worst-case function also has an Omega bound; in fact, its tight linear bound includes one.
+
+An average needs a probability model, a statement of how likely different inputs are. If a present target is equally likely at every one of `n` positions, average comparisons are `(1 + 2 + ... + n) / n = (n + 1) / 2`, giving Θ(n). If requests overwhelmingly target the first entry, the average changes. State the distribution you assume rather than treating “average time” as a property independent of the workload.
 
 ### Count work, not indentation
 
-Two consecutive scans perform `n + n` work: Θ(n). An outer scan whose inner loop always runs three times performs `3n` work: also Θ(n). Comparing each entry with each later entry performs `(n−1) + (n−2) + ... + 1 = n(n−1)/2` checks: Θ(n²). The last inner loop is short, but the early ones are long enough to make the total quadratic.
+Count executions instead of looking at indentation. Two consecutive scans do `n + n` work, giving Θ(n). A scan with an inner loop of exactly three iterations does `3n`, also Θ(n). Comparing each entry with each later one gives `(n−1) + (n−2) + ... + 1 = n(n−1)/2` checks, which is Θ(n²). Although later inner loops are short, the earlier long loops contribute enough work to keep the total quadratic.
 
-Dependent loops need particular care. If an outer counter doubles through `1, 2, 4, ..., n` and the inner loop runs that many times, total work is a geometric sum, at most about `2n`: Θ(n), not Θ(n log n). If the inner loop instead always scans all `n` entries, the same outer loop gives Θ(n log n). If two nested boundaries both move only forward through one sequence, total advances may be at most `2n`. We will exploit that in [Week 4](week-04.md).
+An inner loop may depend on the outer loop's current value, so count its actual lengths. If the outer counter doubles through `1, 2, 4, ..., n` and the inner loop runs that many times, the lengths form a geometric sum totaling at most about `2n`. The result is Θ(n), not Θ(n log n). If every inner run instead visits all `n` entries, the same outer loop produces Θ(n log n). Another possibility is two nested boundaries that only move forward through one sequence: their combined advances may be at most `2n`. [Week 4](../week-04.md) develops that reuse.
 
-A counter repeatedly divided by two reaches one in about `log₂ n` steps. Multiplying input size by two adds one step rather than doubling the work. Common growth classes, from slower to faster growth, are constant, logarithmic, linear, linearithmic (`n log n`), quadratic, and exponential (`2ⁿ`). These comparisons become useful for large inputs; they do not say which of two tiny implementations wins a stopwatch test.
+If you keep dividing a counter by two, it reaches one after about `log₂ n` steps. This is logarithmic growth: doubling input adds roughly one step. Common growth classes from slower to faster are constant, logarithmic, linear, linearithmic (`n log n`), quadratic, and exponential (`2ⁿ`). Linearithmic means a linear factor multiplied by a logarithmic one. These classes help compare large-input scaling. They do not determine which tiny implementation wins a timing experiment with different constant costs.
 
-Amortized analysis asks about a sequence of operations without needing a random input distribution. A dynamic array occasionally needs a larger backing store. If growth is geometric, the copied capacities across many appends form a geometric sum. Total work across `n` appends is O(n), so append is amortized O(1), even though an individual append can cost O(n). Expected analysis, by contrast, involves a probabilistic model. Keep those meanings separate.
+Sometimes one operation is expensive but many operations together have a useful bound. Amortized analysis spreads total cost over a sequence without assuming random inputs. A dynamic array occasionally allocates a larger backing store and copies entries. With geometric growth, those copied capacities form a geometric sum. Across `n` appends, total work is O(n), giving amortized O(1) per append even though one append may cost O(n). Expected analysis instead uses probabilities. “Amortized” and “expected” explain different reasons a per-operation model can be cheap.
 
 ### References describe ownership
 
-Assigning an array to another variable copies its reference. Both names point to the same array. A shallow copy creates a different outer array but copies each element value; an element that is an object reference still points to the same object. Rearranging the copy is independent, while changing a shared object's fields is not.
+An array variable holds a reference identifying the array object. Assigning it to another variable copies that reference, so both names reach one array; the second name is an alias. A shallow copy creates a new outer array and copies its element values. If an element value is itself an object reference, both arrays still reach that same object. Rearranging one outer array is independent, but editing the shared object's fields is visible through both.
 
-Copy the levels you intend to edit. Spreading an array of records and then spreading each record separates those records, but a nested object inside each record is still shared. `structuredClone` can deeply clone supported data, including cycles; it is not a universal copier of functions, custom behavior, or every host object. A JSON round trip is a serialization operation with its own restrictions: it loses unsupported values, changes some types, and cannot serialize ordinary cycles. Choose a data contract before choosing a copying technique.
+Copy the levels you plan to change. Spreading an array and then each record creates separate records, but a nested object inside a record remains shared until you copy that level too. Deep cloning follows supported nested data so those levels are separated as well. `structuredClone` supports this for suitable data, including cycles, where references lead back to earlier objects. It is not a universal copier for functions, custom behavior, or every environment-provided object.
+
+A JSON round trip converts data to text and parses it back. That serialization has different restrictions: unsupported values may disappear, some types change, and ordinary cycles cannot be serialized. Decide which data types and behavior must survive before choosing a copying technique. “Make a copy” is incomplete until we know how deep and of what data.
 
 ### Methods are algorithms too
 
-At the end of an array, `push` appends and returns the **new length**, while `pop` removes and returns the **last value**. At the front, `unshift` inserts and returns the new length, while `shift` removes and returns the first value. Front operations can reindex the remaining entries; repeatedly shifting an entire collection can accumulate quadratic work.
+Array methods have return contracts as well as effects. `push` adds at the end and returns the **new length**. `pop` removes from the end and returns the **last value**. At the front, `unshift` adds entries and returns the new length, while `shift` removes and returns the first value. Front changes can reindex the remaining entries. Repeating shift until a collection is empty may move a long suffix repeatedly, accumulating quadratic work.
 
-`splice(start, deleteCount, ...items)` mutates the receiver and returns the removed entries. `slice(start, end)` leaves the receiver alone and returns a shallow copy; `end` is exclusive. A request for positions 1 through 3 inclusive therefore uses `slice(1, 4)`. Negative slice bounds count backward from the end. Knowing which result a method returns prevents accidentally replacing an array with a length or a removed segment.
+The receiver is the array on which you call a method. `splice(start, deleteCount, ...items)` mutates that receiver, meaning it changes the existing array, and returns the entries removed. `slice(start, end)` leaves it alone and returns a shallow copy. Slice's end is exclusive, so positions 1 through 3 inclusive require `slice(1, 4)`. Negative bounds count back from the end. Track the receiver and result separately so you do not accidentally replace your array variable with a length or removed segment.
 
-`includes` answers a membership question, `indexOf` returns the first matching index or −1, and `find` returns the first value satisfying a predicate or `undefined`. Choose the return contract you actually need. `includes(NaN)` is true when NaN is present; `indexOf(NaN)` returns −1. A successful `find` can itself return `undefined`, so use `findIndex` when that ambiguity matters.
+A membership question asks whether a value exists; `includes` returns that boolean answer. `indexOf` returns the first matching index or −1. `find` returns the first value satisfying a predicate, a function that tests whether an entry qualifies, or `undefined` if none does. Pick the return contract you need. Equality rules matter too: `includes(NaN)` recognizes a present NaN, but `indexOf(NaN)` returns −1. If a successful find could itself return undefined, use `findIndex` when you need an unambiguous position result.
 
-`map` transforms each entry into an output entry. `filter` retains entries that pass a predicate. `reduce` carries an accumulator from one callback to the next. Give reduce an initial value when empty input is possible. A callback must return its result: braces around an arrow-function body require an explicit `return`. With constant-cost callbacks these methods scan linearly, but calling `includes` inside every `map` callback can make the whole operation quadratic. Copying a growing accumulator on every reduce step has the same danger.
+`map` transforms each entry into one output entry, while `filter` keeps entries passing a test. `reduce` passes an accumulator, the result built so far, from one callback invocation to the next. A callback is the function the method calls on your behalf. Supply reduce's initial value if input may be empty. If an arrow-function body uses braces, explicitly return the intended result.
 
-`sort` changes the receiver. Default ordering compares string representations, which is why numeric data needs `(a, b) => a - b`. The comparator must express a consistent ordering. A copied array protects the original order but consumes memory. We use an O(n log n) comparison-sort model when discussing algorithms; JavaScript does not specify one universal sort implementation or workspace bound.
+The callback's work belongs in the analysis. Constant-cost callbacks make these traversals linear, but an `includes` search inside every map callback can make the full operation quadratic. Repeatedly copying a growing accumulator during reduce has the same danger. A one-line method call can hide many traversals and allocations; count the operations it actually requests.
+
+`sort` changes its receiver's order. By default it compares text representations, so numeric ascending order needs a comparator such as `(a, b) => a - b`. A comparator is a function telling sort which of two entries comes first; its answers must describe a consistent ordering. Sorting a copied array protects the original but consumes memory for the copy. We use an O(n log n) comparison-sort model in algorithm discussions. JavaScript does not prescribe one universal sorting implementation or temporary-workspace bound.
 
 ### A running minimum preserves the best earlier choice
 
-Best Time to Buy and Sell Stock asks for one purchase followed by one later sale, with zero profit allowed when no profitable transaction exists. A baseline tries every buy day before every sell day. For a fixed sell day, however, the best eligible purchase is simply the cheapest earlier price. Keep that minimum while scanning chronologically; sorting would destroy the required time order.
+Best Time to Buy and Sell Stock permits one purchase followed by one later sale. If no profitable transaction exists, zero profit is allowed. The baseline tries every buy day with every later sell day. But for a fixed sale day, only the cheapest eligible earlier purchase matters. Keep that minimum as you scan in time order. Sorting prices would discard the chronology that makes a purchase eligible, so it cannot replace this scan.
 
-Before evaluating a sale, the running minimum describes strictly earlier days, and best describes the best completed transaction so far. Evaluate today's sale first, then allow today's price to become a purchase candidate for future days. This temporal invariant is a useful companion to prefix products: both summarize the past, but one retains a minimum and the other a product.
+Before each sale evaluation, define cheapest as the minimum among strictly earlier days and best as the best completed transaction so far. Evaluate today's sale using that earlier minimum, then let today's price become a possible purchase for future days. This preserves the time-order invariant. Like a prefix product, it summarizes the past, but it retains a minimum instead of multiplication. Choosing the right summary avoids searching that past again.
 
 ## JavaScript Implementations
 
 ### A scan with a precise contract
 
-This search returns the first matching index, with strict equality, or −1. Before iteration `i`, every position before `i` has been ruled out. That sentence is a **loop invariant**: it is true initially, preserved by a failed comparison, and sufficient to justify the final failure result.
+Let's give search a precise contract: return the first index whose value matches by strict equality, or −1 if none matches. Before iteration `i`, we know that no earlier position matches. This is a **loop invariant**, a fact that remains true at the start of every iteration. It begins true for an empty earlier region, survives each failed comparison, and eventually justifies returning failure after every entry is excluded.
+
+### Demonstration 1 — Return the first strict-equality matching index
 
 ```javascript
 function firstIndexOf(values, target) {
@@ -100,9 +108,13 @@ console.log(firstIndexOf([9, 2, 6], 5));
 -1
 ```
 
+In **Demonstration 1**, searching `[9, 2, 6]` for 6 rejects indexes 0 and 1, then returns index 2. The return exits immediately, which also makes `[6, 6]` return zero instead of continuing to its second match. Empty input never enters the loop and returns −1. The condition `i < values.length` keeps comparisons within valid positions rather than inspecting the undefined value just beyond the end.
+
 ### Method laboratory: mutation and copying
 
-Follow the receiver and the return value separately. After each mutation, the next call sees the changed array. The slice is captured before splice, so its primitive entries remain the same afterward.
+Track two things for every call: the array receiving the method and the value the method returns. Each mutation changes what the next call sees. We capture a slice before splice changes the source, so the slice's copied numeric entries retain their earlier values. The final sort uses a copy, letting us compare the sorted result with the original receiver.
+
+### Demonstration 2 — Separate method return values from receiver mutations
 
 ```javascript
 const values = [2, 4];
@@ -130,9 +142,13 @@ console.log(JSON.stringify(values));
 [2,8,10]
 ```
 
+In **Demonstration 2**, starting `[2, 4]` becomes `[2, 4, 6]` after push, but its return is length 3. Pop returns 6 and restores `[2, 4]`. Later, splice replaces 4 with 8 and 10, returning removed array `[4]` while the receiver becomes `[2,8,10]`. The earlier slice remains `[2]`. Spreading before descending sort changes only the new array, so logging `values` afterward still gives `[2,8,10]`.
+
 ### Method laboratory: searching and transformations
 
-The source array below is unchanged by these operations because the callbacks only inspect numbers. Methods that create new arrays do not prevent a callback from mutating a referenced object; that remains your responsibility.
+We will now inspect membership, positions, transformations, and ordering. These callbacks only read numbers, so the source array remains unchanged by the search and transformation methods. A method returning a new array does not prevent its callback from changing a referenced object. You still need to inspect callback behavior before claiming the original data is protected.
+
+### Demonstration 3 — Observe search contracts and transformation results
 
 ```javascript
 const values = [3, 6, 6, 9];
@@ -164,11 +180,17 @@ true
 [1,2,10]
 ```
 
+In **Demonstration 3**, `[3, 6, 6, 9]` includes 6, but `indexOf` returns its first position, 1, and `find` returns qualifying value 9. Map divides each entry by three; filter retains both even sixes; reduce accumulates 24 from initial zero. The empty reduction returns that initial zero. The last four logs expose two independent rules: includes and indexOf disagree about NaN, and default text sorting differs from numeric comparison on `[10, 2, 1]`.
+
 ### Supplementary array vocabulary
 
-The syllabus methods above deserve fluency first. You will also encounter `at` for relative indexing; `some` and `every` for short-circuit predicates; `forEach` for side effects; `concat` for a shallow combined array; `join` for a string; and `reverse` for in-place reversal. `flat` removes nesting up to a chosen depth and `flatMap` maps then flattens one level. `fill` assigns the same supplied value into a range, so filling with one object aliases that object. `copyWithin` copies a range within the same array without changing length.
+Learn the syllabus methods first, then use this vocabulary to read unfamiliar JavaScript. `at` supports indexing relative to the end. `some` and `every` can short-circuit, meaning they stop as soon as the answer is determined. `forEach` runs work for its effects rather than building transformed output. `concat` combines entries into a shallow new array, `join` builds a string, and `reverse` reverses the existing array.
 
-Modern copying counterparts `toSorted`, `toReversed`, `toSpliced`, and `with` return changed shallow copies. `findLast` and `findLastIndex` search from the end. `keys`, `values`, and `entries` return iterators. `Array.from` constructs from an iterable or array-like value; `Array.of` constructs from its arguments, avoiding the single-number length behavior of `Array(3)`. `Array.isArray` tests the array type. These are useful vocabulary, not replacements for explaining traversal and allocation.
+`flat` removes nesting up to a selected depth; `flatMap` transforms entries and flattens one level. `fill` writes the same supplied value repeatedly, so using one object creates aliases rather than separate records. `copyWithin` copies entries between ranges of the same array without changing length. For each method, ask whether it visits, writes, or allocates, rather than treating its short name as a cost explanation.
+
+Newer copying counterparts `toSorted`, `toReversed`, `toSpliced`, and `with` return modified shallow copies. `findLast` and `findLastIndex` search backward. `keys`, `values`, and `entries` return iterators, objects that supply successive indexes, values, or pairs when consumed. `Array.from` builds an array from something iterable or array-like, meaning it supplies iteration or indexed values and a length. `Array.of` uses its arguments as elements, avoiding `Array(3)`'s special single-number length behavior. `Array.isArray` checks the array type. We will exercise these methods while keeping traversal and allocation visible.
+
+### Demonstration 4 — Explore supplementary array methods and copying variants
 
 ```javascript
 const a = [1, 2, 3];
@@ -216,9 +238,13 @@ console.log(JSON.stringify(Array.of(3)), Array.isArray(a));
 [3] true
 ```
 
+In **Demonstration 4**, `a.at(-1)` reads the final 3, and forEach adds 1,2,3 into total 6. `[...a].reverse()` protects a by reversing a copy. The nested `flat(2)` example removes two levels, while flatMap turns each number into a two-entry group and flattens once. `copyWithin(1, 2)` copies the final pair into positions 1 and 2, yielding `[1,3,4,4]` without shortening the array. Spreading the iterators consumes all their results. Finally, `Array.of(3)` produces `[3]`, not an array of three holes.
+
 ### Copy at the correct depth
 
-The alias grows with the original; the shallow copy does not. Both still share the first record. Even a copied record retains its nested `detail` object until that level is cloned too.
+Let's follow references through more than one level. Adding an entry through an alias changes the original array because both names reach it. A shallow copy has separate membership but still shares the first record. Copying that record separates its own fields while leaving its nested `detail` reference shared. We will clone deeply only after observing those differences.
+
+### Demonstration 5 — Trace shared records and independently cloned nested data
 
 ```javascript
 const original = [{ score: 1, detail: { level: 2 } }];
@@ -243,9 +269,13 @@ true false
 7 99
 ```
 
+In **Demonstration 5**, `alias.push` makes the original length two while shallow stays length one. Writing `shallow[0].score = 9` changes the shared record, so original sees 9. Spreading each record lets records hold score 20 independently, but `records[0].detail.level = 7` still changes original's nested detail. `structuredClone` separates that supported nested data; setting deep's level to 99 no longer changes original's 7. The output tells us exactly which reference level each copy separated.
+
 ### Duplicate detection: baseline and memory trade-off
 
-For finite numbers, the pair baseline and Set version agree. The baseline considers distinct positions exactly once. The optimized version asks whether the current value occurred in the processed prefix. General JavaScript values require an equality decision: Set treats NaN as equal to itself while strict equality does not.
+We will compare checking every distinct-position pair once with storing previously seen values. For finite numeric inputs, the two duplicate-existence functions agree. The Set version asks whether the current value belongs to the processed prefix, the entries already read. For general JavaScript values, specify equality carefully: Set treats NaN as equal to itself for membership, while the baseline's strict equality does not. We will also return a stable collection of distinct values using Set's insertion order.
+
+### Demonstration 6 — Trade remembered membership for fewer duplicate checks
 
 ```javascript
 function containsDuplicateBrute(values) {
@@ -279,9 +309,13 @@ false
 [8,3,5]
 ```
 
+In **Demonstration 6**, `[8, 3, 8]` gives the pair baseline a repeated 8. On `[8, 3, 5]`, the Set version queries before each insertion, finds no previous match, and returns false. Empty input also returns false. Constructing a Set from `[8, 3, 8, 5]` keeps only the first occurrence of each value; spreading it produces `[8,3,5]`. Unlike the boolean functions, that final helper promises a collection, so include its returned array in storage accounting.
+
 ### Product of Array Except Self
 
-The baseline recomputes almost the same product for every output. The optimized version writes the product strictly before each position, then multiplies by the product strictly after it. Multiplication's identity is 1, so an empty side contributes 1. There is no division, and zeros need no special branch. Assume numeric products remain representable and sufficiently precise.
+For every output position, we need the product of all input entries except that position. The baseline recomputes almost the same multiplication repeatedly. We can instead write the product strictly before each position, then multiply by the product strictly after it. An empty side contributes 1, multiplication's identity: multiplying by it leaves a value unchanged. This avoids division and handles zeros without separate branches. Assume the numeric products remain representable and sufficiently precise for these calculations.
+
+### Demonstration 7 — Combine strict prefix and suffix products without division
 
 ```javascript
 function productExceptSelfBrute(values) {
@@ -323,9 +357,13 @@ console.log(JSON.stringify(productExceptSelf([])));
 []
 ```
 
+In **Demonstration 7**, `[2, 3, 4]` first receives prefixes `[1,2,6]`. The reverse loop multiplies by suffixes 1,4,12, giving `[12,8,6]`. Both loops use the accumulated product before including the current input value, which enforces “except self.” For `[2,0,4]`, only the zero's position excludes that zero, so the result is `[0,8,0]`. With two zeros every output includes one. A singleton has two empty sides and returns `[1]`; empty input returns `[]`.
+
 ### Best Time to Buy and Sell Stock: summarize earlier days
 
-The local contract returns zero for fewer than two prices. Prices are finite numbers. The baseline makes the chronological condition explicit; the optimized scan retains exactly the earlier information needed by each candidate sale.
+Let's implement the chronological stock problem with finite prices and a local zero-profit result for fewer than two days. The baseline explicitly chooses a buy day before a sell day. The optimized scan keeps only the earlier minimum and best completed profit, so each new candidate sale can be evaluated without searching all earlier days again.
+
+### Demonstration 8 — Compare stock pairs with a running earlier minimum
 
 ```javascript
 function maxProfitBrute(prices) {
@@ -361,17 +399,21 @@ console.log(maxProfit([]));
 0
 ```
 
+In **Demonstration 8**, `[9, 3, 7, 2, 8]` starts cheapest at 9. The sale at 3 does not improve zero profit, then 3 becomes the minimum. Selling at 7 yields 4. Price 2 becomes the new minimum without erasing that profit, and selling at 8 yields 6. The update order evaluates a sale before admitting today's price as a future purchase. Decreasing prices and inputs with fewer than two entries correctly leave best at zero.
+
 ## Worked Examples
 
 ### Example 1: establish evidence while searching
 
-Search `[9, 2, 6]` for 6. At index 0, the prefix before the index is empty, so the invariant is automatically true. Comparing 9 with 6 fails and establishes that index 0 cannot be the answer. At index 1, compare 2 and fail again. At index 2, compare 6 and return 2. Notice that the answer is an index, not the third comparison count.
+Search for 6 in `[9, 2, 6]` and track the excluded prefix. At index 0, no earlier positions exist, so the invariant begins true. Comparing 9 with 6 fails, excluding index 0. Comparing 2 at index 1 fails too, excluding both earlier entries before the next iteration. Index 2 matches and returns 2. We performed three comparisons, but the requested answer is the zero-based position, not the comparison count.
 
-For an absent target, the index reaches length 3. Every earlier position has been excluded, so −1 is justified. For empty input, the same reasoning works without a special-case branch: there are no possible matching positions. This is why a good invariant helps both the ordinary case and boundary cases.
+If the target is absent, the index reaches length 3 after every valid position has been excluded. Returning −1 now follows from the invariant rather than guesswork. On empty input, there are no candidate positions to begin with, so the same return is justified without a special branch. A useful invariant explains these boundary cases through the same reasoning as the ordinary scan.
 
 ### Example 2: a dependent loop that is linear
 
-With `n = 8`, an outer variable doubling from 1 through 8 gives inner lengths 1, 2, 4, and 8. The total is 15, not `8 × 4`. Compare it with the triangular pair count, 28. Both examples have nested loops; their sums tell different stories.
+With `n = 8`, doubling an outer width gives inner-loop lengths 1, 2, 4, and 8. Add those actual lengths to get 15; multiplying `8 × 4` would pretend every run had the maximum width. Pair enumeration instead has triangular work totaling 28. We will count both directly so you can compare two nested-loop structures whose accumulated work grows differently.
+
+### Demonstration 1 — Count triangular pair checks and geometric inner work
 
 ```javascript
 function countWork(n) {
@@ -393,9 +435,13 @@ console.log(JSON.stringify(countWork(16)));
 {"triangular":120,"geometric":31}
 ```
 
+In **Demonstration 1**, `countWork(8)` increments triangular for 7+6+5+4+3+2+1 checks, totaling 28. Geometric increments for widths 1,2,4,8 total 15. At 16, the outputs become 120 and 31. The geometric total roughly doubles when n doubles, while the pair total grows toward four times as much. Those counts explain the linear and quadratic classifications more reliably than the shared nested indentation.
+
 ### Example 3: deleting changes future positions
 
-Start with `[-1, -2, 3]`. Removing index 0 moves −2 into index 0. Advancing to index 1 skips that value. A backward scan avoids this correctness error because deleting position `i` leaves all earlier positions in place. However, repeatedly deleting early entries can still move a long surviving suffix; correctness does not make it linear.
+Start at index 0 of `[-1, -2, 3]` and delete −1. Now −2 has moved into the same index. If the loop advances, that unexamined negative is skipped. Scanning backward avoids the problem because deleting position `i` does not move any earlier position still waiting to be checked. We will use that correction first, while remembering that repeated deletions may still shift a long surviving suffix. A correct traversal is not automatically a linear one.
+
+### Demonstration 2 — Remove negatives safely by visiting indexes backward
 
 ```javascript
 function removeNegativesBackward(values) {
@@ -412,19 +458,23 @@ console.log(JSON.stringify(removeNegativesBackward([4, -1, 5, -2])));
 [4,5]
 ```
 
+In **Demonstration 2**, `[-1, -2, 3]` first inspects 3, then removes −2, then removes −1, leaving `[3]`. The still-unread earlier indexes never move. On `[4, -1, 5, -2]`, deleting from the back retains 4 and 5 in order. Each splice can still move later survivors, so this fixes the skipped-entry bug without proving a linear worst-case time bound.
+
 ### Example 4: reuse products without including self
 
-For `[2, 3, 4]`, the forward pass writes `[1, 2, 6]`. At index 1, prefix is 2 because only index 0 has been multiplied in. In the reverse pass, index 2 is multiplied by 1, index 1 by 4, and index 0 by 12, producing `[12, 8, 6]`. Updating prefix or suffix **before** using it would include the current value and violate “except self.” With a single zero, only the zero's position can receive a nonzero product. With two zeros, every product includes at least one zero.
+For `[2, 3, 4]`, the forward pass stores `[1, 2, 6]`. At index 1, prefix equals 2 because only index 0 has contributed. The reverse pass multiplies index 2 by 1, index 1 by 4, and index 0 by 12, producing `[12, 8, 6]`. The strict before-and-after regions exclude the current entry.
+
+Update either running product **before** using it and the current value gets included, violating “except self.” Zero behavior follows from the same regions: with one zero, only that zero's own position can have a nonzero result. With two zeros, every result includes at least one of them. We do not need separate zero-handling code because the invariant already handles those cases.
 
 ### Example 5: a cheaper purchase does not erase an earlier profit
 
-For `[9,3,7,2,8]`, begin with cheapest 9 and best 0. Selling at 3 gives a loss, so best stays zero; then cheapest becomes 3. Selling at 7 earns 4. The price 2 does not improve the sale, but becomes the cheapest purchase for later days. Selling at 8 then earns 6, replacing the earlier best. Keep both variables: the cheapest price alone cannot remember an already completed profitable opportunity.
+On `[9,3,7,2,8]`, initialize cheapest to 9 and best to 0. A sale at 3 loses money, so retain zero and then lower cheapest to 3. Selling at 7 earns 4. Price 2 gives no better sale, but it becomes an eligible cheaper purchase for later days. Selling at 8 earns 6, which improves best. We need both state values: the cheapest purchase says what future sales can use, while best remembers profitable transactions already completed.
 
-On `[8,5,2]`, no later sale exceeds an earlier purchase, so best remains zero. Taking global maximum minus global minimum would incorrectly claim profit 6 by buying at the end and selling at the beginning. This is a correctness error caused by discarding chronology, not a small implementation detail.
+Now try decreasing `[8,5,2]`. No later sale beats an earlier purchase, so the valid answer remains zero. Subtracting the global minimum from the global maximum would claim profit 6, but would require buying at the end and selling at the beginning. That is not an eligible transaction. Preserving chronology is therefore a correctness condition, not merely a choice of how to organize the scan.
 
 ## Visual Explanations
 
-Think of a shallow copy as a second row of arrows, not a second set of nested records:
+Draw references as arrows identifying objects. A shallow copy creates another outer array with its own row of element references; it does not automatically create another set of records. Follow each arrow in this diagram before deciding which edits are independent.
 
 ```text
 original ──> array A ── index 0 ──> record R ──> detail D
@@ -434,7 +484,7 @@ records  ──> array C ── index 0 ──> record S ──> detail D
 deep     ──> array E ── index 0 ──> record T ──> detail F
 ```
 
-Changing the membership of A does not change B. Editing R is visible through both A and B. Editing D is visible even through S. The deepest shared arrow determines which mutations remain shared.
+Adding or removing entries in array A does not change B's membership because those arrays are separate. Editing record R is visible through both arrays because they reach the same record. Even record S still reaches detail D, so editing D remains shared through S. Independence depends on where arrows stop sharing objects, not on how many different variable names or outer copies we created.
 
 ```text
 input:          [2,  3, 4]
@@ -448,7 +498,7 @@ The current position is excluded from both regions.
 
 ## Complexity Analysis
 
-Here `n` is input length, `k` is copied range length, and callbacks are assumed constant-cost. Extra memory includes newly allocated result arrays unless explicitly separated.
+Read the table using `n` for input length and `k` for the length of a copied range. Callback costs are assumed constant unless discussed separately. Additional memory includes newly allocated result arrays except where we explicitly separate output from working storage. These assumptions let us connect each bound to the operation responsible for its work.
 
 | Operation | Conventional time | Additional memory | Reason |
 | --- | --- | --- | --- |
@@ -467,15 +517,17 @@ Here `n` is input length, `k` is copied range length, and callbacks are assumed 
 | Product baseline | Θ(n²) | Θ(n) output, O(1) beyond output | Repeated multiplication |
 | Prefix/suffix product | Θ(n) | Θ(n) output, O(1) beyond output | Two full passes |
 
-Supplementary methods follow the same accounting. `some`, `every`, and reverse searches can stop early but scan O(n) in the worst case. `forEach`, full `reverse`, and full `fill` are linear. Copying variants allocate linear output. Concatenation is linear in copied entries; joining also depends on total produced characters. Flattening depends on visited nested entries and output size, not only the outer length. Constructing an iterator is different from consuming all of it: spreading `entries()` processes the entire array.
+Apply the same accounting to supplementary methods. `some`, `every`, and backward searches may stop early, but their worst-case scan is O(n). A full forEach, reverse, or fill is linear. Copying variants need linear output storage. Concatenation counts copied entries; joining also counts the characters produced. Flattening must count visited nested entries and output, not just outer-array length. Creating an iterator does not mean all its work has happened: spreading `entries()` consumes it and processes the entire array.
 
-Space analysis counts reachable storage, not names. One variable holding an n-entry copy represents Θ(n) storage. A deep clone's cost depends on the size of the reachable data graph, which may be much larger than the outer array. The input occupies space, but it is not newly allocated auxiliary space. When returning n products, report “Θ(n) output and O(1) working memory beyond output,” rather than simply “constant space.”
+For space, count stored data rather than variable names. One name referring to an n-entry copy still represents Θ(n) storage. A deep clone follows a data graph—the objects and references reachable from the starting value—whose total size may greatly exceed the outer length. Input storage exists already, so it is not newly allocated auxiliary space. For n returned products, say “Θ(n) output and O(1) working memory beyond output.” Calling the whole result constant-space would hide the array you return.
 
 ## Common Mistakes
 
-An inclusive loop bound reads one extra value. If the target is `undefined`, it can even manufacture a successful search outside the array. A numeric comparator omitted from sort changes the meaning of order. Assigning the result of `push` back to the array name replaces the array with a number. Each failure comes from skipping the operation's contract.
+Check operation contracts before debugging syntax. An inclusive scan bound reads beyond the last entry; when searching for `undefined`, that extra read can even manufacture a false success. Sorting numbers without a comparator gives text order. Assigning push's return back to an array variable replaces its reference with a numeric length. Each program may run, but it answers a different question because it misunderstood an operation's inputs, effects, or return value.
 
-The following intentionally broken example leaves a negative value behind. Its syntax is valid, but its traversal is incorrect; do not copy it into a solution.
+Let's deliberately delete while scanning forward to expose the shifted-entry mistake. This broken snippet has valid JavaScript syntax but an invalid traversal: after removing an entry, it advances past the value shifted into that position. Use it to diagnose the error rather than as a removal solution.
+
+### Demonstration 1 — Broken forward deletion skips a shifted negative
 
 ```javascript-bug
 const values = [-1, -2, 3];
@@ -485,69 +537,71 @@ for (let i = 0; i < values.length; i += 1) {
 console.log(JSON.stringify(values));
 ```
 
-The broken code prints `[-2,3]`, confirming that the shifted −2 was skipped.
+In **Demonstration 1**, removing −1 from `[-1, -2, 3]` shifts −2 into index zero. The loop then advances to index one, reads 3, and finishes. Its output `[-2,3]` confirms the unread negative was skipped. The bug is the relationship between mutation and the next index, not the comparison that recognizes a negative.
 
-Do not describe every nested loop as quadratic, every built-in call as constant, or every shallow copy as independent. Also avoid changing an array while a callback traverses it unless you have explicitly reasoned about which positions the method will visit. A straightforward loop with a documented invariant is easier to audit than a short expression hiding multiple traversals.
+Avoid three shortcuts in explanations: nested loops are not always quadratic, built-in calls are not automatically constant-cost, and shallow copies do not isolate all nested edits. Changing an array during a method's callback also requires reasoning about exactly which positions that method will visit. Prefer a clear loop with a stated invariant when a compact expression would hide multiple traversals or uncertain mutation behavior. Shorter source does not establish simpler work.
 
 ## Interview and LeetCode Pattern Recognition
 
-Start with five questions: What is the input size? What must be returned? May I mutate the input? What counts as equality? What happens on empty input? Then write the simplest correct baseline and locate repeated work.
+Before choosing an algorithm, answer five questions: how is input size measured, what result is required, may the input change, what equality rule applies, and what happens when input is empty? Then build a simple correct baseline. Once its behavior is clear, identify work it repeats. An optimization should remove that repetition while preserving the answers to those five contract questions.
 
-“Any duplicate” suggests remembering previous values, explored in [Week 2](week-02.md). “Except this position” suggests independent contributions from the left and right. “Remove in place while preserving order” suggests the reader/writer technique in [Week 3](week-03.md). These are hypotheses to prove, not keyword-to-code substitutions. A Set improves duplicate detection by spending memory; it does not automatically satisfy a constant-space constraint.
+“Any duplicate” suggests remembered membership, which [Week 2](../week-02.md) develops. “Except this position” suggests combining contributions from the two sides. Removing in place while keeping order suggests the reader/writer approach in [Week 3](../week-03.md). Treat these as hypotheses requiring proof, not phrases that automatically select code. For example, a Set can reduce duplicate-search work, but its growing membership storage may violate a constant-space requirement.
 
-For Product of Array Except Self, mention why total-product division is unsuitable: zeros break the shortcut, and the external problem explicitly forbids division. For Contains Duplicate, distinguish boolean existence from returning the earliest repeated value or every duplicate; those are different contracts.
+In Product of Array Except Self, explain why dividing a total product is unsuitable: zeros break that shortcut, and the external task explicitly disallows division. In Contains Duplicate, distinguish the requested boolean existence answer from returning the earliest repeated value or collecting every repeated value. Similar titles can conceal different contracts. Name the exact answer before discussing how much faster your implementation is.
 
 ## Practice Exercises
 
 ### Conceptual
 
-1. Explain why `3n + 7` is Θ(n), O(n²), and Ω(n), and why Omega does not mean “best case.”
-2. Predict which edits are shared among an alias, a shallow array copy, a copy of each outer record, and a deep clone. Include a nested object.
-3. Classify all thirteen syllabus methods by mutation, return type, traversal, and output allocation. Then explain why a quadratic callback can invalidate a linear method estimate.
+1. Use constants and a threshold to explain why `3n + 7` belongs to Θ(n), O(n²), and Ω(n). Explain separately why Omega does not identify the best input case.
+2. Draw an array containing a record with a nested object. Predict which edits are shared through an alias, a shallow array copy, copied outer records, and a supported deep clone.
+3. Classify all thirteen syllabus methods by whether they mutate, what they return, what they visit, and what output they allocate. Explain how a quadratic callback invalidates an assumed linear total estimate.
 
 ### Tracing
 
-4. Trace search for 5 in `[2, 5, 5]`, and search for 8 in the same input. Record index, comparison, and excluded prefix.
-5. Count triangular and doubling-dependent inner work at `n = 4`. Compare with a doubling outer loop whose inner loop always runs four times.
-6. Write the strict prefix and suffix arrays for `[3, 0, 2]` before multiplying them.
+4. Search `[2, 5, 5]` first for 5 and then for 8. Record each index, comparison, and excluded prefix, explaining why a successful return stops before a later duplicate.
+5. For `n = 4`, count the triangular inner work and the work whose inner length doubles. Compare both with a doubling outer loop that always performs four inner iterations.
+6. Write the strict prefix products and strict suffix products for `[3, 0, 2]`. Keep the current value out of both regions before multiplying them together.
 
 ### Debugging
 
-7. Repair forward deletion above in two ways: a correctness-first backward version and a linear compaction. Explain why they have different worst-case costs.
-8. Explain why `values.map(x => { x * 2; })` does not double numbers, why sorting `[2, 10]` without a comparator surprises you, and why `Array(3).fill({ count: 0 })` shares records.
+7. Repair **Demonstration 1** in **Common Mistakes** using both backward deletion and linear compaction. Explain why both are correct but their worst-case movement costs differ.
+8. Explain the missing return in `values.map(x => { x * 2; })`, the default order when sorting `[2, 10]`, and the shared object references created by `Array(3).fill({ count: 0 })`.
 
 ### Implementation
 
-9. Implement first-index search and stable duplicate removal from memory. State equality and empty-input contracts.
-10. Implement prefix/suffix products without division. Test empty, singleton, negative, one-zero, and two-zero inputs; compare against a pair-loop baseline on small arrays.
-11. Build a method laboratory using different input values. Exercise every syllabus method and at least four supplementary methods, printing both result and receiver when mutation is involved.
+9. Rebuild first-index search and stable duplicate removal without looking at the solutions. State the equality rule and empty-input result before coding either function.
+10. Write prefix/suffix products without division. Test empty and singleton arrays, negative values, one zero, and two zeros; compare with a pair-loop baseline on small inputs.
+11. Create your own method laboratory with different values. Exercise every syllabus method and at least four supplementary methods. Whenever a method mutates, print both its result and the receiver afterward.
 
 ### External
 
-The upstream assignment consists of Contains Duplicate, Best Time to Buy and Sell Stock, and Product of Array Except Self. The chapter's additional exercises develop the supporting reasoning.
+The upstream assignment includes Contains Duplicate, Best Time to Buy and Sell Stock, and Product of Array Except Self. The other exercises build the reasoning these tasks need: contracts, traversal, reference behavior, and cost accounting. For each external task, explain the baseline before presenting the reused-state optimization.
 
-12. [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** array traversal, pair enumeration, Set membership. **Relevance:** compares a quadratic baseline with an expected-linear solution that spends memory. First explain the pair baseline, then the memory trade-off.
-13. [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** arrays, prefix/suffix accumulation, output-space accounting. **Relevance:** demonstrates how reusing partial results removes repeated multiplication. Derive the exclusion invariant before coding; treat a correct baseline as progress.
+12. [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** visiting array entries, enumerating pairs, and Set membership. **Relevance:** compare the quadratic pair baseline with an expected-linear solution that remembers earlier values. Explain the baseline's work first, then justify the extra memory used by the improvement.
+13. [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) — **Platform:** LeetCode. **Difficulty:** Medium. **Concepts:** arrays, accumulated prefix/suffix products, and output-space accounting. **Relevance:** reuse partial multiplication results instead of rebuilding each answer. Derive why each running product excludes the current position before coding; a correct baseline is a useful first result.
 
-14. [Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** chronological traversal, running minimum, best-so-far state. **Relevance:** replaces repeated searches of earlier days with one scalar summary. Trace `[9,3,7,2,8]`, explain why sorting is invalid, then implement both approaches and compare decreasing-price cases.
+14. [Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) — **Platform:** LeetCode. **Difficulty:** Easy. **Concepts:** visiting days chronologically, retaining an earlier minimum, and remembering completed profit. **Relevance:** replace repeated earlier-day searches with one numeric summary. Trace `[9,3,7,2,8]`, explain why sorting destroys eligibility, implement baseline and optimized scans, and compare their behavior on decreasing prices.
 
 ## Hints and Worked Solutions
 
 ### Hints to try before reading the answers
 
-For 1–3, distinguish a mathematical bound from an input case, and draw references rather than copying object text. For 4–6, write the state **before** updating it. For 7, keep a separate destination index so the unread suffix stays intact. For 8, braces change an arrow expression into a block. For 9–13, test a very small counterexample before adding more code.
+For 1–3, keep mathematical bounds separate from input cases, and draw arrows for references instead of duplicating object text. For 4–6, write state **before** its update so you can check which positions it describes. For 7, a separate destination index can protect unread input. For 8, remember that braces make an arrow body a block requiring return. For 9–13, begin with a tiny revealing counterexample rather than immediately adding more conditions.
 
 ### Solutions 1–6
 
-For `n ≥ 1`, `3n ≤ 3n + 7 ≤ 10n`, proving Theta and Omega. Since `n ≤ n²` for those n, O(n²) is also true but less informative. The selected runtime function could describe a best, worst, or average case. The bound notation itself does not choose one.
+For question 1, choose threshold one. For `n ≥ 1`, the inequalities `3n ≤ 3n + 7 ≤ 10n` establish both linear bounds and therefore Theta, including Omega. Since `n ≤ n²` at those sizes, a quadratic upper bound also holds, although it tells us less. Nothing in these inequalities selects an input case. We could be bounding a best-, worst-, or average-case cost function after choosing which one to study.
 
-An alias shares the outer array. A slice shares element references but not outer membership. Spreading each record separates record fields, while nested references still point to the old nested objects. A supported deep clone separates the copied graph. For method classification, use the implementations and complexity table as the answer key: push/pop/shift/unshift/splice/sort mutate; the other seven syllabus methods do not themselves mutate the receiver. Predicate and accumulator behavior still needs inspection.
+For question 2, an alias reaches the same outer array. A slice creates independent outer membership but shares referenced elements. Spreading each record separates its own fields while copying references to its nested objects. A supported deep clone separates that copied graph too. For question 3, push/pop/shift/unshift/splice/sort mutate; the other seven syllabus methods do not themselves change the receiver. Use **Demonstrations 2–4** in **JavaScript Implementations** and the complexity table to check returns and costs. Still inspect predicates and accumulator callbacks, which may introduce their own mutations or extra work.
 
-Search for 5 checks 2 then 5 and returns 1; the duplicate at index 2 is never reached. Search for 8 checks all three positions and returns −1. At `n = 4`, triangular work is `3 + 2 + 1 = 6`; doubling-dependent work is `1 + 2 + 4 = 7`; fixed inner work under the same three outer iterations is `4 + 4 + 4 = 12`. For `[3, 0, 2]`, strict prefixes are `[1, 3, 0]`, strict suffixes `[0, 2, 1]`, and products `[0, 6, 0]`.
+For question 4, search checks 2 and then 5, returning index 1 before reaching the second 5. Searching for 8 checks all three entries and returns −1. For question 5 at `n = 4`, triangular work is `3 + 2 + 1 = 6`, doubling-dependent work is `1 + 2 + 4 = 7`, and a fixed four-iteration inner loop across those same outer values gives `4 + 4 + 4 = 12`. For question 6, `[3, 0, 2]` has strict prefixes `[1, 3, 0]` and suffixes `[0, 2, 1]`, giving `[0, 6, 0]` after multiplication.
 
 ### Solutions 7–8: linear removal and callback mistakes
 
-A writer identifies the next output slot. It never moves ahead of the reader, so a write cannot destroy an unread value. Truncate only after all reads finish. This preserves the order of nonnegative entries and avoids repeated shifts.
+To remove negatives in linear time, let writer identify the next retained-output slot while reader examines the original entries. Writer never overtakes reader, so writing a survivor cannot erase unread input. Only truncate once all reads finish. This preserves the relative order of nonnegative values and avoids repeatedly shifting suffixes. We will also repair the callback and shared-fill mistakes in the same small laboratory.
+
+### Demonstration 1 — Compact negatives safely and create independent records
 
 ```javascript
 function removeNegatives(values) {
@@ -575,60 +629,62 @@ console.log(JSON.stringify(independent));
 [{"count":1},{"count":0},{"count":0}]
 ```
 
-Compaction reads n entries and writes at most n, so it is Θ(n) time and O(1) auxiliary space. Backward splice is correct but can repeatedly move a surviving suffix. The broken map callback returns nothing, so each mapped value becomes `undefined`. Default sort compares text; the numeric comparator repairs it. `fill` evaluates its object argument once; `Array.from` calls the factory separately for each entry.
+In **Demonstration 1**, `[-1, -2, 3]` skips both negatives, copies 3 into slot zero, then truncates to length one. Each entry is read once and at most n survivors are written, giving Θ(n) time and O(1) auxiliary space. Backward splice is correct too, but may repeatedly shift survivors.
+
+The repaired map callback explicitly returns `x * 2`; without return, each mapped result would be `undefined`. Default sort compares text, so use a numeric comparator for numeric order. Finally, fill evaluates its object argument once, whereas `Array.from` invokes the factory for every entry. Here editing independent's first record leaves the other two counts at zero because they are distinct objects.
 
 ### Solutions 9–13: evaluate the explanation as well as the result
 
-The search, Set deduplication, and prefix/suffix implementations above are complete worked solutions. Rebuild them without looking, then explain the state each variable represents. On `[-2, 3, 4]`, products are `[12, -8, -6]`; on `[0, 0]`, both products are zero. An empty array returns an empty output and a singleton returns `[1]` under the empty-product convention. The external site's constraints may exclude those inputs; our local contracts intentionally define them.
+Use **Demonstrations 1, 6, and 7** in **JavaScript Implementations** as the complete search, Set deduplication, and prefix/suffix solutions. Rebuild them from their contracts, then explain every state variable. Products for `[-2, 3, 4]` are `[12, -8, -6]`; for `[0, 0]`, both are zero. Empty input returns an empty output, and a singleton returns `[1]` because each excluded side has empty product one. External constraints may exclude those inputs, but our local functions deliberately define their behavior.
 
-For the method laboratory, a successful answer states that splice returns removed entries, push returns a length, and slice returns a new shallow array. It should also show that modifying a nested record through a slice changes the original. For the external tasks, submit only after your baseline and optimized implementations agree on small inputs within the same equality and numeric contract. No external judge submission is implied by this chapter.
+Your method laboratory should make result contracts visible: splice returns removed entries, push returns a length, and slice returns a new shallow array. Also demonstrate a nested record edit through a slice that remains visible in the original. Before external submission, compare baseline and optimized results on small inputs under the same equality and numeric assumptions. Those local comparisons establish useful evidence; this chapter does not claim any external judge submission.
 
 ### Solution 14: preserve chronology
 
-Hint: for a fixed sale day, only the smallest eligible earlier price matters. The full stock implementations above provide the worked solution. The trace earns 4 at price 7, retains that best while price 2 becomes the new minimum, and finally earns 6 at price 8. There are n(n−1)/2 buy/sell candidates in the baseline, but only n−1 sale evaluations in the optimized scan; both use constant auxiliary state. A correct answer returns zero for decreasing prices and never proposes a sale before its purchase.
+For a fixed sale day, ask which eligible earlier purchase can maximize profit. Only the cheapest matters. **Demonstration 8** in **JavaScript Implementations** gives both complete stock solutions. Its trace earns 4 at price 7, remembers that profit while 2 becomes the new minimum, and then earns 6 at price 8. The baseline considers n(n−1)/2 buy/sell candidates; the optimized scan evaluates n−1 sales. Both use constant auxiliary state. Correctness also requires zero for decreasing prices and no transaction whose sale precedes its purchase.
 
 ## Sources and Further Reading
 
-The canonical scope comes from the repository's [curriculum](../../shared/curriculum.js) and [Weeks 1–4 textbook material](../../shared/textbook/weeks01to04.js). A user draft inspected during initial preparation supplied the introductory emphasis on complexity, traversal, mutation, and a final progress checklist. That historical input was not edited or moved when preparing this chapter. This chapter expands those topics in original prose, examples, traces, and exercises.
+The repository's [curriculum](../../../shared/curriculum.js) and [Weeks 1–4 textbook material](../../../shared/textbook/weeks01to04.js) define this archived chapter's original scope. The preparation record also credits a user draft for emphasizing complexity, traversal, mutation, and the final checklist; that historical input was not edited or moved. The teaching develops the syllabus through explanations, traces, examples, and exercises. These source notes retain original preparation history rather than reporting new external research during restyling.
 
-- [MDN Array reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array): opened and consulted to verify array-copy semantics and API vocabulary. This reference does not guarantee the engine-specific complexity estimates used in interview models.
-- [MDN structuredClone](https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone): consulted for supported deep cloning, circular references, and failure on unsupported data.
-- [CS50 Algorithms notes](https://cs50.harvard.edu/x/2024/notes/3/): verified as further reading for algorithm analysis; not a source of these JavaScript implementations.
-- The three LeetCode problem pages linked in Practice Exercises were opened to verify task statements and difficulties. Their editorials were not used, and solutions were not submitted to their judge.
-- [Upstream Week 1](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/01.md): fetched through the GitHub connector to reconcile the assigned problem list, including Stock. Its prose was not copied into this chapter.
+- [MDN Array reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array): original preparation used this reference for copy semantics and method vocabulary. It does not guarantee the engine-specific cost estimates assumed in interview models.
+- [MDN structuredClone](https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone): the preparation notes cite this for supported deep cloning, circular references, and failures on unsupported data. Check support for your data rather than assuming every value can be cloned.
+- [CS50 Algorithms notes](https://cs50.harvard.edu/x/2024/notes/3/): original preparation identified these as further algorithm-analysis reading. They were not the source of this chapter's JavaScript implementations.
+- The three LeetCode pages linked in Practice Exercises were checked during preparation for their statements and difficulties. That work used no editorials and included no judge submissions.
+- [Upstream Week 1](https://github.com/Primalpancake92/DSA-grind/blob/main/weeks/01.md): the original notes report a GitHub connector fetch to reconcile assignments, including Stock. The upstream prose was not copied into the chapter.
 
-External URLs were verified during preparation on 7 November 2026. The explanations are grounded primarily in the canonical local syllabus and independently derived algorithm reasoning. Runtime measurements, all possible engine representations, and a full treatment of JavaScript serialization are outside this chapter's scope.
+The original preparation record dates external URL verification to 7 November 2026. This rewrite preserves that history without claiming to have verified those links again. The explanations primarily use the canonical local syllabus and independently derived reasoning. Runtime measurements, every possible engine representation, and a full account of JavaScript serialization remain outside this archived chapter's scope.
 
 ## Weekly Summary
 
-You now have a way to connect code to evidence: define the contract, name the state, trace its updates, and count the work. Array methods still perform traversals and allocations even when the call is one line long. References explain why some copies isolate mutations and others share them. Bounds describe growth; cases describe inputs.
+You now have a repeatable way to explain code: define its promised behavior, say what the state means, trace updates, and count the work those updates request. An array method may fit on one source line while still visiting many entries and allocating results. References explain which copies share nested edits. Keep the mathematical distinction clear too: bounds describe growth, while cases select the inputs whose cost function we analyze.
 
-The first major optimization is reusing evidence. A Set retains prior membership, and prefix/suffix products retain earlier multiplication. Both improve time by changing what is remembered. Continue to [Week 2 — Hash Maps and Sets](week-02.md) to examine that memory trade-off in detail.
+The common improvement in our first optimizations is remembered evidence. A Set keeps earlier membership instead of searching for it again. Prefix/suffix products preserve multiplication instead of rebuilding it for every output. Both improve time by choosing a useful summary of prior work. Continue to [Week 2 — Hash Maps and Sets](../week-02.md) to study that memory trade-off and the equality rules behind the collections.
 
 ## Weekly Progress Checklist
 
 ### Theory
 
-- [ ] I can distinguish O, Ω, and Θ from best, average, and worst cases. <!-- checkpoint:w1-bounds-and-cases -->
-- [ ] I can derive sequential, triangular, geometric, and logarithmic loop costs. <!-- checkpoint:w1-dependent-loop-costs -->
-- [ ] I can separate amortized analysis from expected analysis. <!-- checkpoint:w1-amortized-growth -->
-- [ ] I can account for input, output, and auxiliary storage. <!-- checkpoint:w1-space-accounting -->
+- [ ] I can explain O, Ω, and Θ as growth bounds and separately select best, average, or worst input cases. <!-- checkpoint:w1-bounds-and-cases -->
+- [ ] I can count consecutive scans, triangular pairs, geometric inner lengths, and logarithmic counter changes. <!-- checkpoint:w1-dependent-loop-costs -->
+- [ ] I can distinguish costs spread over an operation sequence from costs averaged using probabilities. <!-- checkpoint:w1-amortized-growth -->
+- [ ] I can report already-existing input, newly returned output, and extra working storage separately. <!-- checkpoint:w1-space-accounting -->
 
 ### JavaScript
 
-- [ ] I can explain mutation and return values for every syllabus array method. <!-- checkpoint:w1-array-method-contracts -->
-- [ ] I can demonstrate aliasing, shallow copies, and nested deep-copy behavior. <!-- checkpoint:w1-reference-copy-depth -->
-- [ ] I can implement a bounded scan and stable in-place removal. <!-- checkpoint:w1-scan-and-removal -->
-- [ ] I can implement prefix/suffix products without division. <!-- checkpoint:w1-prefix-suffix-products -->
+- [ ] I can explain both receiver changes and return contracts for every syllabus array method. <!-- checkpoint:w1-array-method-contracts -->
+- [ ] I can trace shared references through aliases, shallow copies, copied records, and supported deep clones. <!-- checkpoint:w1-reference-copy-depth -->
+- [ ] I can write a scan within valid bounds and remove entries in place while preserving survivor order. <!-- checkpoint:w1-scan-and-removal -->
+- [ ] I can combine strict prefix and suffix products while excluding the current entry and avoiding division. <!-- checkpoint:w1-prefix-suffix-products -->
 
 ### Practice
 
-- [ ] I completed conceptual, tracing, debugging, and implementation exercises. <!-- checkpoint:w1-local-practice -->
-- [ ] I attempted Contains Duplicate and explained the space trade-off. <!-- checkpoint:w1-contains-duplicate-practice -->
-- [ ] I attempted Product of Array Except Self and tested zero cases. <!-- checkpoint:w1-product-practice -->
-- [ ] I implemented Stock with a running minimum and preserved chronological order. <!-- checkpoint:w1-stock-running-minimum -->
+- [ ] I attempted and checked the conceptual, tracing, debugging, and implementation exercises. <!-- checkpoint:w1-local-practice -->
+- [ ] I attempted Contains Duplicate and explained how remembered membership trades extra storage for fewer checks. <!-- checkpoint:w1-contains-duplicate-practice -->
+- [ ] I attempted Product of Array Except Self and checked inputs with one zero and two zeros. <!-- checkpoint:w1-product-practice -->
+- [ ] I implemented Stock using an earlier running minimum and explained why buy/sell chronology is preserved. <!-- checkpoint:w1-stock-running-minimum -->
 
 ### Reflection
 
-- [ ] I recorded a mistaken prediction and the invariant that corrected it. <!-- checkpoint:w1-reflect-on-error -->
-- [ ] I can explain one optimization aloud without reading its code. <!-- checkpoint:w1-explain-optimization -->
+- [ ] I recorded an incorrect prediction and explained how a precise state invariant corrected my reasoning. <!-- checkpoint:w1-reflect-on-error -->
+- [ ] I can explain one reused-state optimization aloud, including its contract and costs, without reading the implementation. <!-- checkpoint:w1-explain-optimization -->

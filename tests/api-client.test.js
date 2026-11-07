@@ -30,6 +30,18 @@ test('login rotates CSRF and logout confirms success with credentials; failures 
             payload = { user: { id: 'user' }, csrfToken: 'rotated' };
         }
         if (url.endsWith('/progress')) assert.equal(options.headers['X-CSRF-Token'], 'rotated');
+        if (url.endsWith('/progress/lessons/w1-section-stable')) {
+            assert.equal(url, 'https://api.example.com/api/progress/lessons/w1-section-stable');
+            assert.equal(options.method, 'PATCH');
+            assert.equal(options.headers['Content-Type'], 'application/json');
+            assert.equal(options.headers['X-CSRF-Token'], 'rotated');
+            assert.deepEqual(JSON.parse(options.body), { completed: true });
+            payload = {
+                completedWeeks: [],
+                completedCheckpoints: ['w1-section-stable'],
+                startedLessons: []
+            };
+        }
         if (url.endsWith('/logout')) {
             assert.equal(options.headers['X-CSRF-Token'], 'fresh');
             payload = failLogout ? { error: 'Session store unavailable' } : { ok: true };
@@ -43,6 +55,10 @@ test('login rotates CSRF and logout confirms success with credentials; failures 
     try {
         await authApi.login({});
         await apiRequest('/api/progress', { method: 'PUT' });
+        await apiRequest('/api/progress/lessons/w1-section-stable', {
+            method: 'PATCH',
+            body: JSON.stringify({ completed: true })
+        });
         failLogout = true;
         await assert.rejects(authApi.logout(), /Session store unavailable/);
         failLogout = false;
@@ -65,5 +81,19 @@ test('API client preserves JSON API errors', async () => {
         status: 401,
         headers: { 'content-type': 'application/json' }
     });
-    await assert.rejects(() => parseApiResponse(response), /Invalid email or password/);
+    await assert.rejects(
+        () => parseApiResponse(response),
+        (error) => error.status === 401 && /Invalid email or password/.test(error.message)
+    );
+});
+
+test('malformed JSON returns a classified response error without leaking its body', async () => {
+    await assert.rejects(
+        parseApiResponse(
+            new Response('{sensitive-invalid-json', {
+                headers: { 'content-type': 'application/json' }
+            })
+        ),
+        (error) => error.code === 'INVALID_RESPONSE' && !error.message.includes('sensitive')
+    );
 });
