@@ -165,8 +165,14 @@
     overscroll-behavior: auto;
     cursor: grab;
 }
-.diagram-viewport:active {
+.diagram-viewport.is-dragging {
     cursor: grabbing;
+    user-select: none;
+}
+.diagram-controls output {
+    min-width: 4ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 .diagram-bounds {
     position: relative;

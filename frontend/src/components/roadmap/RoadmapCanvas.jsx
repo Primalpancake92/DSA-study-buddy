@@ -1,26 +1,66 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { moduleProgress } from '../../hooks/useLearningData.js';
-import { buildRoadmap, clampZoom, diagramWidth, rowHeight } from './layout.js';
+import {
+    buildRoadmap,
+    clampZoom,
+    createWidthFit,
+    diagramWidth,
+    fitZoom,
+    rowHeight,
+    zoomScrollLeft,
+    zoomStep
+} from './layout.js';
 
 export function RoadmapCanvas({ weeks, progress, onSelect }) {
     const viewport = useRef(null);
     const drag = useRef(null);
+    const previousZoom = useRef(1);
+    const recenter = useRef(true);
+    const zoomAnchor = useRef(null);
     const [zoom, setZoom] = useState(1);
+    const [dragging, setDragging] = useState(false);
     const rows = buildRoadmap(weeks);
     const height = weeks.length * rowHeight + 60;
-    const fit = () =>
-        setZoom(Math.max(0.65, Math.min(1, viewport.current.clientWidth / diagramWidth)));
+    const fit = () => {
+        const element = viewport.current;
+        const nextZoom = fitZoom(element.clientWidth);
+        recenter.current = nextZoom !== previousZoom.current;
+        element.scrollLeft = Math.max(
+            0,
+            (diagramWidth * nextZoom - element.clientWidth) / 2
+        );
+        setZoom(nextZoom);
+    };
+    const changeZoom = (increment) => {
+        // Capture the pan before changing the bounds: browsers may clamp
+        // scrollLeft immediately when the scaled content becomes narrower.
+        zoomAnchor.current = viewport.current.scrollLeft;
+        setZoom((value) => clampZoom(value + increment));
+    };
 
     useLayoutEffect(() => {
-        const observer = new ResizeObserver(fit);
+        const fitWidth = createWidthFit(fit);
+        const observer = new ResizeObserver(() => {
+            // The auto-height viewport also resizes when zoom changes. Only a
+            // real width change should replace the user's zoom with auto-fit.
+            fitWidth(viewport.current.clientWidth);
+        });
         observer.observe(viewport.current);
         return () => observer.disconnect();
     }, []);
     useLayoutEffect(() => {
-        viewport.current.scrollLeft = Math.max(
-            0,
-            (diagramWidth * zoom - viewport.current.clientWidth) / 2
-        );
+        const element = viewport.current;
+        element.scrollLeft = recenter.current
+            ? Math.max(0, (diagramWidth * zoom - element.clientWidth) / 2)
+            : zoomScrollLeft(
+                  zoomAnchor.current ?? element.scrollLeft,
+                  element.clientWidth,
+                  previousZoom.current,
+                  zoom
+              );
+        previousZoom.current = zoom;
+        recenter.current = false;
+        zoomAnchor.current = null;
     }, [zoom]);
 
     return (
@@ -28,31 +68,39 @@ export function RoadmapCanvas({ weeks, progress, onSelect }) {
             <div className="diagram-toolbar">
                 <p>Follow the main path; explore a topic branch for module details.</p>
                 <div className="diagram-controls">
-                    <button onClick={() => setZoom(clampZoom(zoom + 0.15))} aria-label="Zoom in">
+                    <button
+                        type="button"
+                        onClick={() => changeZoom(zoomStep)}
+                        disabled={zoom >= 1.8}
+                        aria-label="Zoom in"
+                    >
                         ＋
                     </button>
-                    <output aria-live="polite">{Math.round(zoom * 100)}%</output>
-                    <button onClick={() => setZoom(clampZoom(zoom - 0.15))} aria-label="Zoom out">
+                    <output aria-live="polite" aria-label="Zoom level">
+                        {Math.round(zoom * 100)}%
+                    </output>
+                    <button
+                        type="button"
+                        onClick={() => changeZoom(-zoomStep)}
+                        disabled={zoom <= 0.2}
+                        aria-label="Zoom out"
+                    >
                         −
                     </button>
                     <button
+                        type="button"
                         onClick={() => {
                             fit();
-                            viewport.current.scrollLeft = Math.max(
-                                0,
-                                (diagramWidth *
-                                    Math.max(
-                                        0.65,
-                                        Math.min(1, viewport.current.clientWidth / diagramWidth)
-                                    ) -
-                                    viewport.current.clientWidth) /
-                                    2
-                            );
+                            drag.current = null;
+                            setDragging(false);
+                            window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
                         }}
                     >
                         Reset
                     </button>
-                    <button onClick={fit}>Fit width</button>
+                    <button type="button" onClick={fit}>
+                        Fit width
+                    </button>
                 </div>
             </div>
             <p className="diagram-help">
@@ -60,12 +108,20 @@ export function RoadmapCanvas({ weeks, progress, onSelect }) {
                 pan. Use Tab to reach every topic.
             </p>
             <div
-                className="diagram-viewport"
+                className={`diagram-viewport${dragging ? ' is-dragging' : ''}`}
                 ref={viewport}
                 tabIndex={0}
                 aria-label="Learning diagram; scroll horizontally to explore branches"
                 onPointerDown={(event) => {
-                    if (event.pointerType !== 'mouse' || event.target.closest('button')) return;
+                    if (
+                        event.pointerType !== 'mouse' ||
+                        event.button !== 0 ||
+                        event.target.closest('button')
+                    ) {
+                        return;
+                    }
+                    event.preventDefault();
+                    setDragging(true);
                     drag.current = {
                         x: event.clientX,
                         y: event.clientY,
@@ -86,9 +142,15 @@ export function RoadmapCanvas({ weeks, progress, onSelect }) {
                 }}
                 onPointerUp={() => {
                     drag.current = null;
+                    setDragging(false);
                 }}
                 onPointerCancel={() => {
                     drag.current = null;
+                    setDragging(false);
+                }}
+                onLostPointerCapture={() => {
+                    drag.current = null;
+                    setDragging(false);
                 }}
             >
                 <div

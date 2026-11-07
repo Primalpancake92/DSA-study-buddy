@@ -33,18 +33,23 @@ export function ModulesPage() {
                             </div>
                             <h2>{week.title}</h2>
                             <p>{week.concepts}</p>
-                            <div className="module-progress-line">
-                                <span>
-                                    {state.completed} of {state.total} lessons
-                                </span>
-                                <strong>{state.percentage}%</strong>
+                            <div className="module-card-footer">
+                                <div className="module-progress-line">
+                                    <span>
+                                        {state.completed} of {state.total} lessons
+                                    </span>
+                                    <strong>{state.percentage}%</strong>
+                                </div>
+                                <div className="progress-bar">
+                                    <i style={{ width: `${state.percentage}%` }} />
+                                </div>
+                                <Link
+                                    className="button dark module-open"
+                                    to={`/app/weeks/${week.id}`}
+                                >
+                                    Open Module <span>↗</span>
+                                </Link>
                             </div>
-                            <div className="progress-bar">
-                                <i style={{ width: `${state.percentage}%` }} />
-                            </div>
-                            <Link className="button dark module-open" to={`/app/weeks/${week.id}`}>
-                                Open Module <span>↗</span>
-                            </Link>
                         </article>
                     );
                 })}
