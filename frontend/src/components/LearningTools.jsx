@@ -4,12 +4,12 @@ import { SectionNotes } from './SectionNotes.jsx';
 import { TutorAssistant } from './TutorAssistant.jsx';
 
 export function LearningTools({ lesson, section }) {
-    const [tab, setTab] = useState('notes');
+    const [tab, setTab] = useState('tutor');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [showNotesIcon, setShowNotesIcon] = useState(false);
     const [compact, setCompact] = useState(true);
 
-    const visible = !compact || drawerOpen;
+    const visible = drawerOpen;
     const panel = useRef(null);
     const trigger = useRef(null);
     const sectionId = lesson.lessons?.find((item) => item.sectionId === section.id)?.id ||
@@ -20,7 +20,7 @@ export function LearningTools({ lesson, section }) {
     };
 
     useEffect(() => {
-        const media = window.matchMedia('(max-width: 1279px)');
+        const media = window.matchMedia('(max-width: 767px)');
         const update = () => setCompact(media.matches);
         update();
         media.addEventListener('change', update);
@@ -72,7 +72,6 @@ export function LearningTools({ lesson, section }) {
     return (
         <aside className="learning-tools">
             <button
-                hidden={!compact}
                 ref={trigger}
                 className="tutor-launcher learning-tools-trigger"
                 type="button"
@@ -101,7 +100,7 @@ export function LearningTools({ lesson, section }) {
                         <button type="button" aria-pressed={tab === 'notes'} onClick={() => setTab('notes')}>My Notes</button>
                         <button type="button" aria-pressed={tab === 'tutor'} onClick={() => setTab('tutor')}>AI Tutor</button>
                     </div>
-                    <button hidden={!compact} type="button" aria-label="Close learning tools" onClick={close}>×</button>
+                    <button type="button" aria-label="Close learning tools" onClick={close}>×</button>
                 </div>
                 <div className="learning-notes-content" hidden={tab !== 'notes'}>
                     <SectionNotes
@@ -114,7 +113,7 @@ export function LearningTools({ lesson, section }) {
                 </div>
                 <div className="learning-tutor-content" hidden={tab !== 'tutor'}>
                     <TutorAssistant lesson={lesson} section={section} embedded
-                        active={visible && tab === 'tutor'} onClose={() => compact ? close() : setTab('notes')} />
+                        active={visible && tab === 'tutor'} onClose={close} />
                 </div>
             </dialog>
         </aside>
