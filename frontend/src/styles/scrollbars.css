@@ -1,43 +1,62 @@
-/* Native scrollbars: shared by the document, editors and overflow panels. */
+/* Shared by all native scrolling surfaces, including the document and textareas. */
 :root {
-    --scrollbar-track: var(--color-background);
+    --scrollbar-track: transparent;
     --scrollbar-thumb: var(--color-control-border);
-    --scrollbar-active: var(--color-primary-hover);
+    --scrollbar-active: var(--color-text-muted);
 }
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
-/* Chromium/Safari fallback. Standards-capable engines use the rules above. */
-*::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+/* Reset standards properties so they do not override rounded WebKit thumbs. */
+@supports selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
+    *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    *::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track-piece,
+    *::-webkit-scrollbar-corner {
+        background: transparent;
+        border: 0;
+        outline: none;
+        box-shadow: none;
+    }
+    *::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 999px;
+        border: 0;
+        outline: none;
+        box-shadow: none;
+    }
+    *::-webkit-scrollbar-thumb:hover,
+    *::-webkit-scrollbar-thumb:active {
+        background: var(--scrollbar-active);
+    }
+    *::-webkit-scrollbar-button {
+        display: none;
+        width: 0;
+        height: 0;
+    }
 }
-*::-webkit-scrollbar-track,
-*::-webkit-scrollbar-corner {
-    background: var(--scrollbar-track);
-}
-*::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border: 2px solid var(--scrollbar-track);
-    border-radius: 10px;
-}
-*::-webkit-scrollbar-thumb:hover,
-*::-webkit-scrollbar-thumb:active {
-    background: var(--scrollbar-active);
-}
+/* Let the operating system provide high-contrast controls. */
 @media (forced-colors: active) {
     * {
         scrollbar-width: auto;
         scrollbar-color: auto;
     }
-}
-@media (pointer: coarse) {
-    * {
-        scrollbar-width: auto;
-    }
-    *::-webkit-scrollbar {
-        width: 14px;
-        height: 14px;
+    *::-webkit-scrollbar,
+    *::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track-piece,
+    *::-webkit-scrollbar-corner,
+    *::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb:hover,
+    *::-webkit-scrollbar-thumb:active,
+    *::-webkit-scrollbar-button {
+        all: revert;
     }
 }

@@ -955,13 +955,33 @@
 }
 .history-modal {
     width: min(560px, 100%);
-    max-height: min(720px, 90vh);
-    overflow: auto;
+    max-height: min(720px, calc(100dvh - 40px));
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
     background: var(--color-surface);
     color: var(--color-text-muted);
     border-radius: 10px;
     box-shadow: 0 25px 90px var(--color-border);
     padding: 30px;
+}
+.history-modal .modal-heading {
+    flex: 0 0 auto;
+}
+.activity-scroll {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 5px 12px 5px 5px;
+    overflow-wrap: anywhere;
+}
+.activity-scroll:focus-visible {
+    outline: 2px solid var(--color-primary-hover);
+    outline-offset: -2px;
+}
+.activity-item > div {
+    min-width: 0;
 }
 .modal-heading {
     display: flex;

@@ -197,24 +197,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior-y: contain;
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
     scrollbar-gutter: stable;
-}
-.module-sidebar-lessons::-webkit-scrollbar {
-    width: 6px;
-}
-.module-sidebar-lessons::-webkit-scrollbar-track,
-.module-sidebar-lessons::-webkit-scrollbar-corner {
-    background: transparent;
-}
-.module-sidebar-lessons::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border: 0;
-    border-radius: 999px;
-}
-.module-sidebar-lessons::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-active);
 }
 .module-sidebar-lessons a {
     display: grid;
@@ -241,11 +224,6 @@
 .module-sidebar-lessons a:focus-visible {
     outline: 2px solid var(--color-primary-hover);
     outline-offset: 1px;
-}
-@media (forced-colors: active) {
-    .module-navigation-panel .module-sidebar-lessons {
-        scrollbar-color: auto;
-    }
 }
 .module-navigation-panel::backdrop {
     background: var(--color-overlay);

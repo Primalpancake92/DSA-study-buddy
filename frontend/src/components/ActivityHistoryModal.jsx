@@ -70,30 +70,32 @@ export function ActivityHistoryModal({ open, onClose }) {
                         ×
                     </button>
                 </div>
-                {loading && <div className="auth-loading">Loading activity…</div>}
-                {error && <div className="form-error">{error}</div>}
-                {!loading && !error && !items.length && (
-                    <div className="empty-state">
-                        <strong>Your history starts here.</strong>
-                        <p>
-                            Completed lessons, profile changes and future learning events will
-                            appear here.
-                        </p>
+                <div className="activity-scroll" role="region" aria-label="Activity entries" tabIndex={0}>
+                    {loading && <div className="auth-loading">Loading activity…</div>}
+                    {error && <div className="form-error">{error}</div>}
+                    {!loading && !error && !items.length && (
+                        <div className="empty-state">
+                            <strong>Your history starts here.</strong>
+                            <p>
+                                Completed lessons, profile changes and future learning events will
+                                appear here.
+                            </p>
+                        </div>
+                    )}
+                    <div className="activity-list">
+                        {items.map((item) => (
+                            <article className="activity-item" key={item.id}>
+                                <span className="activity-dot" />
+                                <div>
+                                    <strong>{item.title}</strong>
+                                    <p>{item.detail || item.activityType}</p>
+                                    <time dateTime={item.occurredAt}>
+                                        {new Date(item.occurredAt).toLocaleString()}
+                                    </time>
+                                </div>
+                            </article>
+                        ))}
                     </div>
-                )}
-                <div className="activity-list">
-                    {items.map((item) => (
-                        <article className="activity-item" key={item.id}>
-                            <span className="activity-dot" />
-                            <div>
-                                <strong>{item.title}</strong>
-                                <p>{item.detail || item.activityType}</p>
-                                <time dateTime={item.occurredAt}>
-                                    {new Date(item.occurredAt).toLocaleString()}
-                                </time>
-                            </div>
-                        </article>
-                    ))}
                 </div>
             </section>
         </div>
