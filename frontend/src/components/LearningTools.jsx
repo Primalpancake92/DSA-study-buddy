@@ -114,7 +114,7 @@ export function LearningTools({ lesson, section }) {
                 </div>
                 <div className="learning-tutor-content" hidden={tab !== 'tutor'}>
                     <TutorAssistant lesson={lesson} section={section} embedded
-                        active={visible && tab === 'tutor'} onClose={close} />
+                        active={visible && tab === 'tutor'} onClose={() => compact ? close() : setTab('notes')} />
                 </div>
             </dialog>
         </aside>
