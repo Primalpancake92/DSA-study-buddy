@@ -6,6 +6,7 @@ const apiBase = configuredApiBase
     : import.meta.env.DEV
       ? 'http://localhost:3001'
       : '';
+const API_REQUEST_TIMEOUT_MS = 10000;
 
 let csrf;
 export function clearAuthCache() {
@@ -43,18 +44,28 @@ export async function apiRequest(path, options = {}) {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method))
         headers['X-CSRF-Token'] = csrf || (await getCsrf());
     requireApiBase();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
     let response;
     try {
         response = await fetch(`${apiBase}${path}`, {
             ...options,
             method,
             headers,
-            credentials: 'include'
+            credentials: 'include',
+            signal: options.signal || controller.signal
         });
-    } catch {
+    } catch (error) {
+        if (error?.name === 'AbortError' && !options.signal?.aborted) {
+            throw Object.assign(new Error('The API request timed out. Please try again.'), {
+                code: 'TIMEOUT'
+            });
+        }
         throw Object.assign(new Error('The API is unreachable. Check the Render service URL.'), {
             code: 'NETWORK_ERROR'
         });
+    } finally {
+        clearTimeout(timeout);
     }
     const payload = await parseApiResponse(response);
     if (payload.csrfToken) csrf = payload.csrfToken;
