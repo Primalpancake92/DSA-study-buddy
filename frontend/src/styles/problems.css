@@ -79,10 +79,11 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: 14px;
-    padding: 22px;
+    min-height: 270px;
+    padding: 23px;
     border: 1px solid var(--color-border);
-    background: var(--color-surface);
+    background: var(--color-background);
+    overflow-wrap: anywhere;
 }
 .problem-card-meta,
 .problem-card-footer {
@@ -107,13 +108,16 @@
     color: var(--color-warning);
 }
 .problem-repository-card h2 {
-    margin: 0;
-    font-size: 20px;
+    margin: 30px 0 10px;
+    font-size: 21px;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
 }
 .problem-repository-card p,
 .problem-objective {
     margin: 0;
     color: var(--color-text-secondary);
+    font-size: 12px;
     line-height: 1.65;
 }
 .problem-patterns {
@@ -125,18 +129,21 @@
     padding: 5px 7px;
     border: 1px solid var(--color-border);
     color: var(--color-text-muted);
-    font-size: 11px;
+    font-size: 10px;
 }
 .problem-card-footer {
-    align-items: end;
+    align-items: stretch;
+    flex-direction: column;
     margin-top: auto;
 }
 .problem-card-footer small {
-    max-width: 50%;
+    max-width: none;
     line-height: 1.5;
 }
 .problem-card-footer .button {
     flex: 0 0 auto;
+    justify-content: center;
+    width: 100%;
     gap: 8px;
     padding: 10px 12px;
     white-space: nowrap;
