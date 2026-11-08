@@ -1,6 +1,5 @@
 .problems-page,
 .problem-detail-page {
-    max-width: 1440px;
     padding-top: 88px;
 }
 .problem-stats {
@@ -111,6 +110,14 @@
 .problem-card-footer small {
     max-width: 50%;
     line-height: 1.5;
+}
+.problem-card-footer .button {
+    flex: 0 0 auto;
+    gap: 8px;
+    padding: 10px 12px;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1.2;
 }
 .problem-empty {
     padding: 32px 0;
