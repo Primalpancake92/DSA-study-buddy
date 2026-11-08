@@ -1,93 +1,3 @@
-.diagram-controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.diagram-controls button {
-    padding: 8px 14px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-    cursor: pointer;
-}
-.diagram-viewport {
-    height: 68vh;
-    min-height: 360px;
-    overflow: auto;
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-    background-color: var(--color-surface);
-    background-image: radial-gradient(var(--color-surface) 1px, transparent 1px);
-    background-size: 20px 20px;
-    overscroll-behavior: contain;
-}
-.diagram-world {
-    position: relative;
-    transform-origin: top left;
-}
-.diagram-lines {
-    position: absolute;
-    pointer-events: none;
-}
-.diagram-lines path {
-    fill: none;
-    stroke: var(--color-border);
-    stroke-width: 2;
-}
-.diagram-lines .topic-edge {
-    stroke-dasharray: 4 4;
-    stroke: var(--color-border);
-}
-.diagram-module,
-.diagram-topic {
-    position: absolute;
-    cursor: pointer;
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
-    background: var(--color-surface);
-    box-shadow: 0 4px 12px var(--color-border);
-}
-.diagram-module {
-    width: 300px;
-    min-height: 82px;
-    display: grid;
-    gap: 3px;
-    padding: 10px;
-    font-size: 14px;
-}
-.diagram-module small {
-    letter-spacing: 2px;
-    font-size: 10px;
-}
-.diagram-module span {
-    font-size: 11px;
-}
-.diagram-module.in-progress {
-    border: 2px solid var(--color-border);
-}
-.diagram-module.completed {
-    background: var(--color-primary);
-    border: 2px solid var(--color-border);
-}
-.diagram-topic {
-    width: 240px;
-    min-height: 52px;
-    padding: 8px;
-    font-size: 13px;
-}
-.diagram-topic:hover,
-.diagram-module:hover {
-    background: var(--color-surface);
-}
-.diagram-page button:focus-visible,
-.roadmap-modal button:focus-visible,
-.roadmap-modal a:focus-visible {
-    outline: 3px solid var(--color-text-primary);
-    outline-offset: 4px;
-}
 .roadmap-modal {
     position: fixed;
     inset: 0;
@@ -125,84 +35,198 @@
 .roadmap-modal p {
     line-height: 1.7;
 }
-@media (max-width: 600px) {
-    .roadmap-modal {
-        padding: 24px;
-    }
-    .diagram-viewport {
-        height: 65vh;
-    }
-    .diagram-page h1 {
-        font-size: 2rem;
-    }
-}
-.roadmap-diagram {
-    width: 100%;
-    background: transparent;
-}
-.diagram-toolbar {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.diagram-toolbar p,
-.diagram-help {
-    color: var(--color-text-secondary);
-    font-size: 0.9rem;
-    line-height: 1.7;
-}
-.diagram-viewport {
-    height: auto;
-    min-height: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-    overscroll-behavior: auto;
-    cursor: grab;
-}
-.diagram-viewport.is-dragging {
-    cursor: grabbing;
-    user-select: none;
-}
-.diagram-controls output {
-    min-width: 4ch;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-.diagram-bounds {
-    position: relative;
-    margin-inline: auto;
-}
-.diagram-module,
-.diagram-topic {
-    box-shadow: none;
-}
-.diagram-module {
-    background: var(--color-surface);
-}
-.diagram-topic {
-    background: var(--color-surface);
+
+.diagram-page {
+    padding-top: 56px;
 }
 .diagram-page h1 {
     font-size: clamp(2rem, 5vw, 3.8rem);
     letter-spacing: -0.045em;
+    margin-bottom: 12px;
 }
-.diagram-page {
-    padding-top: 56px;
+.diagram-page > p,
+.roadmap-hint {
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+}
+.roadmap-tree {
+    margin-top: 32px;
+    padding: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--color-background) 75%, transparent);
+}
+.roadmap-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 24px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+.roadmap-summary > span {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+.roadmap-stage {
+    margin-top: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+}
+.roadmap-stage[open] {
+    border-color: transparent;
+}
+.roadmap-stage > summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    cursor: pointer;
+    list-style: none;
+}
+.roadmap-stage > summary::-webkit-details-marker {
+    display: none;
+}
+.roadmap-stage summary strong {
+    font-size: 15px;
+}
+.roadmap-stage summary small {
+    display: block;
+    color: var(--color-text-secondary);
+    margin-top: 6px;
+    font-size: 12px;
+}
+.roadmap-stage-range {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+}
+.roadmap-chevron {
+    font-size: 20px;
+}
+.roadmap-stage[open] .roadmap-chevron {
+    transform: rotate(180deg);
+}
+.roadmap-path {
+    list-style: none;
+    padding: 0 36px 20px;
+    margin: 0;
+}
+.roadmap-path > li {
+    position: relative;
+    padding-top: 22px;
+}
+.roadmap-path > li:first-child {
+    padding-top: 0;
+}
+.roadmap-path > li + li::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 22px;
+    width: 1px;
+    background: var(--color-border);
+}
+.roadmap-card {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+.roadmap-card:hover,
+.roadmap-card.is-current {
+    border-color: var(--color-primary);
+}
+.roadmap-card-heading,
+.roadmap-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.roadmap-card-heading small {
+    display: block;
+    font-family: var(--font-code);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+}
+.roadmap-card-heading strong {
+    font-size: clamp(16px, 2vw, 20px);
+    overflow-wrap: anywhere;
+}
+.roadmap-status-icon {
+    color: var(--color-primary);
+    font-size: 22px;
+}
+.roadmap-concepts,
+.roadmap-card-footer {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.roadmap-progress-track {
+    height: 3px;
+    border-radius: 3px;
+    background: var(--color-border);
+    overflow: hidden;
+}
+.roadmap-progress-track > span {
+    display: block;
+    height: 100%;
+    background: var(--color-primary);
+}
+.roadmap-card.completed .roadmap-progress-track > span {
+    background: var(--color-success);
+}
+.roadmap-card.completed .roadmap-status-icon {
+    color: var(--color-success);
+}
+.roadmap-hint {
+    margin: 22px 0 0;
+    font-size: 12px;
+}
+.diagram-page :is(button, summary):focus-visible,
+.roadmap-modal :is(button, a):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
 }
 @media (max-width: 600px) {
-    .diagram-viewport {
-        height: auto;
+    .roadmap-tree {
+        padding: 14px;
     }
-    .diagram-controls {
-        gap: 6px;
+    .roadmap-stage > summary {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 14px 8px;
     }
-    .diagram-controls button {
-        padding: 8px 10px;
+    .roadmap-stage-range {
+        justify-content: space-between;
+        width: 100%;
+    }
+    .roadmap-path {
+        padding: 0 0 12px;
+    }
+    .roadmap-card {
+        padding: 16px;
+    }
+    .roadmap-modal {
+        padding: 24px;
     }
 }
