@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider.jsx';
 import { ActivityHistoryModal } from './ActivityHistoryModal.jsx';
+import { useAutoHideNavbar } from '../hooks/useAutoHideNavbar.js';
+import '../styles/app-navbar.css';
 
 function Brand() {
     const { user, loading } = useAuth();
@@ -47,8 +50,7 @@ export function PublicLayout() {
     );
 }
 
-function AccountMenu({ user, onLogout }) {
-    const [open, setOpen] = useState(false);
+function AccountMenu({ user, onLogout, open, setOpen }) {
     const [historyOpen, setHistoryOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const [logoutError, setLogoutError] = useState('');
@@ -91,6 +93,7 @@ function AccountMenu({ user, onLogout }) {
             <div className="account-menu-wrap" ref={menuRef}>
                 <button
                     className="account-trigger"
+                    aria-label="Account menu"
                     aria-haspopup="menu"
                     aria-expanded={open}
                     onClick={() => setOpen((value) => !value)}
@@ -124,24 +127,74 @@ function AccountMenu({ user, onLogout }) {
                     </div>
                 )}
             </div>
-            <ActivityHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
+            {historyOpen && createPortal(
+                <div className="navbar-modal-layer">
+                    <ActivityHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
+                </div>,
+                document.body
+            )}
         </>
     );
 }
 
 export function AppLayout() {
     const { user, logout } = useAuth();
+    const navbar = useAutoHideNavbar();
     return (
         <div className="app-shell">
-            <header className="topbar">
-                <Brand />
-                <nav className="app-nav" aria-label="Application navigation">
-                    <NavLink to="/app/dashboard">Dashboard</NavLink>
-                    <NavLink to="/app/roadmap">Roadmap</NavLink>
-                    <NavLink to="/app/modules">Modules</NavLink>
-                    <NavLink to="/notes">My Notes</NavLink>
-                </nav>
-                <AccountMenu user={user} onLogout={logout} />
+            <button
+                ref={navbar.trigger}
+                type="button"
+                className="navbar-trigger"
+                aria-controls="app-navbar"
+                aria-expanded={navbar.visible}
+                onClick={navbar.toggle}
+                onFocus={navbar.onTriggerFocus}
+                onBlur={navbar.onBlur}
+                onKeyDown={(event) => {
+                    if (event.key === 'Escape') navbar.close(true);
+                }}
+            >
+                {navbar.visible ? 'Close navigation' : 'Open navigation'}
+            </button>
+            <div
+                className="navbar-activation-zone"
+                aria-hidden="true"
+                onPointerEnter={navbar.pointerEnter}
+                onPointerLeave={navbar.pointerLeave}
+            />
+            <header
+                ref={navbar.header}
+                id="app-navbar"
+                className={`app-navbar${navbar.visible ? ' is-visible' : ''}`}
+                inert={navbar.visible ? undefined : ''}
+                aria-hidden={!navbar.visible}
+                onPointerEnter={navbar.pointerEnter}
+                onPointerLeave={navbar.pointerLeave}
+                onPointerDownCapture={navbar.onPointerDown}
+                onFocusCapture={navbar.onFocus}
+                onBlurCapture={navbar.onBlur}
+                onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        navbar.close(true);
+                    }
+                }}
+                onClick={(event) => {
+                    if (event.target.closest('a[href]')) navbar.close();
+                }}
+            >
+                <div className="app-navbar-inner">
+                    <Brand />
+                    <nav className="app-nav" aria-label="Application navigation">
+                        <NavLink to="/app/dashboard">Dashboard</NavLink>
+                        <NavLink to="/app/roadmap">Roadmap</NavLink>
+                        <NavLink to="/app/modules">Modules</NavLink>
+                        <NavLink to="/notes">My Notes</NavLink>
+                    </nav>
+                    <AccountMenu user={user} onLogout={logout}
+                        open={navbar.menuOpen} setOpen={navbar.setMenuOpen} />
+                </div>
             </header>
             <main>
                 <Outlet />
