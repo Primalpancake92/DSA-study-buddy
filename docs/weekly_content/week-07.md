@@ -22,10 +22,14 @@ Use the final checklist after drawing the operations and implementing them yours
 ## Prerequisite Knowledge
 <!-- lesson-id:w7-section-prerequisite-knowledge -->
 
+**Before we start:** Picture the nodes as little cards connected by arrows, not as numbered slots. Why does that matter? Every operation is really an identity-and-reference decision. We will name those ideas first, then walk through pointer changes, weigh the time and space tradeoffs, and finish by practicing with an empty list and a tiny three-node list.
+
 Review loops and variables that refer to objects, plus the different-speed pointers in [Week 3](week-03.md). The ordering policies in [Week 5](week-05.md) also remind us to distinguish what operations promise from how data is stored. In JavaScript, assigning one object variable to another copies a reference, not the object itself. Unless we deliberately construct a cycle, inputs here are finite, acyclic singly linked lists: they have a limited number of nodes, never loop back, and provide only a forward link.
 
 ## Core Theory
 <!-- lesson-id:w7-section-core-theory -->
+
+**Here is the episode plan:** We will build intuition with arrows, attach the precise terminology, and then narrate each pointer move as if we were drawing it on a whiteboard. After every pattern, pause to ask what remains reachable, what the operation costs, and which input links it changes.
 
 ### Follow references, not positions
 
@@ -65,6 +69,8 @@ Practice explaining these stages separately. After splitting, the chains share n
 
 ## JavaScript Implementations
 <!-- lesson-id:w7-section-javascript-implementations -->
+
+**Now let’s code it together.** Keep one hand on the diagram and one eye on the saved successor. First predict the next references, then run the demonstration, and finally compare the output with the invariant. The goal is not to memorize a loop; it is to explain why each assignment is safe.
 
 We will construct a three-node chain, reverse its existing links, and inspect what happened to the original head.
 
@@ -243,6 +249,8 @@ In **Demonstration 4**, `[1,2,3,4,5]` leaves slow at 3. Saving `slow.next` prese
 ## Worked Examples
 <!-- lesson-id:w7-section-worked-examples -->
 
+**Worked-walkthrough pause:** Try to predict the list after each stage before reading the explanation. Say out loud which node is the head, which nodes are still unprocessed, and whether the helper is reusing or allocating objects. That habit catches reference bugs earlier than a final output check.
+
 Give the objects names A, B, and C and let them hold 6, 2, and 9. Now follow the saved successor and the two region heads through each reversal step.
 
 | Iteration | Saved next | Reversed prefix after update | Remaining suffix |
@@ -261,6 +269,8 @@ Trace reordering `[1,2,3,4,5]` as three transformations. Slow stops at 3, so cut
 
 ## Visual Explanations
 <!-- lesson-id:w7-section-visual-explanations -->
+
+**Let’s turn the arrows into a picture.** Follow one edge at a time, and mark the boundary between finished and unfinished work. The visual is a compact recap: it shows the intuition first, while the code supplies the exact order of operations.
 
 ```text
 Before reversal step:
@@ -283,6 +293,8 @@ When a reference error is hard to see, draw the state immediately after each ass
 ## Complexity Analysis
 <!-- lesson-id:w7-section-complexity-analysis -->
 
+**Complexity checkpoint:** Count two things separately: how far we walk and how many links we change. Then ask whether a helper array is teaching scaffolding or algorithmic storage. That distinction explains why a local rewiring step can be O(1) while locating its node is O(n).
+
 | Operation | Time | Auxiliary space |
 | --- | --- | --- |
 | Reach index i | O(i+1) | O(1) |
@@ -297,6 +309,8 @@ In the cycle bound, μ counts nodes before the loop and λ counts nodes around i
 
 ## Common Mistakes
 <!-- lesson-id:w7-section-common-mistakes -->
+
+**A quick debugging conversation:** If the list suddenly ends early or loops forever, do not stare at the final output first. Draw the last three assignments, identify the lost successor or repeated identity, and compare them with the invariant. Each mistake below is a reusable warning sign.
 
 - Save the original successor before overwriting `next`; afterwards that field leads backward.
 - Return the new head after reversal. The old head now exposes only the tail.
@@ -322,12 +336,16 @@ In broken **Demonstration 1**, take `A→B→null` with previous null and curren
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w7-section-interview-and-leetcode-pattern-recognition -->
 
+**Interview lens:** When you hear “reverse,” “merge,” “cycle,” or “reorder,” translate the words into a small set of pointer patterns. State the contract, sketch the boundary, and mention mutation and complexity before writing code. That explanation is often more valuable than rushing to syntax.
+
 Prompts about changing links, constant extra space, sorted-list merging, or cycles ask you to reason about references. Before coding, ask whether you may reuse nodes and whether inputs can share them. For Reorder List, explain midpoint, reverse, and weave as separate stages. That decomposition lets you justify each change without inventing one large loop whose intermediate structure is hard to describe.
 
 Choose the representation according to access needs. Frequent indexed reads usually favor an array. A prompt that already supplies a predecessor reference and requests a nearby insertion may favor a list. Before claiming O(1), state exactly which node you can already reach without walking from head.
 
 ## Practice Exercises
 <!-- lesson-id:w7-section-practice-exercises -->
+
+**Your turn:** Pause the video here and solve the smallest input first. Trace the references on paper, explain why the operation terminates, and test an empty or one-node list. Then compare your reasoning with the checklist rather than checking only whether the output looks right.
 
 ### Conceptual Questions
 
@@ -355,6 +373,8 @@ Choose the representation according to access needs. Frequent indexed reads usua
 
 ## Hints and Worked Solutions
 <!-- lesson-id:w7-section-hints-and-worked-solutions -->
+
+**Hint-to-solution walkthrough:** Use the hint as a nudge, not a spoiler. Make a prediction, implement the smallest change, and use the worked solution to inspect your invariant and cost accounting. If your answer differs, locate the first reference that diverged.
 
 1. Given predecessor and successor, changing their local links takes constant work. Searching for a value may still visit every node. If values repeat, specify whether insertion is before the first match or before all matches; value alone does not name a unique object.
 2. Identity concerns the object carrying a payload. **Demonstration 3** in “JavaScript Implementations” has two 7s but returns false until b links back to a. That backward reference, not the repeated number, creates the cycle.
@@ -411,6 +431,8 @@ The existing source record dates consultation to 2026-11-07. We preserve that at
 
 ## Weekly Summary
 <!-- lesson-id:w7-section-weekly-summary -->
+
+**Recap:** Linked lists reward careful storytelling: what object does each name reference, what part is finished, and what route remains? You can now connect that intuition to reversal, dummy-node merging, fast-and-slow motion, and safe reordering.
 
 You can now reason about list changes by saving your route forward, changing one arrow, and only then advancing. Dummy nodes let head changes follow the same rules as other local changes. Different-speed references use motion and object identity rather than payload equality. Splitting reorder into stages keeps those obligations manageable. In [Week 8](week-08.md), the same careful state tracking will help you understand waiting function calls and arrays shared between calls.
 

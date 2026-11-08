@@ -14,6 +14,8 @@ Use the final weekly progress checklist to record what you can explain with the 
 ## Learning Objectives
 <!-- lesson-id:w17-section-learning-objectives -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 By the end, you should be able to separate a position's number, called an index, from the value stored there and from the array's length. You should also understand a reference: a value that points to an object rather than duplicating it. We will use these distinctions to visit dense arrays safely, implement first-match search, and choose insertion or deletion operations according to their contracts—the inputs they accept, changes they make, and results they promise.
 
 You should be able to draw which objects are shared by an alias, a shallow copy, a selective nested copy, or a supported deep clone. These names describe different amounts of copying; the reference lessons will make each one concrete.
@@ -25,6 +27,8 @@ Finally, we will use two positions moving from opposite ends, a reader and write
 ## Prerequisite Knowledge
 <!-- lesson-id:w17-section-prerequisite-knowledge -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 You need variables, functions, conditions, comparisons, arithmetic, and ordinary `for` loops. Remember that `return` leaves its function immediately, even from inside a loop. Also remember what `const` protects: you cannot bind that variable to a different value, but you can still change the array it references. A **callback** is simply a function you pass to another function, often to say what should happen to one entry.
 
 Unless a lesson introduces holes, assume a **dense array**, meaning every position from zero up to its length has an entry. Arithmetic examples use finite numbers and assume intermediate results remain sufficiently precise in JavaScript's `Number` representation.
@@ -33,6 +37,8 @@ From Module 1, bring constant, linear, and quadratic growth; amortized cost spre
 
 ## Representation: A Sequence with Indexed Positions
 <!-- lesson-id:w17-section-representation-a-sequence-with-indexed-positions -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Picture an array as an ordered row of slots. Three entries occupy positions 0, 1, and 2, even when their values are 100, 100, and 500. The positions tell you where entries belong; the values are the data stored there. Equal values do not merge into one position. This matters when a task asks where a match occurs rather than what it contains, or asks you to exclude one occurrence rather than every entry equal to it.
 
@@ -44,6 +50,8 @@ An array can hold different types of values, including references to other array
 
 ## Indexing, Length, and Boundary Rules
 <!-- lesson-id:w17-section-indexing-length-and-boundary-rules -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 For a dense array with length `n`, entry indexes run from 0 through `n - 1`. The length is a count, so it is already past the final valid entry. Reading an absent indexed property normally gives `undefined`; JavaScript does not automatically throw an out-of-bounds exception. A loop using `i <= values.length` therefore reads once too often. That extra read can go unnoticed until `undefined` changes the result of a comparison or calculation.
 
@@ -77,6 +85,8 @@ For a dense array, length is one greater than its largest occupied index, or zer
 ## Traversal: Visiting the Right Entries
 <!-- lesson-id:w17-section-traversal-visiting-the-right-entries -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Choose an indexed loop when positions matter, when you need neighbors, or when you want control over direction. Choose `for...of` when you need each value in sequence. Neither choice requires an array copy. To visit positions backward, start at `length - 1` and continue while the index is at least zero. Empty input starts that loop at -1, so its condition fails immediately. Let's use one traversal for values and another for positions.
 
 ### Demonstration 1 — Sum values and visit positions backward
@@ -108,6 +118,8 @@ Avoid `for...in` for routine array traversal. It lists enumerable property keys�
 
 ## Linear Search and Evidence from a Processed Prefix
 <!-- lesson-id:w17-section-linear-search-and-evidence-from-a-processed-prefix -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Linear search visits entries until it has enough evidence to answer the query. Let's make the contract precise: return the first index whose value is strictly equal to the target, or -1 if nothing matches. Strict equality is JavaScript's `===` comparison. Returning the matching value would lose the position, and returning a boolean would answer only whether a match exists. We want a position, so the return type must express that choice.
 
@@ -144,6 +156,8 @@ A first-position match needs constant work; an absent target needs a full scan. 
 ## Inserting and Deleting: Position Movement
 <!-- lesson-id:w17-section-inserting-and-deleting-position-movement -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Ask whether you are changing the value in an existing position or creating a new position. Replacing index 1 in `[2, 4, 6]` leaves length three. Inserting there creates a position, so the old entries from that point onward move one place right. Those later entries form the **suffix**, the remaining end of the sequence. Deleting an interior entry must close the gap and move later entries left if you want to preserve a dense sequence.
 
 The `delete` operator removes a property; it neither closes the gap nor reduces length. That usually makes it unsuitable for removing an item from a dense list. Use `splice` for a positional edit, or **compaction**, packing retained entries together, when removing many items.
@@ -154,6 +168,8 @@ When order matters, pay attention to repeated front operations. A **queue** proc
 
 ## End and Front Methods: push, pop, shift, unshift
 <!-- lesson-id:w17-section-end-and-front-methods-push-pop-shift-unshift -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 These four methods change the existing array, also called the **receiver** of the method call. `push(...items)` adds entries at the end and returns the new length. `pop()` removes and returns the last value. At the other end, `unshift(...items)` inserts at the front and returns the new length, while `shift()` removes and returns the first value. Both removals return `undefined` on empty input.
 
@@ -187,6 +203,8 @@ If rebinding is allowed and you assign push's return to your list variable, that
 ## Interior Editing with splice and Ranges with slice
 <!-- lesson-id:w17-section-interior-editing-with-splice-and-ranges-with-slice -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Use `splice(start, deleteCount, ...items)` when you want to edit the receiver by position. It removes deleteCount entries at start, inserts any supplied items, and returns an array containing the removed entries. With zero deletions, you can insert without removing anything. Insertion and deletion counts need not match, so a replacement can change length. A negative start counts backward from the end, subject to the method's bounds rules.
 
 Use `slice(start, end)` when you want a shallow copy of a range while keeping the receiver unchanged. A shallow copy creates a new outer array but copies element values, including object references. The end is **exclusive**, meaning the position named by end is not included: indexes 1 through 3 require `slice(1, 4)`. Omitting end means copy through the array's end, and negative bounds count from the end. Let's compare these similarly named methods by both their results and their effects.
@@ -217,6 +235,8 @@ The removed array is a separate outer container. Had the removed entries been ob
 ## Mutable and Immutable Workflows
 <!-- lesson-id:w17-section-mutable-and-immutable-workflows -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 A **mutable** function changes the array its caller supplied. An **immutable workflow** produces a changed array while preserving the original array's membership and order. Neither style is universally better. Working **in place**, on the existing array, can avoid allocating an output array. Independent copies can make undo, comparison with prior state, and application state updates easier to reason about. State the promise clearly so callers know whether their array will change.
 
 Let's create an extended copy and a copy with one replacement, then check what the source still contains.
@@ -246,6 +266,8 @@ In **Demonstration 1**, spreading `[5, 8]` into `extended` copies those entries 
 
 ## References, Values, and Shallow Copying
 <!-- lesson-id:w17-section-references-values-and-shallow-copying -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Assignment copies a value, but you need to know what kind of value it copies. For a number, it copies the number. For an array or object, it copies a **reference**, a value that identifies the existing object. Assigning an array to another variable therefore gives you an **alias**, another name referring to the same array.
 
@@ -284,6 +306,8 @@ For dense arrays, spread and slice are convenient ways to copy every entry. Spre
 ## Deep Cloning and Copying Only the Changed Path
 <!-- lesson-id:w17-section-deep-cloning-and-copying-only-the-changed-path -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Decide which fields you intend to change, then copy every object along the path to those fields. A selective update might create a new outer array, a new record at one position, and a new detail object while sharing untouched records. That can preserve previous state without duplicating every reachable object. It requires knowing the data's shape and which parts callers expect to remain independent. This collection of objects and reference connections is often called a **data graph**.
 
 `structuredClone` makes a **deep clone** of supported data, following nested references to create an independent graph. It supports cycles, where following references eventually leads back to an earlier object. It also preserves sharing within the clone: two original references to one object become two references to the same cloned object.
@@ -319,6 +343,8 @@ Count clone cost against all reachable data, not just the outer length. A one-en
 
 ## Membership, Equality, and First-Match Queries
 <!-- lesson-id:w17-section-membership-equality-and-first-match-queries -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Start with the shape of the answer you need. `includes` returns a boolean for membership. `indexOf` returns the first matching index or -1. `find` returns the first value passing a **predicate**, a callback asking a yes-or-no question, or `undefined` if none passes. `findIndex` returns that position or -1 instead. `some` asks whether any entry passes, and `every` asks whether all entries pass. These queries can stop as soon as they have enough evidence, so a particular call may inspect fewer than all entries.
 
@@ -358,6 +384,8 @@ Never use an indexOf result directly as a condition. Index zero is **falsy**, tr
 ## map, filter, and Callback Contracts
 <!-- lesson-id:w17-section-map-filter-and-callback-contracts -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Choose `map` to transform each visited position into an output position. Choose `filter` to retain entries whose callback result is truthy, keeping their relative order. Both create new outer arrays. Filtering object entries still copies their references, so it does not isolate those objects from the source. A map callback must return the transformed value. In particular, an arrow function with a block body needs an explicit `return`; merely calculating a value inside the block does not return it.
 
 Common callbacks used while visiting entries receive `(value, index, array)`. Methods including `map`, `filter`, `find`, `some`, `every`, and `forEach` also accept an optional `thisArg`, a value supplied as `this` when calling an ordinary function. An arrow function instead keeps its surrounding **lexical this**, meaning the `this` determined where the arrow was written; thisArg does not replace it.
@@ -394,6 +422,8 @@ Before passing an existing function directly as a callback, compare its paramete
 
 ## reduce, Accumulators, and Side Effects
 <!-- lesson-id:w17-section-reduce-accumulators-and-side-effects -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Use `reduce` when you want to carry a growing answer from entry to entry. That carried state is the **accumulator**. Its callback receives the accumulator, current value, index, and receiver, and its return becomes the next accumulator. Forgetting the return breaks this chain even if changes inside one call seemed to work. Reduce also does not take the same thisArg parameter as map, so do not assume all iterative methods have identical calling conventions.
 
@@ -437,6 +467,8 @@ Do not rebuild a growing array with spread on every reduction step without count
 ## Holes, undefined, and Shared Initialization
 <!-- lesson-id:w17-section-holes-undefined-and-shared-initialization -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 A **hole** is a position with no indexed property. It differs from a present entry whose value happens to be `undefined`. For example, `Array(3)` has length three but no present indexed entries. That distinction changes which callbacks run.
 
 On ordinary arrays without inherited indexed properties—properties supplied through another object in the inheritance chain—`map`, `filter`, `forEach`, `some`, `every`, and `reduce` skip holes. Map leaves the corresponding output positions missing too; filter packs the selected present entries together. Find and findIndex instead visit every position and observe holes as `undefined`. Array iteration and spread also produce `undefined` for holes. Includes can match that undefined value, while indexOf skips absent entries. Let's use property-presence checks to observe what a value read alone cannot distinguish.
@@ -476,6 +508,8 @@ JSON array serialization displays both holes and explicit undefined entries as `
 ## Sorting and Reversing Without Losing Meaning
 <!-- lesson-id:w17-section-sorting-and-reversing-without-losing-meaning -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 `sort` changes its receiver and returns that same array. By default it compares string representations, which is why numeric-looking values may end up in surprising order. For numeric ordering, supply a **comparator**, a function describing how two entries should be ordered, such as `(a, b) => a - b`.
 
 A comparator returns a negative number for before, zero for equivalent, and a positive number for after. A boolean alone cannot express all three relationships consistently. Keep the comparator consistent and avoid changing the data during comparisons. Let's compare default ordering, numeric ordering, and changed copies.
@@ -508,6 +542,8 @@ Modern toSorted and toReversed return shallow changed copies. Copying first and 
 
 ## Supplementary Array Vocabulary
 <!-- lesson-id:w17-section-supplementary-array-vocabulary -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Here are several more contracts you will meet in existing code. `concat` builds a shallow combined array, while `join` makes a string with separators between entries. `flat(depth)` removes layers of nesting up to the chosen depth; `flatMap` transforms entries and flattens one level of the mapped results. Neither operation is a general deep clone. `fill` overwrites a range. `copyWithin` copies a range to another position in the same array, keeps length unchanged, and has defined behavior when source and destination overlap.
 
@@ -566,6 +602,8 @@ Array.from accepts **iterable** input, which can supply an iterator, or **array-
 ## Two Pointers: Opposite Ends
 <!-- lesson-id:w17-section-two-pointers-opposite-ends -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 In array algorithms, a **pointer** can simply mean an index marking a position; it need not be a machine address. Two pointers let the relationship between two positions describe unfinished work. For in-place reversal, put `left` at the first index and `right` at the last. Swap their values, then move both inward. The outer regions are now final, while the middle still needs reversing. Stop when the positions meet or cross. Let's watch the fixed regions grow.
 
 ### Demonstration 1 — Reverse an array by fixing positions from both ends
@@ -598,6 +636,8 @@ Reversal needs no sorted-input assumption: the destination of each entry follows
 
 ## Reader and Writer: Stable In-Place Removal
 <!-- lesson-id:w17-section-reader-and-writer-stable-in-place-removal -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Forward splice removal can skip an entry because deletion moves values. Start with `[-1, -2, 3]`. Removing index zero moves -2 into index zero; advancing to index one then misses it. Traversing backward repairs that correctness problem, since removing a later entry does not move unvisited earlier positions. It does not remove every cost problem, though: repeated interior deletions may still shift long surviving suffixes again and again.
 
@@ -637,6 +677,8 @@ This removal is **stable**, meaning retained entries keep their relative order. 
 ## Prefix and Suffix Products: Excluding One Position
 <!-- lesson-id:w17-section-prefix-and-suffix-products-excluding-one-position -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Suppose every output position needs the product of all input entries except the one at that position. A full scan for each answer is correct but repeatedly multiplies overlapping groups. We can reuse those contributions. A **prefix** summarizes entries before a position; a **suffix** summarizes entries after it. A **strict prefix** excludes the current entry itself. For multiplication, an empty region contributes 1, the **multiplicative identity**, because multiplying another product by 1 leaves it unchanged.
 
 For `[2, 3, 4]`, the strict prefixes are `[1, 2, 6]`: nothing before index zero, just 2 before index one, and 2 times 3 before index two. The strict suffixes are `[12, 4, 1]`. Multiply corresponding contributions to obtain `[12, 8, 6]`.
@@ -649,6 +691,8 @@ Our local contract returns an empty array for empty input and `[1]` for a single
 
 ## Worked Examples: Trace State Before Updating
 <!-- lesson-id:w17-section-worked-examples-trace-state-before-updating -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Separating membership changes from shared record changes
 
@@ -666,6 +710,8 @@ On decreasing prices, zero remains the answer because the contract allows taking
 
 ## Visual Explanations
 <!-- lesson-id:w17-section-visual-explanations -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 If your reader provides the array lab here, use it to step through pointer movement and changes to the array. The static diagrams also work on their own. Before advancing a visualization, predict which value will move, which reference will be followed, or which state variable will change. Then explain the result instead of only watching the animation. In the first diagram, R marks the next reader position and W the next retained-output slot.
 
@@ -702,6 +748,8 @@ for position i: combine everything before i with everything after i
 ## Complexity Analysis: Costs Under an Explicit Model
 <!-- lesson-id:w17-section-complexity-analysis-costs-under-an-explicit-model -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 For this table, use the conventional **dense dynamic-array model**: an array stores a dense sequence and can grow its capacity as needed. Assume constant-cost entry reads, writes, arithmetic, comparisons, and callbacks unless we specify otherwise. JavaScript defines observable behavior without guaranteeing that every engine realizes these costs.
 
 Special features can change the work behind an apparently simple access. Proxies can intercept operations, accessors can run functions on property access, and huge nested data or expensive callbacks can introduce their own size-dependent work. Analyze those separately. In the table, `n` is array length, `k` is the number of copied entries, and `m` is the number of inserted entries.
@@ -736,6 +784,8 @@ Count the storage allocated and retained, rather than counting variable names. O
 ## Common Mistakes and Repair Strategies
 <!-- lesson-id:w17-section-common-mistakes-and-repair-strategies -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 An **off-by-one** error makes a boundary one position too early or too late. Such bugs often survive small JavaScript tests because an extra read gives undefined instead of throwing. Include empty arrays and searches for undefined under a clearly defined dense-input contract. For a surprising method call, write two columns: the returned value and the receiver afterward. That quickly exposes whether you confused a new length, removed segment, selected value, or changed copy.
 
 If a copy appears to change by itself, draw arrows to objects instead of writing duplicated object text that suggests independence. If removal skips an entry, trace which value moves into the deleted position and which index is visited next. If a short transformation is slow, inspect its callback for another search or repeated copying of growing output. One written expression can hide several traversals and allocations; count what executes.
@@ -744,6 +794,8 @@ Do not infer whether find succeeded from the truthiness of its result: zero, fal
 
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w17-section-interview-and-leetcode-pattern-recognition -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Before reaching for a pattern, ask what must be returned, whether the input may change, what equality means, and what empty input should do. Describe a correct baseline first. On a small example, it gives you a concrete result to compare with the optimized version and exposes which questions you are answering repeatedly. Then look for information you can retain instead of recomputing.
 
@@ -755,6 +807,8 @@ These descriptions and solutions are original teaching material rather than repr
 
 ## Practice Exercises
 <!-- lesson-id:w17-section-practice-exercises -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Try these exercises before opening **Hints and Worked Solutions**. Alongside your code, write the contract and explain what each piece of remembered state means. When an output is correct, also explain which object changed and why the algorithm could safely make each update. Those explanations are part of the practice, not optional commentary after the implementation.
 
@@ -772,6 +826,8 @@ Try these exercises before opening **Hints and Worked Solutions**. Alongside you
 ## Independent Assessment
 <!-- lesson-id:w17-section-independent-assessment -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Close the examples and treat this as a fresh task rather than a copying exercise. If you want to run your work, use a separate scratch file; you do not need to edit the chapter. Allow about 35–50 minutes. Write your predictions and at least one complete implementation before revealing the solutions. That gives you something concrete to assess afterward.
 
 **A. Trace and explain, 4 points.** Begin with `source = [{ n: 1 }, { n: 2 }]`. Create `copy = source.slice()`, call `copy.shift()`, and then assign `copy[0].n = 7`. Show both arrays' final membership and the records' field values. Explain which changes are independent and which follow shared references. Include the value returned by shift, not only the receiver afterward.
@@ -786,6 +842,8 @@ Give credit for reasoning as well as final values. In B, reserve two points for 
 
 ## Hints and Worked Solutions
 <!-- lesson-id:w17-section-hints-and-worked-solutions -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Hints before complete answers
 
@@ -1085,6 +1143,8 @@ The products algorithm allocates linear returned output and constant working sta
 ## Sources and Further Reading
 <!-- lesson-id:w17-section-sources-and-further-reading -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 The array explanations, examples, and algorithms build on repository-owned material in the [archived combined chapter](archive/week-01-complexity-and-arrays.md). General complexity derivations remain in [Module 1](week-01.md), while this chapter provides a standalone array lesson alongside the archive.
 
 Use the references here for precise API behavior and further study. External pages were **not freshly browsed or verified during this authoring pass**. Their inclusion does not claim new access checks, editorial review, or acceptance by an external judge. Choose the relevant method documentation when a boundary rule or supported data type matters to your own program.
@@ -1097,6 +1157,8 @@ Use the references here for precise API behavior and further study. External pag
 
 ## Weekly Summary
 <!-- lesson-id:w17-section-weekly-summary -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 When working with arrays, reason about positions and references together. Positions organize the sequence; references determine which objects different names share. Choose a method by its contract: do you need an index or value, a boolean or collection, a changed receiver or independent output? Explain a traversal by naming the processed region and what retained state says about it. Explain a copy by following references to the depth you intend to isolate.
 
@@ -1130,3 +1192,4 @@ The algorithms in this chapter reuse information in different ways. Opposite-end
 
 - [ ] I recorded a prediction that failed and used a reference drawing or invariant to explain the correction. <!-- checkpoint:w17-reflect-on-error -->
 - [ ] I can explain an array optimization aloud, including its maintained evidence, without reading the code. <!-- checkpoint:w17-explain-optimization -->
+**On the video:** pause here and say the goal out loud: reflection. Then predict the next step before you read the explanation.

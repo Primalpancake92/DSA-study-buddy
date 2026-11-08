@@ -12,6 +12,8 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record e
 ## Learning Objectives
 <!-- lesson-id:w15-section-learning-objectives -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 - Derive grid updates from the cells that can legally precede an arrival, including the effect of obstacles.
 - Define longest common subsequence (LCS) state using two prefix lengths and recover one optimal sequence.
 - Explain which compressed values mean old-above, new-left, and old-diagonal before overwriting anything.
@@ -21,12 +23,16 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record e
 ## Prerequisite Knowledge
 <!-- lesson-id:w15-section-prerequisite-knowledge -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Review state meanings, base cases, and dependency order in [Week 14](week-14.md), together with coordinate-generated graph neighbors in [Week 11](week-11.md). You will use nested arrays, `Map`, and recursive choose/explore/undo reasoning. That last pattern is backtracking: try a choice, explore what it permits, then restore the prior state for another choice.
 
 The string examples use Unicode code points through iteration or `Array.from`. A code point is a Unicode symbol value, not necessarily one visual character. A combined emoji can contain several code points. Grouping them into human-perceived characters is grapheme segmentation, which these examples do not perform.
 
 ## Core Theory
 <!-- lesson-id:w15-section-core-theory -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Grid paths form a directed dependency graph
 
@@ -62,6 +68,8 @@ Memoising only that triple incorrectly treats those futures as equivalent. Backt
 
 ## JavaScript Implementations
 <!-- lesson-id:w15-section-javascript-implementations -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Grid paths, with and without obstacles
 
@@ -398,6 +406,8 @@ In **Demonstration 6**, A→B→D spells `ABD` using legal right/down connection
 ## Worked Examples
 <!-- lesson-id:w15-section-worked-examples -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 For **Demonstration 2** in **JavaScript Implementations**, start the three-by-three obstacle grid with `[1,0,0]`. Row zero yields `[1,1,1]`; row one yields `[1,0,1]`; row two yields `[1,1,2]`. Clearing the center removes an old above-route, while later rows may receive fresh routes from their left.
 
 For A=`ab` and B=`ac`, inspect the prefix table used by **Demonstration 3** in **JavaScript Implementations**:
@@ -416,6 +426,8 @@ For **Demonstration 6** in **JavaScript Implementations**, compare A→B→D, A�
 
 ## Visual Explanations
 <!-- lesson-id:w15-section-visual-explanations -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Read the path grids by adding above and left, treating X as zero. In the compressed LCS sketch, notice that three different moments of state meet at one update. In the trie, stars mark complete words independently of whether more edges continue.
 
@@ -439,6 +451,8 @@ root --c--> node --a--> node --r--> node* --t--> node*
 ## Complexity Analysis
 <!-- lesson-id:w15-section-complexity-analysis -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 For nonempty dimensions, grid algorithms perform O(RC) arithmetic operations; row compression uses O(C) stored values. Rectangle validation adds O(R) work, which matters even when each row has zero columns.
 
 For input lengths m,n, full LCS initialization and evaluation take O((m+1)(n+1)) time and space. Reconstruction adds O(m+n) backward traversal and O(L) output for L matched symbols. For positive lengths the conventional table bound is O(mn). The compressed version uses O(n) DP values, but `Array.from` also allocates O(m+n) symbol arrays. Include those copies before claiming a total auxiliary-space bound.
@@ -449,6 +463,8 @@ For word length L, a loose Word Search branching bound is O(RC·4^L), plus O(L+R
 
 ## Common Mistakes
 <!-- lesson-id:w15-section-common-mistakes -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 - A subsequence permits gaps, so a mismatch does not reset LCS to zero. That would discard matches belonging to shorter prefixes.
 - Allocate independent table rows. Repeating one array reference creates apparent rows that change together.
@@ -471,12 +487,16 @@ In broken **Demonstration 1**, assigning seven to the cell at row one, column on
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w15-section-interview-and-leetcode-pattern-recognition -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 Two strings often suggest a pair of prefix lengths. Right/down grid moves suggest dependencies without cycles and therefore a natural table order. Repeated dictionary-prefix queries suggest a trie. But a board plus “do not reuse cells in the current path” suggests backtracking rather than automatically implying DP.
 
 Ask what makes two future subproblems equivalent. Unique Paths counts arrivals without needing route history. LCS maximizes matched length over two prefixes. Word Search asks whether a path exists under history-dependent restrictions. Contacts asks how many names share a prefix, requiring counts beyond Boolean membership. Input shape is less informative than the information needed for the answer.
 
 ## Practice Exercises
 <!-- lesson-id:w15-section-practice-exercises -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Conceptual
 
@@ -505,6 +525,8 @@ Ask what makes two future subproblems equivalent. Unique Paths counts arrivals w
 ## Hints and Worked Solutions
 <!-- lesson-id:w15-section-hints-and-worked-solutions -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 1. Two paths can reach the same cell and letter index after using different cells. A needed future neighbor may be free on one path and forbidden on the other. A sound memo key must include that used-set information, or you can retain backtracking. Omitting history requires a separate equivalence proof.
 2. Inserting “cart” creates the path ending at r but marks only t. Exact “car” lookup must inspect r's flag and initially fails. The empty prefix similarly exists at the root before the empty word is explicitly inserted.
 3. Row zero becomes `[1,0,0]` because the obstacle interrupts its only incoming route. Row one becomes `[1,1,1]`, giving one route to the destination. Blocking the start clears the only seed, so every state remains zero.
@@ -518,6 +540,8 @@ For small strings, compare LCS results with a tiny exhaustive subsequence genera
 ## Sources and Further Reading
 <!-- lesson-id:w15-section-sources-and-further-reading -->
 
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
+
 - The [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js) supply the chapter's course scope.
 - MIT OCW's [Lecture 21 string-DP notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/3484e876d81aba07911a1109f5b5e81e_MIT6_006F11_lec21.pdf) were opened during earlier preparation for string-subproblem and DP context, rather than as a source for this LCS code.
 - CMU's [15-451/651 Lecture 26](https://www.cs.cmu.edu/~avrim/451f13/lectures/lect1121.pdf) was previously consulted for shared-prefix trie context. The sparse-map implementation and exercises are independently written.
@@ -525,6 +549,8 @@ For small strings, compare LCS results with a tiny exhaustive subsequence genera
 
 ## Weekly Summary
 <!-- lesson-id:w15-section-weekly-summary -->
+
+**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Two dimensions identify two pieces of state, such as coordinates or prefix lengths. Make each dependency meaningful before choosing its storage or update order. Tries share paths for common prefixes, while end markers retain exact membership. Word Search shows why reuse has limits: different path histories can leave different legal continuations. In [Week 16](week-16.md), you will combine these distinctions while solving unfamiliar problems independently.
 
@@ -548,3 +574,4 @@ Two dimensions identify two pieces of state, such as coordinates or prefix lengt
 ### Reflection
 
 - [ ] Record a case where compression or memoisation discards information the future still needs. <!-- checkpoint:w15-review-state-loss -->
+**On the video:** pause here and say the goal out loud: reflection. Then predict the next step before you read the explanation.

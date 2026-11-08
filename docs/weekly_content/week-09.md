@@ -22,10 +22,14 @@ Use the final checklist after drawing traversal orders and testing your own impl
 ## Prerequisite Knowledge
 <!-- lesson-id:w9-section-prerequisite-knowledge -->
 
+**Before we climb the tree:** Treat every child as the root of a smaller problem. We will keep the node shape and the stored values separate, then use call frames or explicit containers to make each paused visit visible.
+
 Review references to objects in [Week 7](week-07.md), waiting-call frames in [Week 8](week-08.md), and newest-first versus oldest-first containers in [Week 5](week-05.md). Our nodes contain `value`, `left`, and `right`; a missing child is explicitly `null`. Inputs must be finite trees: they cannot loop back, and two parents cannot share a child object. Otherwise a traversal may revisit nodes forever or count them repeatedly. More general connected structures need the remembered-visited-state techniques of [Week 11](week-11.md).
 
 ## Core Theory
 <!-- lesson-id:w9-section-core-theory -->
+
+**Whiteboard route:** name the tree, place the parent visit before, between, or after its children, and watch that one choice create preorder, inorder, or postorder. Then compare a narrow chain with a broad tree so the storage tradeoff feels concrete.
 
 ### A tree contains smaller trees
 
@@ -65,6 +69,8 @@ Separate frontiers make a level's membership fixed while you process it. If you 
 
 ## JavaScript Implementations
 <!-- lesson-id:w9-section-javascript-implementations -->
+
+**Let’s walk the nodes together.** Predict which node is visited next, where the pending work is stored, and whether the function returns a number or an array. After each demonstration, connect the output to the traversal contract and the shape-dependent cost.
 
 We will record each parent at three moments to make preorder, inorder, and postorder directly comparable.
 
@@ -242,6 +248,8 @@ In **Demonstration 5**, frontier begins `[1]`, then becomes `[2,3]`, then `[4,5,
 ## Worked Examples
 <!-- lesson-id:w9-section-worked-examples -->
 
+**Worked-walkthrough pause:** Draw an uneven tree and trace the parent’s resume point after each child returns. That single habit prevents mixing up depth, height, and traversal order.
+
 Walk through the A/B/C/D/E tree while keeping a finger at each paused call. Enter A, record preorder A, and pause it to visit B. Enter B, record preorder B, and visit D. D has no children, so all three of its visits finish before it returns. B resumes, records inorder B, visits E, then records postorder B. A resumes after B, records inorder A, processes C, and finally records postorder A. In particular, postorder B must follow both D and E because its push comes after both child calls.
 
 For root 4 with left 9, right 2, and 9's right child 7, begin at the leaves. Null children return zero, so 7 returns one; 9 takes the larger child depth and returns two. Node 2 returns one, and root 4 returns three. Although each call makes two child calls, those subtrees share no nodes. We visit different pieces of the input, so the branching syntax does not imply exponential recomputation.
@@ -250,6 +258,8 @@ For BFS, write the frontiers `[1]`, `[2,3]`, and `[4,5,6]` on separate lines. Wh
 
 ## Visual Explanations
 <!-- lesson-id:w9-section-visual-explanations -->
+
+**Picture the frontier:** DFS follows one route deeply, while BFS freezes a whole level before expanding it. The diagram is a quick intuition check for why chains stress depth and broad trees stress width.
 
 ```text
         A                  4
@@ -276,6 +286,8 @@ Read the horizontal chain as repeated single-child links, not as an array layout
 ## Complexity Analysis
 <!-- lesson-id:w9-section-complexity-analysis -->
 
+**Complexity checkpoint:** Separate nodes visited from storage retained. Ask whether the active path is O(h), whether the current frontier is O(w), and whether returned arrays or queue history add O(n) beyond the worklist.
+
 For the table, let n count all nodes, h count nodes on the longest root-to-leaf path, and w count nodes on the widest level. Working space means temporary storage in addition to the input and the separately reported saved result.
 
 | Implementation | Time | Working space | Stored result |
@@ -295,6 +307,8 @@ Suppose you use `queue=[root]`, append children, and remove work only by advanci
 
 ## Common Mistakes
 <!-- lesson-id:w9-section-common-mistakes -->
+
+**Debugging pause:** Find the first node whose expected visit differs from the trace. Check null versus a falsy value, the depth convention, and whether children were added in the right order. These checks turn a vague traversal failure into one precise invariant violation.
 
 - Check search-tree order before expecting inorder to be sorted; binary shape alone is insufficient.
 - Keep empty depth zero when counting nodes, so leaves correctly produce one.
@@ -320,12 +334,16 @@ In broken **Demonstration 1**, a root with two leaf children returns `1 + 1 + 1`
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w9-section-interview-and-leetcode-pattern-recognition -->
 
+**Interview lens:** Translate “visit,” “longest path,” “mirror,” or “level by level” into a traversal contract before choosing recursion, a stack, or a queue. State the shape assumption; it controls the memory claim.
+
 Prompts about levels, the nearest leaf, or the first depth meeting a condition suggest BFS because it finishes shallower work first. Combining child answers, subtree calculations, and height suggest postorder reasoning. Recording a parent before descendants suggests preorder. Sorted inorder can help only after you establish binary-search-tree order. Choose the visit moment based on what information the task needs.
 
 Say what shape the input guarantees. A cyclic object graph can make these traversals repeat forever. A proper tree needs no visited Set because every non-root node has exactly one parent and cannot be reached by competing paths. If the tree may be a chain hundreds of thousands of nodes long, use an explicit stack or queue so the runtime's recursion limit does not stop an otherwise correct traversal.
 
 ## Practice Exercises
 <!-- lesson-id:w9-section-practice-exercises -->
+
+**Your turn:** Use a lopsided tree, not just a perfect example. Trace every push and pop, preserve zero-valued nodes, and explain why the selected child determines one longest path rather than two combined branches.
 
 ### Conceptual Questions
 
@@ -353,6 +371,8 @@ Say what shape the input guarantees. A cyclic object graph can make these traver
 
 ## Hints and Worked Solutions
 <!-- lesson-id:w9-section-hints-and-worked-solutions -->
+
+**Hint-to-solution walkthrough:** Predict the next frame or frontier, write the invariant in one sentence, and use the solution to check that reasoning. Focus on the first divergence, not just the final sequence.
 
 1. The drawing is a binary tree because no node has more than two children. It fails strict BST order because its left descendant 9 is larger than root 4. Shape and value order are separate requirements.
 2. A chain has width one and depth n. Frontier BFS uses O(1) temporary references, while recursive DFS retains O(n) frames. A complete tree has logarithmic height and potentially linear width, reversing the comparison. The explicit-stack depth traversal in this chapter also keeps only O(1) pending entries on a chain, so distinguish it from recursive DFS.
@@ -399,6 +419,8 @@ The existing source record dates consultation to 2026-11-07. We preserve that hi
 
 ## Weekly Summary
 <!-- lesson-id:w9-section-weekly-summary -->
+
+**Recap:** Trees become manageable when a parent delegates to smaller trees and remembers how to resume. You can now choose DFS or BFS intentionally, state depth conventions clearly, and account for shape-sensitive storage.
 
 You can now approach a tree by deciding what one smaller-subtree call must accomplish. DFS orders place the parent before, between, or after child work; BFS groups visits by complete levels. Track depth for waiting paths, width for frontiers, and actual retained containers for the final storage claim. [Week 10](week-10.md) builds on these shapes by adding value-order promises for search and priority selection.
 
