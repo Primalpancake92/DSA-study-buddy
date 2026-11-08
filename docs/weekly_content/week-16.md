@@ -12,8 +12,6 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record e
 ## Learning Objectives
 <!-- lesson-id:w16-section-learning-objectives -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - Select an algorithm from input constraints, required output, and the statements its processing must keep true.
 - Build a correct direct baseline and identify the repeated work an optimization removes.
 - Explain correctness using an invariant, an induction over smaller cases, or an exchange preserving solution quality.
@@ -23,16 +21,12 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record e
 ## Prerequisite Knowledge
 <!-- lesson-id:w16-section-prerequisite-knowledge -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Review graph modeling in [Week 11](week-11.md), graph-algorithm assumptions in [Week 12](week-12.md), greedy proofs in [Week 13](week-13.md), DP state design in [Week 14](week-14.md), and two-dimensional dependencies and tries in [Week 15](week-15.md).
 
 Earlier tools remain available too: hashing for indexed lookup, two pointers and windows for controlled scans, stacks, binary search, linked lists, recursion, trees, and heaps. Consolidation means choosing among these tools according to the problem, rather than trying to use whichever topic you studied most recently.
 
 ## Core Theory
 <!-- lesson-id:w16-section-core-theory -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### A workflow that produces evidence
 
@@ -78,8 +72,6 @@ Also count the answer itself. All matching pairs can occupy quadratic output eve
 
 ## JavaScript Implementations
 <!-- lesson-id:w16-section-javascript-implementations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Mock A: frequency matching
 
@@ -267,8 +259,6 @@ A traversal cannot leave its component because every step follows a legal land e
 ## Worked Examples
 <!-- lesson-id:w16-section-worked-examples -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Trace frequency consumption from **Demonstration 1** in **JavaScript Implementations**. For `aab` against `abb`, counts start a=2,b=1. Consuming a leaves a=1,b=1. Consuming b leaves a=1,b=0. The final b has no available occurrence and fails. Equal total length alone cannot establish equal multiplicity.
 
 For **Demonstration 2** in **JavaScript Implementations**, follow the window boundaries on `abba`:
@@ -286,8 +276,6 @@ In **Demonstration 3** in **JavaScript Implementations**, four-direction explora
 
 ## Visual Explanations
 <!-- lesson-id:w16-section-visual-explanations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 The workflow diagram loops back from counterexamples because tests can expose an incorrect model or invariant. In the window sketch, the old a is in the discarded prefix. Its last-seen record remains useful history, but cannot reopen that prefix.
 
@@ -308,8 +296,6 @@ left stays 2; the earlier a cannot reopen the discarded prefix.
 ## Complexity Analysis
 <!-- lesson-id:w16-section-complexity-analysis -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 For lengths n,m and k distinct symbols in the first string, anagram checking takes expected O(n+m) time and O(k) auxiliary space. This assumes expected constant-time map operations. Early failure can process less input, but the stated bound covers a full successful comparison.
 
 The baseline substring scan has an O(n²) worst-case upper bound and O(min(n,alphabet size)) set storage. A fixed tiny alphabet can force each extension to stop early; the general quadratic analysis allows a growing alphabet or an all-distinct input. The window performs O(n) map operations and keeps O(k) entries for all distinct symbols encountered. Its map retains occurrences outside the current window, so do not count only the active characters.
@@ -322,8 +308,6 @@ When giving interview estimates, define your variables. Linear graph work means 
 
 ## Common Mistakes
 <!-- lesson-id:w16-section-common-mistakes -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 - Check direction, contiguity, reuse, and mutation rules before choosing a pattern. A familiar input shape does not settle the contract.
 - Give each variable a prefix or state meaning. Calling everything “the answer” hides which updates are legal.
@@ -346,8 +330,6 @@ In broken **Demonstration 1**, process `abba`. The second b has already moved le
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w16-section-interview-and-leetcode-pattern-recognition -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Use the course as a collection of arguments you can transfer. Hashing avoids repeated membership scans. A pointer that moves only forward can eliminate candidates once. A stack retains unresolved order, while a heap retrieves the next priority. DP reuses equivalent future questions, and a trie shares prefix paths. For each technique, explain both which work it saves and which condition makes saving it safe.
 
 Practice rejecting plausible alternatives aloud. A unique-substring task requires contiguity, so LCS's gapped subsequences answer a different question. Ordinary BFS minimizes weighted cost only when weights are equal. An arbitrary sum constraint with negative numbers may not support a monotone window. No-reuse board search cannot generally cache solely by coordinates.
@@ -356,8 +338,6 @@ If an optimization fails during a mock, retain the smallest counterexample you c
 
 ## Practice Exercises
 <!-- lesson-id:w16-section-practice-exercises -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Conceptual
 
@@ -386,8 +366,6 @@ If an optimization fails during a mock, retain the smallest counterexample you c
 ## Hints and Worked Solutions
 <!-- lesson-id:w16-section-hints-and-worked-solutions -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 1. A single scan avoids preprocessing for one lookup. Repeated exact-membership queries can share a hash index's construction cost; this sharing is what amortizing preprocessing means here. Sorted storage supports ordered queries and binary search. Include O(n) index memory, expected hashing assumptions, and O(n log n) sorting. If data changes frequently, count update work too.
 2. Reachability asks only whether a legal route exists, so DFS or BFS can still establish it. Minimum cost depends on sums of edge weights, requiring Dijkstra's tentative-cost order for general nonnegative unequal weights. Equal positive weights allow BFS followed by a scale factor.
 3. Best lengths are 1,2,2,2,3,4,5. Left becomes two at the second m and remains two afterward. The final t previously occurred at zero, outside the active window, so it cannot move left backward. The longest window is `mzuxt`, length five.
@@ -401,16 +379,12 @@ For Ransom Note, count magazine words and consume note words, failing when an oc
 ## Sources and Further Reading
 <!-- lesson-id:w16-section-sources-and-further-reading -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - The [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js) define scope. The timing workflow, examples, oracle, and review rubric are original instructional synthesis.
 - MIT OCW's [BFS lecture notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/1208e162775f6f5cedfbb9f2b694ede0_MIT6_006F11_lec13.pdf) were consulted during earlier preparation as graph background, rather than as a source for mock timing or the review rubric.
 - The official [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/) and [Hash Tables: Ransom Note](https://www.hackerrank.com/challenges/ctci-ransom-note/problem) statements were previously consulted to check contracts and destinations. This rewrite claims neither renewed external verification nor online submission or editorial review.
 
 ## Weekly Summary
 <!-- lesson-id:w16-section-weekly-summary -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Independent problem-solving connects a contract to a model, a model to an invariant, and that invariant to implementation and tests. A baseline gives you a recovery point and can supply an oracle for small inputs. An optimization needs a reason discarded work cannot change the answer.
 
@@ -437,4 +411,3 @@ Review with counterexamples, changed constraints, and later attempts from a blan
 
 - [ ] Record a minimal counterexample, corrected invariant, and specific next drill. <!-- checkpoint:w16-write-failure-review -->
 - [ ] Reattempt a prior failure from a blank editor and explain the effect of one changed constraint. <!-- checkpoint:w16-demonstrate-independent-transfer -->
-**On the video:** pause here and say the goal out loud: reflection. Then predict the next step before you read the explanation.

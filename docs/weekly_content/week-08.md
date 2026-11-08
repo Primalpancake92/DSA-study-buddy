@@ -22,14 +22,10 @@ Use the final checklist after explaining a complete small call tree and rebuildi
 ## Prerequisite Knowledge
 <!-- lesson-id:w8-section-prerequisite-knowledge -->
 
-**Before we recurse:** Imagine pausing a video at every function call. Each pause keeps a promise and a return point. We will use that intuition, then name frames, base cases, and shared state before exploring branches and counting both search work and saved answers.
-
 Bring functions, arrays, object identity from [Week 7](week-07.md), and newest-first stacks from [Week 5](week-05.md). Every call has its own local variable bindings, but those bindings can refer to the same array object. Backtracking depends on understanding both facts at once. We use small teaching inputs: JavaScript limits how many calls can wait at once, and even a shallow search can run out of memory if it retains enough answers.
 
 ## Core Theory
 <!-- lesson-id:w8-section-core-theory -->
-
-**Here is our whiteboard route:** start with one smaller promise, expand it into a call tree, and then watch backtracking choose, explore, and undo. For every pattern, we will ask what the state means, why the next call progresses, and what must be restored before a sibling branch begins.
 
 ### A recursive call makes a smaller promise
 
@@ -63,8 +59,6 @@ Before coding a pattern, describe five things in words: what the current state r
 
 ## JavaScript Implementations
 <!-- lesson-id:w8-section-javascript-implementations -->
-
-**Let’s run the calls slowly.** First predict the entry and return order; then watch the path array and flags change. After each example, check the contract, the stopping rule, the copied output, and the tradeoff between active stack depth and the number of answers retained.
 
 We will log entering and returning so you can see the parent additions wait for smaller suffix sums.
 
@@ -249,8 +243,6 @@ In **Demonstration 5**, digit string `23` first chooses a and then explores d, e
 ## Worked Examples
 <!-- lesson-id:w8-section-worked-examples -->
 
-**Worked-walkthrough pause:** Draw one complete small branch before looking at the result. Mark the moment an answer is copied and the moment state is undone. This makes aliasing and missed-undo bugs visible instead of mysterious.
-
 Trace subsets `[A,B]` by writing each decision before moving to the next position. Exclude A, then exclude B to save `[]`. Return to B's decision, include it to save `[B]`, then undo it. Back at the root, include A. Excluding B saves `[A]`; including B saves `[A,B]`. Undo B and then A to restore the original empty path. Every include/exclude sequence reaches one answer, and for distinct input no two sequences choose the same subset. That proves both completeness and uniqueness.
 
 For permutations `[1,2,3]`, choose 1, then 2, then 3 and save the complete order. Undo 3 and 2, leaving `[1]` with only flag 0 true. You can now choose 3, then 2, to save `[1,3,2]`. Remove 1 only after all orders beginning with 1 have finished. Notice what undo means: restore the immediate parent's state. Clearing the whole path would lose the parent's choices just as surely as failing to pop would leak a child's choice.
@@ -261,8 +253,6 @@ For digits `23`, keep a on the path while exploring d, e, and f in turn. Only af
 
 ## Visual Explanations
 <!-- lesson-id:w8-section-visual-explanations -->
-
-**See the search tree as a map of choices.** A vertical path is the memory currently on the stack; the whole branching picture is the work. That visual distinction is the intuition behind the complexity numbers we will use.
 
 ```text
 Subsets [A,B]:
@@ -285,8 +275,6 @@ Redraw the tree for three-element permutations: there are 3 choices at the root,
 ## Complexity Analysis
 <!-- lesson-id:w8-section-complexity-analysis -->
 
-**Complexity checkpoint:** Do not stop at “there are 2^n calls.” Count the active path, the exploration tree, and the elements copied into returned answers. Output is part of the work, and pruning is valid only when its proof matches the input assumptions.
-
 ### Output is part of the work
 
 For n distinct elements, every position has two decisions, yielding 2^n subsets. Visiting the binary call tree costs Θ(2^n), but a saved answer must copy every chosen element. Each element occurs in exactly half the subsets, so the total copied element count is n·2^(n−1) for n≥1. Thus time and stored output are Θ(n·2^n), while only O(n) working path and stack space are active at once. To include empty input uniformly, use Θ((n+1)2^n). These tight bounds describe growth; they are not names for best or worst input cases. Merely counting subsets is a different task and avoids constructing the arrays.
@@ -305,8 +293,6 @@ Before the search, removing duplicates adds expected O(c) Set work under the usu
 
 ## Common Mistakes
 <!-- lesson-id:w8-section-common-mistakes -->
-
-**Debug with a rewind:** Stop at the first incorrect sibling branch and ask which state the parent should have restored. Check the base case, copied snapshots, flags, and start index one by one. The list below turns common surprises into deliberate tests.
 
 - A base case is useful only if every recursive branch moves toward it. Name a decreasing quantity.
 - Return after saving a completed answer so you do not keep exploring from a finished state.
@@ -332,16 +318,12 @@ In broken **Demonstration 1**, subsets of `[A,B]` can save four references, yet 
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w8-section-interview-and-leetcode-pattern-recognition -->
 
-**Interview lens:** Say “state, choices, base case, undo, output” before coding. That five-part explanation quickly identifies whether a problem is a subset, permutation, combination-sum, or position-by-position generation pattern.
-
 Translate prompt wording into choices. “All subsets” suggests include/exclude decisions, while “all orders” suggests choosing unused positions. Reusing a candidate means the index may stay unchanged, so something else must prove progress. An alphabet for each position gives a product of choice counts. Also distinguish finding any solution from returning every solution: the former can stop early, while the latter must construct every requested answer.
 
 Before pruning, explain why no continuation of that branch can succeed. In combination sum, positivity means added values cannot reduce an overshoot, and sorting means later candidates cannot be smaller. With negative candidates, a later value could repair an overshoot, making the same break incorrect. In an interview, explicitly notice when a familiar optimization has lost the assumptions that justified it.
 
 ## Practice Exercises
 <!-- lesson-id:w8-section-practice-exercises -->
-
-**Your turn:** Trace a tiny call tree by hand, including returns and undo steps. Then test two independent saved answers for aliasing. A correct count is not enough; the arrays must remain independent after the scratchpad changes.
 
 ### Conceptual Questions
 
@@ -369,8 +351,6 @@ Before pruning, explain why no continuation of that branch can succeed. In combi
 
 ## Hints and Worked Solutions
 <!-- lesson-id:w8-section-hints-and-worked-solutions -->
-
-**Hint-to-solution walkthrough:** Attempt one branch with a pencil, state your invariant, and only then peek at the solution. Compare not just the answers but also when the algorithm copies state, prunes, and returns.
 
 1. Include the nonrecursive work and whether the subproblems overlap. Two half-size calls with Θ(n) local work give Θ(n log n) time and O(log n) frame depth, excluding local allocations. Two size-(n−1) calls with constant local work give Θ(2^n) time and O(n) depth. The active path and full call tree answer different cost questions.
 2. There is exactly one way to choose nothing and one way to order nothing, represented by one empty answer. The phone API treats no requested digits as no requested combinations instead. The correct base case follows the function's promised meaning, not a universal rule that empty inputs always produce the same shape.
@@ -426,8 +406,6 @@ The existing chapter records consultation on 2026-11-07. We retain that source h
 
 ## Weekly Summary
 <!-- lesson-id:w8-section-weekly-summary -->
-
-**Recap:** Recursion gives each call a smaller promise; backtracking lets one mutable path serve many alternatives safely. You can now explain termination, undo state deliberately, and charge the real cost of exploring and storing answers.
 
 You can now describe recursion as a smaller promised job followed by a return to waiting work. Backtracking adds disciplined restoration so alternatives begin from the same parent state. Before skipping a branch, prove it cannot contain an answer; before quoting a generation cost, include construction of the answers themselves. These habits transfer directly to the smaller-subtree structure of [Week 9's binary trees](week-09.md).
 

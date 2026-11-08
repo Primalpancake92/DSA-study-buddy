@@ -22,14 +22,10 @@ Use the final checklist after tracing swaps and rebuilding the implementations y
 ## Prerequisite Knowledge
 <!-- lesson-id:w10-section-prerequisite-knowledge -->
 
-**Before we compare structures:** Ask what ordering promise you actually need. A BST guides a search through ancestors; a heap exposes one extreme. We will keep those contracts visible while moving from tree references to array indexes and local repairs.
-
 Review trees and traversals in [Week 9](week-09.md), safe elimination in [Week 6](week-06.md), and maps in [Week 2](week-02.md). You will need references to objects, array indexes, and functions that compare two numeric priorities. Our classes preserve an invariant—a statement that remains true—after each public operation a caller can use. JavaScript has no standard built-in binary heap, so **Demonstration 2** in “JavaScript Implementations” supplies every operation needed by its clients.
 
 ## Core Theory
 <!-- lesson-id:w10-section-core-theory -->
-
-**Whiteboard route:** follow a BST search, carry its ancestor bounds, then switch to a heap and watch one entry sift along a single path. Finally, use a small min-heap as a top-K cutoff and make the time, space, and tie-breaking tradeoffs explicit.
 
 ### A BST orders entire subtrees
 
@@ -71,8 +67,6 @@ Decide whether the caller wants a collection or a rank. Returning an empty top-K
 
 ## JavaScript Implementations
 <!-- lesson-id:w10-section-javascript-implementations -->
-
-**Let’s trace every comparison.** Predict the child or heap index chosen, run the operation, and verify the invariant immediately afterward. The examples deliberately separate search, repair, construction, and top-K bookkeeping so no hidden full sort sneaks into the cost.
 
 We will insert finite keys, ignore a repeated key, and reject a descendant that violates an ancestor's bound.
 
@@ -268,8 +262,6 @@ Frequency ranking changes what priority means: entries hold a distinct value and
 ## Worked Examples
 <!-- lesson-id:w10-section-worked-examples -->
 
-**Worked-walkthrough pause:** Draw the ancestor bounds or array indexes before changing anything. Then identify exactly which path can be invalid and why repairing only that path is enough.
-
 Trace search for 7 along 10→4→7. At 10, the right subtree is too large; at 4, the left subtree is too small. Each movement has evidence for discarding a whole region. Now trace validation of the bad 12: bounds are `(-∞,∞)` at 10, `(-∞,10)` at 4, and `(4,10)` at 12. The immediate parent permits 12, but the ancestor's upper limit rejects it. This is why the check must carry both bounds.
 
 Begin with min-heap `[2,5,4,9,7]` and append 1 to preserve its complete shape, giving `[2,5,4,9,7,1]`. Index 5's parent index is 2, whose value is 4. Swap to obtain `[2,5,1,9,7,4]`. The moved value is now at index 2, whose parent is index 0. Swap 1 with 2 to obtain `[1,5,2,9,7,4]`. At the root there is no earlier ancestor to check.
@@ -290,8 +282,6 @@ For the frequency client, 9 occurs three times, while 2 and 4 each occur twice. 
 
 ## Visual Explanations
 <!-- lesson-id:w10-section-visual-explanations -->
-
-**See the promise, not a fake sorted picture.** A BST constrains whole subtrees; a heap constrains parent-child edges and guarantees only its root extreme. The diagrams make that difference easy to recall in an interview.
 
 ```text
 BST:                          Min-heap:
@@ -317,8 +307,6 @@ The drawn heap is complete, but left child 5 exceeds root 2, so it violates stri
 ## Complexity Analysis
 <!-- lesson-id:w10-section-complexity-analysis -->
 
-**Complexity checkpoint:** Charge BST work to height, heap repair to the path length, heapify to the bottom-up sum, and top-K to both k and any frequency map or final sort. A structure’s useful guarantee is never a license to claim more order than it provides.
-
 | Operation | Time under standard comparison/dynamic-array model | Extra working space |
 | --- | --- | --- |
 | BST search or iterative insertion | O(h) | O(1) |
@@ -338,8 +326,6 @@ Inserting sorted values into an ordinary BST can repeatedly walk the growing cha
 
 ## Common Mistakes
 <!-- lesson-id:w10-section-common-mistakes -->
-
-**Debugging pause:** When an answer seems sorted, ask which invariant produced that order. Trace the first bad bound or swap, check duplicate policy and finite-number assumptions, and verify that the weaker retained top-K item is the root.
 
 - Carry ancestor bounds during validation; immediate parent-child checks miss deeper violations.
 - Inspect BST shape before claiming logarithmic search, since sorted insertions can create a chain.
@@ -364,16 +350,12 @@ In broken **Demonstration 1**, use parent 10 with left child 3 and right child 7
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w10-section-interview-and-leetcode-pattern-recognition -->
 
-**Interview lens:** Say the invariant before the operation: subtree bounds for a BST, complete shape plus parent order for a heap, and a cutoff for top-K. Then name the worst-case shape and the extra storage.
-
 When a prompt asks for ordered membership, neighboring keys—the predecessor or successor—or values in a range, consider a search tree. Repeated requests for the next smallest or largest item, scheduling, and continuing top-K updates suggest a heap. A one-time kth-largest array query also admits quickselect, but an ongoing stream fits the bounded-heap contract naturally. Choose based on the sequence of operations the caller needs.
 
 Before writing a comparator, say what you want at the root. A min-heap exposes the globally smallest entry. A largest-K client wants the weakest retained winner there, which becomes kth largest after k observations exist. A frequency client compares counts rather than original values, with a stated tie rule. That sentence determines both heap direction and eviction behavior.
 
 ## Practice Exercises
 <!-- lesson-id:w10-section-practice-exercises -->
-
-**Your turn:** Trace empty, singleton, equal, and negative cases. Record every repair swap and explain why the selected child is the correct one. For top-K, decide whether rank counts repeated observations and state the tie rule.
 
 ### Conceptual Questions
 
@@ -403,8 +385,6 @@ Before writing a comparator, say what you want at the root. A min-heap exposes t
 
 ## Hints and Worked Solutions
 <!-- lesson-id:w10-section-hints-and-worked-solutions -->
-
-**Hint-to-solution walkthrough:** Attempt the local repair first; do not reach for a full sort. Compare your swaps, bounds, and cost ledger with the solution, including any output sorting or map storage.
 
 1. Heap order compares ancestors with descendants but does not order separate branches. A target can lie in either child subtree, so a root comparison cannot generally discard one. Balanced shape alone supplies no safe elimination rule.
 2. When a stronger candidate arrives, remove the smallest retained value. A min-heap makes that weakest winner immediately accessible. A max-heap would expose the best retained observation for removal instead, defeating the client's goal.
@@ -453,8 +433,6 @@ The existing chapter records source consultation on 2026-11-07. We retain that h
 
 ## Weekly Summary
 <!-- lesson-id:w10-section-weekly-summary -->
-
-**Recap:** BSTs narrow searches through height-dependent bounds, while heaps expose an extreme through local repairs. You can now tell what each invariant guarantees, what it does not, and how top-K keeps only the information its cutoff needs.
 
 You can now explain a BST's search through whole-subtree elimination and a heap's root access through parent-child priority order. BST performance depends on height; heaps maintain a complete shape but do not supply arbitrary target-search order. For top-K, the root becomes the weakest retained winner, and frequency clients change priority from value to count. The heap implementation will also support the priority-driven graph algorithms in [Week 12](week-12.md).
 

@@ -12,8 +12,6 @@ Use the Theory, JavaScript, Practice, and Reflection checklist at the end to rec
 ## Learning Objectives
 <!-- lesson-id:w12-section-learning-objectives -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - Detect directed cycles through active and finished DFS work, and through Kahn's prerequisite-removal algorithm.
 - Explain why incoming-edge counts represent prerequisites still remaining, and validate a proposed topological order.
 - Find shortest routes with nonnegative weights by improving tentative distances and skipping outdated heap entries.
@@ -23,14 +21,10 @@ Use the Theory, JavaScript, Practice, and Reflection checklist at the end to rec
 ## Prerequisite Knowledge
 <!-- lesson-id:w12-section-prerequisite-knowledge -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Review neighbor lists, marking on discovery, and equal-cost BFS in [Week 11](week-11.md). You will use array indexes and `Map`. For heaps, remember the invariant: a parent's priority is no larger than either child's. Following that relationship down the tree shows that the minimum is at the root. It does not make the whole backing array sorted. We will study the broader question of why a local choice is safe in [Week 13](week-13.md).
 
 ## Core Theory
 <!-- lesson-id:w12-section-core-theory -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Directed cycles need more than a visited bit
 
@@ -64,8 +58,6 @@ Our lazy heap inserts a fresh entry whenever a distance improves instead of edit
 
 ## JavaScript Implementations
 <!-- lesson-id:w12-section-javascript-implementations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Three-color cycle detection
 
@@ -330,8 +322,6 @@ Keep the existence promise attached to this implementation. It is not a general 
 ## Worked Examples
 <!-- lesson-id:w12-section-worked-examples -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Revisit **Demonstration 2** in **JavaScript Implementations**. Initial diamond indegrees are `[0,1,1,2]`. Removing 0 releases 1 and 2, but 3 must wait for both. Its count becomes one after removing 1 and zero after removing 2. Completing one prerequisite is different from completing them all.
 
 Here is the removal trace for **Demonstration 3** in **JavaScript Implementations**:
@@ -352,8 +342,6 @@ In **Demonstration 4** in **JavaScript Implementations**, KUL enters reverse out
 ## Visual Explanations
 <!-- lesson-id:w12-section-visual-explanations -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Read the diamond's converging arrows as shared finished work, and the cycle's return arrow as a return to an active ancestor. In the weighted diagram, compare a direct offer with a later cheaper offer before deciding a distance is final.
 
 ```text
@@ -373,8 +361,6 @@ Weighted routes:
 ## Complexity Analysis
 <!-- lesson-id:w12-section-complexity-analysis -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Let V count vertices and E count directed edges, including parallel edges. DFS coloring and Kahn's traversal take O(V+E) time because each vertex and adjacency entry is processed once. DFS uses O(V) colors and, in the worst case, O(V) nested calls. Kahn builds O(V+E) adjacency storage plus O(V) counts and queue; its order output takes O(V).
 
 For **Demonstration 3** in **JavaScript Implementations**, start with one heap entry and add one per successful relaxation. Each settled vertex's outgoing edges are scanned once, so at most E+1 entries are created over the run. The heap may contain O(E+1) entries. Including validation and initialization gives **O(V+E+(E+1) log(E+2)) time and O(V+E) auxiliary space** beyond the supplied graph.
@@ -385,8 +371,6 @@ Itinerary sorting costs O(E log(E+1)) comparisons in the worst case, then edge c
 
 ## Common Mistakes
 <!-- lesson-id:w12-section-common-mistakes -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 - Reaching a previously visited vertex is not enough to prove a directed cycle. A diamond can reach a finished vertex safely; inspect active state.
 - Convert prerequisite pairs into the declared edge direction. Correct processing of reversed edges still answers the wrong question.
@@ -426,8 +410,6 @@ Graph promises also matter. A weighted DAG supports topological relaxation even 
 ## Practice Exercises
 <!-- lesson-id:w12-section-practice-exercises -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 ### Conceptual
 
 1. Explain why reaching a finished DFS vertex differs from reaching an active one. Use a diamond and a cycle to identify which calls are still unfinished.
@@ -453,8 +435,6 @@ Graph promises also matter. A weighted DAG supports topological relaxation even 
 ## Hints and Worked Solutions
 <!-- lesson-id:w12-section-hints-and-worked-solutions -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 1. An active vertex is an ancestor on the current call path, so an edge returning to it closes a directed cycle. A finished vertex need not be an ancestor. The diamond reaches D from a second branch only after D's call has returned, without implying any path back.
 2. Start with `[0,2,1,1,0]`. Remove 0 and 4 in either available order. The count at 1 remains positive because of 2→1, and 1,2,3 stay blocked. Only 1 and 2 form the cycle; 3 depends on it downstream.
 3. The broken fragment freezes vertex 1 at eight while processing source 0. Vertex 2 later offers 2+1=3, but the visited condition refuses it. Permit strict distance improvements, schedule their new entries, and discard stale entries when removed.
@@ -466,8 +446,6 @@ For Course Schedule, convert pairs to before→after edges and return whether Ka
 ## Sources and Further Reading
 <!-- lesson-id:w12-section-sources-and-further-reading -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - The [curriculum](../../shared/curriculum.js) and [weeks 9–12 textbook](../../shared/textbook/weeks09to12.js) establish scope, including the itinerary extension.
 - MIT OCW's [Lecture 16 Dijkstra notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/6277a1f06100c26a7ff21031af6757b5_MIT6_006F11_lec16.pdf) were consulted during earlier preparation for relaxation, DAG paths, and nonnegative shortest paths. The lazy-heap analysis describes this chapter's implementation.
 - MIT OCW's [lecture index](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/lecture-notes/) was previously verified as a further-reading entry for lecture 14 on DFS/topological sorting. That lecture's PDF was not consulted. This rewrite does not claim a new external-link verification.
@@ -475,8 +453,6 @@ For Course Schedule, convert pairs to before→after edges and return whether Ka
 
 ## Weekly Summary
 <!-- lesson-id:w12-section-weekly-summary -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Tie each graph state to its purpose. Active-path state detects directed cycles, and remaining indegree identifies tasks ready to run. Tentative distance records the best offer so far; a current minimum removal settles it under nonnegative weights. The actual heap entry policy determines storage and runtime bounds. An Euler itinerary instead tracks unused edges and delays output. Continue to [Week 13](week-13.md) to practice proving that other local choices preserve a correct completion.
 
@@ -500,4 +476,3 @@ Tie each graph state to its purpose. Active-path state detects directed cycles, 
 ### Reflection
 
 - [ ] Derive the lazy heap's time and memory bounds aloud from its entry count. <!-- checkpoint:w12-review-complexity -->
-**On the video:** pause here and say the goal out loud: reflection. Then predict the next step before you read the explanation.

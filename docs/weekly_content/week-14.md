@@ -12,8 +12,6 @@ The final Theory, JavaScript, Practice, and Reflection checklist is for evidence
 ## Learning Objectives
 <!-- lesson-id:w14-section-learning-objectives -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - Distinguish the number of recursive calls from the number of genuinely different smaller questions.
 - State what each entry means, how it depends on smaller entries, its starting cases, its evaluation order, and the returned answer.
 - Implement memoisation, which caches recursive answers, and tabulation, which fills them in a planned order.
@@ -23,16 +21,12 @@ The final Theory, JavaScript, Practice, and Reflection checklist is for evidence
 ## Prerequisite Knowledge
 <!-- lesson-id:w14-section-prerequisite-knowledge -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 You will use recursion, arrays, `Map`, and invariant reasoning: explaining a statement that remains true during processing. [Week 13](week-13.md) required a proof before permanently committing to a greedy choice. DP instead compares competing choices and retains their relevant answers when that discard is unsafe.
 
 A table does not create a solution by itself. You first need to say exactly which question each entry answers. [Week 15](week-15.md) extends this habit to states identified by two coordinates rather than one.
 
 ## Core Theory
 <!-- lesson-id:w14-section-core-theory -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Turn a recursion tree into a dependency graph
 
@@ -66,8 +60,6 @@ Previous coin order does not belong in this state because only amount matters fo
 
 ## JavaScript Implementations
 <!-- lesson-id:w14-section-javascript-implementations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Memoisation and tabulation for the same state
 
@@ -228,8 +220,6 @@ The validation establishes positive safe-integer denominations and a nonnegative
 ## Worked Examples
 <!-- lesson-id:w14-section-worked-examples -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 For **Demonstration 1** in **JavaScript Implementations**, heights zero through five have counts `[1,1,2,3,5,8]`. At four, enumerate 1111, 112, 121, 211, and 22. This list distinguishes ordered jump sequences from unordered collections of jump sizes.
 
 For **Demonstration 2** in **JavaScript Implementations**, cost `[10,15,20]` gives dp[2] as min(15,10)=10. Then dp[3] is min(10+20,0+15)=15. The winning route starts at index one and jumps to the top. Paying at indices zero and two would total thirty, so it cannot explain the returned fifteen.
@@ -248,8 +238,6 @@ For **Demonstration 4** in **JavaScript Implementations**, the amount table for 
 
 ## Visual Explanations
 <!-- lesson-id:w14-section-visual-explanations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 The repeated `ways(3)` call shows why caching saves work. The rolling-state picture shows why computing a new answer must precede overwriting old dependencies. Finally, follow the coin reconstruction arrows to see why positive denominations guarantee progress toward zero.
 
@@ -272,8 +260,6 @@ Coin reconstruction: amount 6 --coin 3--> amount 3 --coin 3--> 0
 ## Complexity Analysis
 <!-- lesson-id:w14-section-complexity-analysis -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 For DP, count distinct states and the candidate transitions examined at each state. A transition is one way to derive a state's answer from another state.
 
 | Algorithm | Distinct states × transition work | Time | Auxiliary space |
@@ -292,8 +278,6 @@ Naive stair recursion is exponential because many calls repeat the same heights.
 
 ## Common Mistakes
 <!-- lesson-id:w14-section-common-mistakes -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 - Define whether an index names a position, an item, or a prefix length before writing its update. Similar-looking arrays can encode different questions.
 - Keep ways[0] equal to one: it represents the empty sequence that real jumps extend.
@@ -318,8 +302,6 @@ In 0/1 capacity DP, each item can be used at most once. A descending capacity lo
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w14-section-interview-and-leetcode-pattern-recognition -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 “Count ways,” “minimum cost,” and “maximum value” suggest looking for a smaller-state decomposition, but those words alone do not prove DP is needed. Draw a direct decision tree and ask which questions recur. Decisions over an input prefix often lead to a one-dimensional state.
 
 Ask what the future needs to know: remaining amount, next index, previous selection, or capacity. If two histories with the same proposed key have different legal futures, they cannot safely share one cached answer. Add the missing information or justify why it is irrelevant.
@@ -328,8 +310,6 @@ Climbing Stairs counts ordered routes; Min Cost Climbing Stairs minimizes paymen
 
 ## Practice Exercises
 <!-- lesson-id:w14-section-practice-exercises -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Conceptual
 
@@ -357,8 +337,6 @@ Climbing Stairs counts ordered routes; Min Cost Climbing Stairs minimizes paymen
 ## Hints and Worked Solutions
 <!-- lesson-id:w14-section-hints-and-worked-solutions -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 1. There is one empty sequence of jumps, but forming amount zero requires zero coins. The first base counts sequences; the second measures a minimum number of items. Their input size is the same, but their questions are different.
 2. Optimal substructure says that after considering a final coin, an optimal smaller exact-amount answer can supply its prefix. It does not establish which final coin belongs to an optimum. With `[1,3,4]` and six, two threes beat four and two ones.
 3. The arrival-cost table is `[0,0,1,2,2,3]`. One optimal route departs stairs 0,2,4, paying 1+1+1, then reaches top position five. Ties may give another optimal route; the scalar costs do not demand a unique one.
@@ -371,16 +349,12 @@ For external practice, include zero inputs, unreachable positive amounts, and re
 ## Sources and Further Reading
 <!-- lesson-id:w14-section-sources-and-further-reading -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - The [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js) provide the chapter's course scope.
 - MIT OCW's [Lecture 19 DP notes](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/b6d4083131dd16e7d97f56d04b6e858f_MIT6_006F11_lec19.pdf) were consulted during earlier preparation for memoisation, reuse, and evaluation order. Stair, robbery, and coin examples were developed independently here.
 - The official [Coin Change](https://leetcode.com/problems/coin-change/) and [Recursion: Fibonacci Numbers](https://www.hackerrank.com/challenges/ctci-fibonacci-numbers/problem) statements were previously opened to check destinations and contracts, without editorial solutions. This rewrite makes no claim of renewed external verification.
 
 ## Weekly Summary
 <!-- lesson-id:w14-section-weekly-summary -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Begin DP with a state that retains everything later decisions need. Derive exhaustive choices, give the smallest cases their actual meanings, and compute only after dependencies are ready. Caches and tables avoid repeated questions. Rolling variables save storage only when discarded answers will never be needed again, and reconstruction can require extra history. In [Week 15](week-15.md), we will use the same discipline for grids, pairs of prefixes, and search where the current path affects the future.
 
@@ -404,4 +378,3 @@ Begin DP with a state that retains everything later decisions need. Derive exhau
 ### Reflection
 
 - [ ] Record a state-definition mistake and the smallest input that exposes it. <!-- checkpoint:w14-review-state-design -->
-**On the video:** pause here and say the goal out loud: reflection. Then predict the next step before you read the explanation.

@@ -12,8 +12,6 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record y
 ## Learning Objectives
 <!-- lesson-id:w13-section-learning-objectives -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - State the objective and local choice of a greedy algorithm, including which alternatives the choice permanently discards.
 - Prove earliest-finish scheduling by replacing the first meeting of an optimal answer.
 - Distinguish keeping the most compatible meetings, preserving all covered points, and finding the fewest rooms for every meeting.
@@ -23,16 +21,12 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record y
 ## Prerequisite Knowledge
 <!-- lesson-id:w13-section-prerequisite-knowledge -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 You will use arrays containing endpoint pairs and numeric comparison functions for sorting. A loop invariant is a statement that remains true as each item is processed; we will use these statements to explain scans. Under a conventional efficient comparison sort, sorting n items takes O(n log n) time.
 
 In [Week 12](week-12.md), Dijkstra made a greedy choice under a specific safety condition: edges must be nonnegative. Here we will develop that proof habit outside graphs. If no local choice can be proved safe, [Week 14](week-14.md) shows how dynamic programming can retain competing possibilities instead.
 
 ## Core Theory
 <!-- lesson-id:w13-section-core-theory -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Greedy means discarding alternatives permanently
 
@@ -66,8 +60,6 @@ For rooms, each simultaneous meeting needs a separate room, so peak occupancy is
 
 ## JavaScript Implementations
 <!-- lesson-id:w13-section-javascript-implementations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Maximum compatible meeting subset
 
@@ -213,8 +205,6 @@ In **Demonstration 4**, appetites `[1,2,3]` and cookies `[1,1]` satisfy the firs
 ## Worked Examples
 <!-- lesson-id:w13-section-worked-examples -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 For **Demonstration 1** in **JavaScript Implementations**, compare two rules on `[1,10)`, `[2,3)`, `[4,5)`, `[6,7)`. Earliest start keeps only the long meeting. Earliest finish considers ends 3,5,7,10 and keeps the three short meetings. The selected boundary ends at seven and stays there when the long meeting is rejected.
 
 Trace closed-coverage merging from **Demonstration 2** in **JavaScript Implementations**:
@@ -232,8 +222,6 @@ For **Demonstration 4** in **JavaScript Implementations**, the first size-one co
 
 ## Visual Explanations
 <!-- lesson-id:w13-section-visual-explanations -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 Use the first diagram to compare selected counts, the second to inspect a half-open endpoint tie, and the third to check that nested coverage never shrinks the frontier. Each picture represents a different objective despite using interval-shaped inputs.
 
@@ -257,8 +245,6 @@ Closed coverage:
 ## Complexity Analysis
 <!-- lesson-id:w13-section-complexity-analysis -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 Assume an efficient O(n log n) comparison sort. Each interval algorithm then has an O(n log n) total time bound and an O(n) scan after sorting. JavaScript's specification does not guarantee one sorting algorithm or one workspace bound. The table accounts for explicit collections under that conventional sorting model.
 
 | Algorithm | Explicit working storage | Output storage |
@@ -274,8 +260,6 @@ Space claims must include what the function actually allocates. A few scalar loo
 
 ## Common Mistakes
 <!-- lesson-id:w13-section-common-mistakes -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 - Sorting by start is appropriate for coverage merging, but not the earliest-finish proof for maximum compatible count.
 - Supply a numeric comparator. JavaScript's default sort compares textual representations, so numeric order can be wrong.
@@ -298,16 +282,12 @@ In broken **Demonstration 1**, start with `last` equal to `[1,10]` and next inte
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w13-section-interview-and-leetcode-pattern-recognition -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 First ask what must be preserved. Merge Intervals retains all coverage. Non-overlapping Intervals removes as few meetings as possible to retain a compatible subset. Meeting Rooms II serves every meeting with enough rooms. Assign Cookies maximizes matches under size thresholds. Recognizing that all can use sorting is only the beginning; the output contract decides the scan.
 
 Try small adversarial inputs when judging a greedy rule: one long interval against several short ones, a nested pair, touching boundaries, or a scarce large resource. A failure disproves the rule. If it survives, you still need an exchange argument or invariant. When choices interact without a safe discard, reconsider the model; dynamic programming is one possible alternative.
 
 ## Practice Exercises
 <!-- lesson-id:w13-section-practice-exercises -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 ### Conceptual
 
@@ -334,8 +314,6 @@ Try small adversarial inputs when judging a greedy rule: one long interval again
 ## Hints and Worked Solutions
 <!-- lesson-id:w13-section-hints-and-worked-solutions -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 1. Let G finish earliest and O be the first meeting of an optimum. Replace O by G. Every later meeting started no earlier than O's end, which is no earlier than G's end. Thus every later meeting remains feasible and the count is preserved. Repeat on the remaining suffix; this induction proves the full greedy schedule.
 2. Keep `[0,4)` and `[4,8)` for a selected count of two. Serving all three also requires two rooms, because `[3,5)` overlaps each outer meeting at different times. These equal numbers are incidental: selection rejects a meeting, whereas room allocation serves all three.
 3. Extend with `Math.max(last[1], end)`. Merging `[1,10]` with `[2,3]` must keep `[1,10]`; adding `[10,12]` then gives `[1,12]`. Under a different contract that keeps touching ranges separate, use `start >= last[1]` to start a new group.
@@ -349,16 +327,12 @@ For Greedy Florist, require a positive friend count. Sort prices descending and 
 ## Sources and Further Reading
 <!-- lesson-id:w13-section-sources-and-further-reading -->
 
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
-
 - The [curriculum](../../shared/curriculum.js) and [weeks 13–16 textbook](../../shared/textbook/weeks13to16.js) define the course scope for this chapter.
 - Hope College's [Greedy Interval Scheduling](https://cusack.hope.edu/DAIADS/Content/Algorithms/Greedy/Interval%20Scheduling.html?path=Problems/Optimization/Interval+Scheduling) was consulted during earlier preparation for the exchange argument. The chapter's examples and JavaScript are original teaching material.
 - The official [Merge Intervals](https://leetcode.com/problems/merge-intervals/) and [Greedy Florist](https://www.hackerrank.com/challenges/greedy-florist/problem) statements and difficulties were verified during earlier preparation, without editorial solutions. This prose rewrite does not claim they were checked again.
 
 ## Weekly Summary
 <!-- lesson-id:w13-section-weekly-summary -->
-
-**Let’s make this practical.** In this part, picture the problem first, then connect that picture to the formal rule and the code that follows.
 
 A greedy solution needs a precise objective and a reason its choice preserves an optimal completion. Earliest finish supports the compatible-count exchange, start order supports exact union merging, and time-ordered events reveal simultaneous room demand. Their loops are short because the ordering and invariants carry the reasoning. In [Week 14](week-14.md), we will retain and reuse smaller answers when no single local choice is enough.
 
@@ -382,4 +356,3 @@ A greedy solution needs a precise objective and a reason its choice preserves an
 ### Reflection
 
 - [ ] Record the assumption that fails when one greedy problem's objective changes. <!-- checkpoint:w13-review-assumptions -->
-**On the video:** pause here and say the goal out loud: reflection. Then predict the next step before you read the explanation.

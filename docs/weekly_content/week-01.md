@@ -1,22 +1,18 @@
 # Week 1 - Introduction to Algorithm Complexity
 <!-- lesson-id:w1-section-chapter-introduction -->
 
-Welcome back to the study buddy. Imagine your program works perfectly for three inputs. Now someone hands it three million. Does it still finish in time, and does it still use a reasonable amount of memory? This week we answer those questions by tracing small JavaScript programs, counting named events, and explaining how those counts grow.
+Suppose your program gives the right answer for three values. What will happen when someone gives it three million? Correctness alone cannot tell you whether the program will finish in a useful amount of time. This week, we will learn to answer that second question by following small JavaScript examples one step at a time, counting their work, and explaining how those counts grow. You do not need to know logarithms or mathematical proofs yet; we will build those ideas as we use them.
 
-Think of this as a reference YouTube lesson: pause before each walkthrough, predict the next line, then run the code and compare. We move in a steady rhythm—intuition first, why the idea matters, technical detail, a worked trace, then a short practice prompt. You do not need logarithms or proof-writing at the start; we build both from examples.
+Work through the fifteen lessons in order, with variables, functions, comparisons, conditional branches, and basic loops as your starting tools. When an array appears, you can read it simply as a sequence of input values. Its length tells us how many values we have, and an index is the number identifying one position. We will leave array methods and copying techniques to the separate [Arrays module](week-17.md), so you can concentrate here on explaining work.
 
-By the end, you should be able to state an algorithm's contract, choose an input-size measure, derive a running-time function, distinguish O, Ω, and Θ, separate best/worst/average cases, account for time and peak space, and defend loop counts. You will also trace executable JavaScript for constant, linear, quadratic, linear-search, and binary-search behavior. Keep assumptions visible: a complexity claim is only as precise as its cost model, input size, case, and output convention.
+Use the independent assessment and final weekly progress checklist to check what you can explain with the answers closed. The goal is to be able to point to the actions a program performs and defend a claim about their growth. Recognizing a notation is useful, but you also need to explain why it describes this particular program.
 
-Work through the fifteen lessons in order. Arrays here are sequences: their length is the number of entries and an index identifies one position. We leave array methods and copying techniques to the separate [Arrays module](week-17.md). The examples run on their own in a current Node.js runtime with no packages. Inputs are small and bounded, and every output block is exact.
+You can run each fenced JavaScript example on its own in a current Node.js runtime without installing packages. The inputs are deliberately small and bounded, and the next output block gives the exact console output. Predict those lines before running a demonstration: the difference between your prediction and the result often reveals the most useful lesson.
 
-Our counters measure named events—such as target comparisons—not milliseconds. That makes the reasoning portable across machines, but it does not pretend that every constant-time action costs the same in reality. Try each prompt before opening **Hints and Worked Solutions**, then use the independent assessment and final checklist to test what you can explain with the answers closed.
+Our counters measure named events, such as comparing a value with a target, rather than milliseconds. Keep that distinction in mind whenever you read a count. Answers to the lesson prompts, exercises, and assessment live in **Hints and Worked Solutions**, which the study interface can collapse. Give yourself an honest attempt before opening that section.
 
 ## Introduction to algorithms and algorithm analysis
 <!-- lesson-id:w1-section-introduction-to-algorithms-and-algorithm-analysis -->
-
-**On camera — intuition:** An algorithm is a recipe, but a useful recipe must say what counts as success.
-
-**Why it matters:** Correctness, termination, and resource use are three different promises; confusing them produces confident but incomplete analysis.
 
 An **algorithm** is a finite, unambiguous procedure for solving a specified problem. In everyday terms, it is a set of clear steps that eventually finishes and answers the question you actually asked. We describe that question with a **contract**: which inputs are allowed, and what result must be produced for them.
 
@@ -38,10 +34,6 @@ Let's **trace** a search, meaning follow its actions in order. To find 8 in `[4,
 
 ## Elementary operations
 <!-- lesson-id:w1-section-elementary-operations -->
-
-**On camera — intuition:** Before counting steps, choose what one “step” means.
-
-**Why it matters:** A named event gives a checkable claim instead of a vague statement such as “it is fast.”
 
 Before counting, choose what one unit of work means. This choice is a **cost model**: a set of actions we treat as having fixed costs. In this chapter, reading a known input position, assigning a scalar (a single value such as a number), comparing bounded numbers, and adding bounded numbers each take constant time. “Bounded” means their representation does not keep growing with the input we are measuring.
 
@@ -83,10 +75,6 @@ Our model has limits you should be able to name. Arithmetic on integers allowed 
 ## Understanding input size n
 <!-- lesson-id:w1-section-understanding-input-size-n -->
 
-**On camera — intuition:** The letter n is not magic; it is a measuring tape you choose.
-
-**Why it matters:** The wrong tape can make the same program look linear, quadratic, or something else entirely.
-
 When we write **n**, we mean a chosen measure of input size. Decide what it measures before writing a complexity expression. For a sequence, it usually counts entries. For text, it might count characters or encoded bytes, the storage units representing the text. A graph, which represents things and their connections, often needs two measures: vertices for the things and edges for the connections. One number would hide a useful distinction.
 
 Take `[900, 3, 12]`. There are three entries, so scanning every entry takes three visits. Replacing 900 with 9000 changes the data but adds no visits under our bounded-number model. Appending a fourth entry does add a visit. That is why length, rather than the largest value, captures the size that matters to this scan.
@@ -103,10 +91,6 @@ If you receive two sequences whose lengths can vary independently, call the leng
 
 ## Deriving the running-time function T(n)
 <!-- lesson-id:w1-section-deriving-the-running-time-function-t-n -->
-
-**On camera — intuition:** Follow the cursor through the code and keep a tally before simplifying anything.
-
-**Why it matters:** The exact tally shows where fixed setup, repeated work, and early returns come from.
 
 We use **T(n)** to name the work required for size n, after choosing a model and a case. It can count one selected event or combine elementary operations with different fixed costs; those different costs are called weights. Start by following the code, identifying what repeats, and adding those contributions. Keep the evidence visible before simplifying the expression.
 
@@ -189,10 +173,6 @@ Two reasonable accounting conventions can yield `3n + 7` and `8n + 12` while sti
 ## Growth families
 <!-- lesson-id:w1-section-growth-families -->
 
-**On camera — intuition:** Ask what happens when the input doubles.
-
-**Why it matters:** That one question lets you compare scaling even when hardware and constant overhead differ.
-
 A **growth family** groups functions that scale in comparable ways once inputs become large. You can start understanding a family by asking what happens when you increase the input. Constant work stays bounded by a fixed amount. Linear work roughly doubles when n doubles, while quadratic work roughly quadruples. Logarithmic work adds only a fixed number of steps when you multiply n by a fixed factor. The table gives representative functions so we can put numbers to these descriptions.
 
 | Family       | Representative | Counting situation                 | At n = 8 and n = 16   |
@@ -221,10 +201,6 @@ When the input is not an exact power of two, the loop's stopping condition deter
 ## Big O upper bounds
 <!-- lesson-id:w1-section-big-o-upper-bounds -->
 
-**On camera — intuition:** Big O is a ceiling that must hold from some point onward.
-
-**Why it matters:** A handful of benchmarks cannot prove a promise about every larger input.
-
 Suppose we want a ceiling for a cost function after some starting size. **Big O** gives that eventual upper bound, allowing a positive constant multiplier. Formally, `T(n) ∈ O(g(n))` if positive constants c and n₀ exist such that `0 ≤ T(n) ≤ c g(n)` for every n ≥ n₀ in the size domain. Here g is the reference growth function, c scales it, and n₀ is the size from which the claim must hold.
 
 Choose c independently of n. Once chosen, the same ceiling c g(n) must remain above the cost for every later valid size. You cannot adjust the multiplier whenever an inconvenient input size appears.
@@ -241,10 +217,6 @@ Keep the choice of case separate from the direction of the bound. Big O itself d
 
 ## Big Omega lower bounds
 <!-- lesson-id:w1-section-big-omega-lower-bounds -->
-
-**On camera — intuition:** Big Omega is the floor under a chosen cost function.
-
-**Why it matters:** Lower bounds explain why an implementation or even a problem cannot dodge certain work.
 
 Now imagine placing a floor underneath the selected cost function. **Big Omega** gives an eventual lower bound, again allowing a positive constant multiplier. We write `T(n) ∈ Ω(g(n))` when positive c and n₀ exist such that `0 ≤ c g(n) ≤ T(n)` for every n ≥ n₀. From the chosen threshold onward, the cost must stay at or above that floor. As with Big O, the constants do not change as n changes.
 
@@ -263,10 +235,6 @@ A lower bound for an entire problem requires another argument, beyond counting o
 ## Big Theta tight bounds
 <!-- lesson-id:w1-section-big-theta-tight-bounds -->
 
-**On camera — intuition:** Theta means the cost is trapped between two constant multiples of the same growth.
-
-**Why it matters:** It is the clearest way to say what controls long-run scaling without pretending the exact formula disappeared.
-
 Sometimes we can put both a floor and a ceiling around the cost using the same reference function. **Big Theta** expresses this tight growth bound: above and below, the cost stays within positive constant multiples after a threshold. Formally, `T(n) ∈ Θ(g(n))` if positive c₁, c₂, and n₀ exist such that `0 ≤ c₁g(n) ≤ T(n) ≤ c₂g(n)` for all n ≥ n₀. It combines an O upper bound and an Ω lower bound using that same g(n).
 
 Picture two rails surrounding the cost curve. The curve does not have to equal n, and the gap between the rails does not have to stay a constant width. What stays fixed is each rail's multiplier of n. For `3n + 7`, our upper and lower bounds both use n as the reference function, so together they establish Θ(n).
@@ -281,10 +249,6 @@ Theta does not select an average case. For a full traversal, the best, worst, an
 
 ## Constants and thresholds
 <!-- lesson-id:w1-section-constants-and-thresholds -->
-
-**On camera — intuition:** Constants and thresholds are the “when does this proof start?” details.
-
-**Why it matters:** They make asymptotic proofs honest and explain why a zero-size edge case may sit outside a chosen threshold.
 
 The multipliers let us scale our reference function vertically. The **threshold n₀** tells us where the inequalities must start holding. You choose these numbers once; none may change with n. A threshold lets a proof leave out a finite set of small sizes, but it still has to cover every size afterward. In the rails picture, we must show that the whole remaining curve stays enclosed, not just the points we happened to plot.
 
@@ -307,10 +271,6 @@ In engineering, constants still affect your decision. A linear algorithm doing e
 ## Best worst and average cases
 <!-- lesson-id:w1-section-best-worst-and-average-cases -->
 
-**On camera — intuition:** Hold n fixed, shuffle the valid inputs, and watch the cost range.
-
-**Why it matters:** Best, worst, and average are different functions; O, Ω, and Θ only describe whichever function you selected.
-
 First hold n fixed and compare the valid inputs of that size. The smallest cost is the **best-case cost**; the largest is the **worst-case cost**. To define an **average-case cost**, we also need a probability distribution: a rule saying how likely each input is. Its expectation is the cost averaged with those likelihoods as weights. Choose this case function first, and only then ask whether an O, Ω, or Θ bound describes it.
 
 For nonempty linear search, let's count comparisons with the target. A first-entry match gives a best case of one. A match at the last entry, or no match, gives a worst case of n. For a successful-search average, assume the target occurs exactly once and is **uniformly distributed across all n positions**. Uniform means every position is equally likely, with probability 1/n. The possible costs are one through n, so their weighted average is
@@ -328,10 +288,6 @@ Empty input performs zero target comparisons, which is why the one-comparison be
 ## Time versus space
 <!-- lesson-id:w1-section-time-versus-space -->
 
-**On camera — intuition:** A program can do more work without keeping more things.
-
-**Why it matters:** Peak simultaneous storage, not the number of assignments over time, determines the auxiliary-space claim.
-
 Counting actions and counting storage answer different questions. **Time complexity** describes work, while **space complexity** describes storage. Say what your storage count includes. Input storage holds data already supplied to the function. **Auxiliary space** is additional working storage used while solving the problem, and **output space** holds the required result. Because some conventions include output in auxiliary space, make the separation explicit whenever it affects your claim.
 
 A scan can do Θ(n) work while using Θ(1) auxiliary space. It visits more entries as n grows but may keep only a fixed number of counters. Conversely, a single variable can refer to an n-entry result occupying Θ(n) output space. Count the information kept in memory, rather than the number of variable names or the number of assignments made over time.
@@ -346,10 +302,6 @@ Printing n items requires n output events, but you can print each item as you re
 
 ## Counting loops and sequential operations
 <!-- lesson-id:w1-section-counting-loops-and-sequential-operations -->
-
-**On camera — intuition:** Sequential work adds; repeated work may multiply or form a sum.
-
-**Why it matters:** Looking at the bounds rather than the indentation prevents the classic “nested means quadratic” mistake.
 
 When one piece of work finishes before another begins, add their counts. Two complete scans make `n + n = 2n` visits, so together they are Θ(n). A scan followed by visiting all ordered pairs gives `n + n²`, hence Θ(n²). For nested repetition, inspect how much the inner loop does on each outer iteration. Multiplication is justified when that amount is the same each time, or when you have proved suitable bounds; otherwise write the sum first.
 
@@ -396,10 +348,6 @@ An individual maintenance step can still cost Θ(N). The sequence guarantee does
 
 ## Worked JavaScript examples
 <!-- lesson-id:w1-section-worked-javascript-examples -->
-
-**On camera — intuition:** This is the play-along segment: pause, predict the output, and count the event before running Node.
-
-**Why it matters:** A trace connects notation to observable behavior and exposes exactly what early termination or a loop bound skips.
 
 Let's apply the counting habits to five complete programs. We will treat numeric operations and known-index access as fixed-cost actions. Inputs are ordinary dense sequences, with a value at every position; any work preparing a search input is excluded and must be accounted for separately. Follow the branches, loops, and returns yourself. A familiar function name is a clue to investigate, not proof of its complexity.
 
@@ -571,10 +519,6 @@ The best case is Θ(1) when the first midpoint matches, and auxiliary space is �
 ## Common misconceptions
 <!-- lesson-id:w1-section-common-misconceptions -->
 
-**On camera — intuition:** Complexity arguments fail in recurring, recognizable ways.
-
-**Why it matters:** Naming the counterexample is a faster debugging tool than memorizing another label.
-
 Use the table as a way to diagnose an argument. For each claim, try explaining the counterexample in your own words before accepting the correction. That habit will help when you meet code that does not look like a familiar textbook example.
 
 | Claim                             | Correction and counterexample                                        |
@@ -598,10 +542,6 @@ Before giving a complexity label, name the event, the meaning of input size, the
 
 ## Practice exercises and module assessment
 <!-- lesson-id:w1-section-practice-exercises-and-module-assessment -->
-
-**On camera — intuition:** Now you take the presenter’s seat: make the claim, show the count, and defend the assumptions.
-
-**Why it matters:** A correct label without a trace, formula, or bound is not yet a reusable analysis.
 
 Write your own solutions somewhere separate from the answers so you can compare the reasoning afterward. For each analysis, tell the reader what size measures, what operation you count, which case you analyze, and the formula or bound you obtain. Include auxiliary space wherever it applies. You need only this chapter for these tasks; they do not depend on an external judge or submission system.
 
@@ -646,10 +586,6 @@ Use each tier to locate the next skill to practice. At beginner level, aim for c
 ## Visual Explanations
 <!-- lesson-id:w1-section-visual-explanations -->
 
-**On camera — intuition:** Turn the formulas into shapes, tables, and crossed-out candidates.
-
-**Why it matters:** Visual predictions make doubling, squaring, and halving feel inevitable rather than arbitrary.
-
 The study interface connects its interactive complexity lab to this section through the `visual-explanations` anchor. Use the comparisons there to connect a change in input size with counts you have already derived. If you are reading the Markdown without that interface, you can do the same reasoning with the growth table and the traces in this chapter; the lab is not required to follow the argument.
 
 Before moving an input-size control, predict what doubling will do. A representative linear count doubles, a quadratic count quadruples, and a base-two logarithmic count gains one. Compare curves at the same size, and check whether their counts are raw or normalized—rescaled to make comparisons easier. The axes can make a curve appear steeper or flatter. That appearance helps intuition but does not replace an inequality proving an asymptotic bound.
@@ -658,10 +594,6 @@ On paper, make columns for n = 2, 4, 8, and 16, calculate n and n², and plot th
 
 ## Hints and Worked Solutions
 <!-- lesson-id:w1-section-hints-and-worked-solutions -->
-
-**On camera — intuition:** Use a hint as a nudge, not as a substitute for your own explanation.
-
-**Why it matters:** Reconstructing a solution after reading it is how a watched walkthrough becomes a skill.
 
 This section gathers all exercise answers so the study interface can keep them closed while you work. Start with the relevant hint and try again before revealing a complete answer. After reading a solution, cover it and reconstruct the reasoning yourself. Being able to follow an explanation and being able to produce one are different stages of learning.
 
@@ -740,10 +672,6 @@ For lessons 1–4, write the state changes in order and identify what eventually
 ## Sources and Further Reading
 <!-- lesson-id:w1-section-sources-and-further-reading -->
 
-**On camera — intuition:** A good reference lesson also shows where its vocabulary and conventions come from.
-
-**Why it matters:** Further reading gives alternate explanations without changing this chapter’s assumptions.
-
 The explanations, traces, exercises, and JavaScript examples here are original teaching material. Use these references when you want another established treatment or the language documentation behind an operation. Listing a reference does not mean its page was browsed during this rewrite or that the examples were verified externally. Choose a reading according to the part of the chapter you want to strengthen.
 
 - [MIT OpenCourseWare: Introduction to Algorithms, 6.006](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/) — use these official course materials to continue studying algorithmic thinking, cost models, and asymptotic analysis after you finish the beginner tasks. They extend the mathematical foundation used here.
@@ -754,10 +682,6 @@ The explanations, traces, exercises, and JavaScript examples here are original t
 
 ## Weekly Summary
 <!-- lesson-id:w1-section-weekly-summary -->
-
-**On camera — intuition:** Let’s close by turning the week into one repeatable analysis routine.
-
-**Why it matters:** The routine travels with you to unfamiliar algorithms, not just the examples on this page.
 
 When you analyze a program, begin by saying what it must do, how you measure its input, and which action you count. Derive an expression or justify a sum before naming the growth family. Add work done in sequence. For repeated work, inspect the bounds of each repetition instead of classifying the code by its appearance. Repeated reduction by a fixed multiplier leads to logarithmic counts; dependent loops can lead to triangular or geometric sums.
 

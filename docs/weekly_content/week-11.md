@@ -21,16 +21,12 @@ Use the final Theory, JavaScript, Practice, and Reflection checklist to record e
 ## Prerequisite Knowledge
 <!-- lesson-id:w11-section-prerequisite-knowledge -->
 
-**Before exploring:** Turn the story into “things” and “connections,” then decide what must be remembered. Worklists make pending exploration visible, while a visited set prevents cycles and duplicate scheduling.
-
 You will use arrays, references to objects, `Map` for key/value associations, and `Set` for remembering membership without duplicates. A stack takes out the item added most recently; a queue takes out the oldest waiting item. We use these as worklists: collections of vertices still waiting to be explored.
 
 If you know recursion, you can think of the explicit stack as making pending calls visible in an array. This avoids relying on JavaScript's limited call stack. The important change from tree traversal is that several routes may reach the same object, so we must remember discoveries. We develop routes with unequal edge costs next in [Week 12](week-12.md).
 
 ## Core Theory
 <!-- lesson-id:w11-section-core-theory -->
-
-**Whiteboard route:** model a graph, mark discovery at scheduling time, compare DFS with BFS layers, and finish by preserving object identity while cloning. We will keep representation, correctness, and complexity as three separate questions.
 
 ### Start with a model
 
@@ -64,8 +60,6 @@ Use a dictionary from original-object → cloned-object, not value → clone. Cr
 
 ## JavaScript Implementations
 <!-- lesson-id:w11-section-javascript-implementations -->
-
-**Let’s run the explorers.** Predict the next stack or queue item, mark it when discovered, and record the predecessor when a route matters. For grids and clones, translate the same discovery invariant into implicit neighbors and object-to-object mappings.
 
 ### Adjacency and iterative component traversal
 
@@ -287,8 +281,6 @@ In **Demonstration 4**, `copies` registers a's copy before the queue starts. The
 ## Worked Examples
 <!-- lesson-id:w11-section-worked-examples -->
 
-**Worked-walkthrough pause:** Trace a small cycle and an isolated vertex. Ask when each item becomes discovered, how a shortest route is reconstructed, and which original references must share one clone.
-
 For another view of BFS, follow **Demonstration 2** in **JavaScript Implementations** through the diamond. Pay attention to when a vertex is discovered, not just when it leaves the queue:
 
 | Removed | Newly discovered | Pending queue | Recorded distances |
@@ -307,8 +299,6 @@ The cloning trace in **Demonstration 4** in **JavaScript Implementations** has a
 ## Visual Explanations
 <!-- lesson-id:w11-section-visual-explanations -->
 
-**See the frontier move:** DFS dives along a route, BFS expands a layer, and flood fill generates neighbors from movement rules. The picture connects these different-looking tasks to the same exploration idea.
-
 ```text
       B                 BFS layers
      / \                0: A
@@ -323,8 +313,6 @@ No clone edge points into the original graph.
 
 ## Complexity Analysis
 <!-- lesson-id:w11-section-complexity-analysis -->
-
-**Complexity checkpoint:** Count vertices and stored neighbor entries across the run, then separate graph storage, pending work, and returned paths or components. For implicit grids, count generated neighbor checks rather than inventing an adjacency list.
 
 Let V count vertices and E count edges, including duplicate edges as separate entries in the input. We assume `Map` and `Set` operations take constant time on average under the usual hash-table model. That expected-operation assumption is separate from whether a traversal bound describes a worst-case graph. Big O gives an upper growth bound; it does not by itself mean “worst case.”
 
@@ -342,8 +330,6 @@ Also count the storage that remains allocated. A queue with a head index keeps i
 
 ## Common Mistakes
 <!-- lesson-id:w11-section-common-mistakes -->
-
-**Debugging pause:** Find the first duplicate schedule or missing vertex. Check mark timing, zero-valued distances, both directions of undirected edges, and object identity in clone maps. Each failure points to one broken invariant.
 
 - Create vertices from the vertex input, not just the edges. Otherwise a label with no connections disappears before exploration starts.
 - Ask `distance.has(v)` whether v was discovered. Testing the truthiness of `distance.get(v)` rejects the valid source distance zero.
@@ -366,8 +352,6 @@ In broken **Demonstration 1**, pushing 1 into row zero changes the single array 
 ## Interview and LeetCode Pattern Recognition
 <!-- lesson-id:w11-section-interview-and-leetcode-pattern-recognition -->
 
-**Interview lens:** Start with the model, then state discovery timing and the worklist. “Shortest” means BFS only when edge costs are equal; “clone” means a map keyed by original identity; “islands” means implicit neighbors.
-
 When a question asks for “connected groups,” consider a traversal inside an outer scan. When it asks for “fewest moves,” check whether every move has equal cost before choosing BFS. “Clone” adds the need for an original-to-copy identity map. Number of Islands gives neighbor relationships through coordinates; Clone Graph gives them through object references. We still need the same discovery discipline.
 
 Sometimes an input promise makes traversal unnecessary. In Find Center of Star Graph, a valid star has one center connected to every other vertex. With at least three vertices, the shared endpoint of the first two edges must be that center. Keep the promise attached to the shortcut: it does not find a general graph's center.
@@ -376,8 +360,6 @@ Before you write a loop, ask whether the answer concerns every vertex or only th
 
 ## Practice Exercises
 <!-- lesson-id:w11-section-practice-exercises -->
-
-**Your turn:** Draw a cycle, an isolated vertex, and a small grid. Trace the marks and queue or stack, then explain the memory ledger. Change one rule at a time so you can see which result and invariant changes.
 
 ### Conceptual
 
@@ -404,8 +386,6 @@ Before you write a loop, ask whether the answer concerns every vertex or only th
 ## Hints and Worked Solutions
 <!-- lesson-id:w11-section-hints-and-worked-solutions -->
 
-**Hint-to-solution walkthrough:** Predict one discovery at a time, reconstruct the route backward from its predecessor map, and compare clone references rather than only values. The solution should confirm the model as well as the output.
-
 1. Try A→B. Starting from A reaches both vertices, but B cannot return to A. Mutual reachability therefore gives two strongly connected components. An ordinary reachability traversal starting at A can put both into one group, and reversing the outer start order can change that grouping. It is answering the wrong question.
 2. S first discovers A and C at distance one. A then discovers B at distance two, but C discovers T at distance two before B is removed. B must not overwrite T's parent. Reversing parents gives S,C,T. A DFS pursuing A first could instead discover the three-edge route S,A,B,T; that is a reachable route, but not a shortest one.
 3. Use a per-row factory such as `Array.from({length: 3}, () => [])`. Each invocation creates another array object. By contrast, `fill` receives one already-created object and copies its reference into each slot. Verify independence with a push into just one row.
@@ -423,8 +403,6 @@ For Number of Islands, explain the four-direction land graph, why a traversal co
 
 ## Weekly Summary
 <!-- lesson-id:w11-section-weekly-summary -->
-
-**Recap:** Graph algorithms become predictable when the model, discovery commitment, and worklist are explicit. You can now explore components, prove unweighted BFS routes, flood-fill implicit graphs, and clone cycles without losing identity.
 
 Start a graph solution by saying what its vertices and edges mean. Mark on discovery so each vertex enters the worklist once, then choose a stack for depth-first exploration or a queue for distance layers. Scan every vertex when you need every component; generate neighbors from coordinates when the graph is a grid. When copying linked objects, preserve identity as well as values. Before continuing to [Week 12](week-12.md), explain each of those choices with a small example and show what would break if you changed it.
 
