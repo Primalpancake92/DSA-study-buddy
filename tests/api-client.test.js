@@ -18,13 +18,28 @@ test('login rotates CSRF and logout confirms success with credentials; failures 
     const { authApi, apiRequest } = await import(
         `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
     );
+    const { clearAuthCache } = await import(
+        `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
+    );
     const originalFetch = globalThis.fetch;
     let failLogout = false;
+    let timeoutCsrf = false;
     globalThis.fetch = async (url, options) => {
         assert.equal(options.credentials, 'include');
         let payload = {};
         let status = 200;
-        if (url.endsWith('/csrf')) payload = { csrfToken: 'fresh' };
+        if (url.endsWith('/csrf')) {
+            if (timeoutCsrf) {
+                return new Promise((_, reject) =>
+                    options.signal.addEventListener(
+                        'abort',
+                        () => reject(new DOMException('The operation was aborted.', 'AbortError')),
+                        { once: true }
+                    )
+                );
+            }
+            payload = { csrfToken: 'fresh' };
+        }
         if (url.endsWith('/login')) {
             assert.equal(options.headers['X-CSRF-Token'], 'fresh');
             payload = { user: { id: 'user' }, csrfToken: 'rotated' };
@@ -63,6 +78,9 @@ test('login rotates CSRF and logout confirms success with credentials; failures 
         await assert.rejects(authApi.logout(), /Session store unavailable/);
         failLogout = false;
         assert.deepEqual(await authApi.logout(), { ok: true });
+        clearAuthCache();
+        timeoutCsrf = true;
+        await assert.rejects(authApi.login({}), (error) => error.code === 'TIMEOUT');
     } finally {
         globalThis.fetch = originalFetch;
     }

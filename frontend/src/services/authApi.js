@@ -22,13 +22,25 @@ function requireApiBase() {
 
 async function getCsrf() {
     requireApiBase();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
     let response;
     try {
-        response = await fetch(`${apiBase}/api/auth/csrf`, { credentials: 'include' });
-    } catch {
+        response = await fetch(`${apiBase}/api/auth/csrf`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw Object.assign(new Error('The API request timed out. Please try again.'), {
+                code: 'TIMEOUT'
+            });
+        }
         throw Object.assign(new Error('The API is unreachable. Check the Render service URL.'), {
             code: 'NETWORK_ERROR'
         });
+    } finally {
+        clearTimeout(timeout);
     }
     const payload = await parseApiResponse(response);
     csrf = payload.csrfToken;
