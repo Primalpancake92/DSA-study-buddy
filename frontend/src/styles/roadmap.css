@@ -111,7 +111,7 @@
     flex-direction: column;
     align-items: center;
     list-style: none;
-    padding: 8px 24px 28px;
+    padding: 32px 24px 40px;
     margin: 0;
     background: color-mix(in srgb, var(--color-background) 45%, transparent);
 }
@@ -307,6 +307,9 @@
     .roadmap-explorer.has-selection {
         grid-template-columns: minmax(0, 1fr);
     }
+    .roadmap-path {
+        padding: 28px 18px 32px;
+    }
     .roadmap-detail-panel {
         position: relative;
         top: auto;
@@ -326,7 +329,7 @@
         width: 100%;
     }
     .roadmap-path {
-        padding: 8px 12px 20px;
+        padding: 24px 12px;
     }
     .roadmap-card {
         padding: 18px;
