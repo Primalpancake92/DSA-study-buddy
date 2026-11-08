@@ -15,14 +15,20 @@ export function RoadmapPage() {
             {loading && <p role="status">Loading roadmap…</p>}
             {error && <p role="alert">{error}</p>}
             {!loading && !error && (
-                <RoadmapCanvas weeks={weeks} progress={progress} onSelect={setSelection} />
+                <div className={`roadmap-explorer${selected ? ' has-selection' : ''}`}>
+                    <RoadmapCanvas
+                        weeks={weeks}
+                        progress={progress}
+                        selectedWeekId={selected?.id}
+                        onSelect={setSelection}
+                    />
+                    <RoadmapDetailModal
+                        week={selected}
+                        state={selected ? moduleProgress(selected, progress) : null}
+                        onClose={() => setSelection(null)}
+                    />
+                </div>
             )}
-            <RoadmapDetailModal
-                week={selected}
-                topic={selection?.topic}
-                state={selected ? moduleProgress(selected, progress) : null}
-                onClose={() => setSelection(null)}
-            />
         </div>
     );
 }

@@ -12,7 +12,7 @@ describe('grouped roadmap', () => {
         expect(groups[0].weeks[1].id).toBe(17);
     });
 
-    it('shows real progress and opens the current stage while retaining module detail controls', () => {
+    it('shows real progress and expands the first and current stages with detail controls', () => {
         const progress = {
             completedWeeks: weekCatalog.slice(0, 3).map((week) => week.id),
             completedCheckpoints: []
@@ -20,7 +20,8 @@ describe('grouped roadmap', () => {
         const html = renderToStaticMarkup(
             <RoadmapCanvas weeks={weekCatalog} progress={progress} onSelect={() => {}} />
         );
-        expect(html.match(/<details[^>]* open=""/g)).toHaveLength(2);
+        expect(html.match(/class="roadmap-stage is-expanded"/g)).toHaveLength(2);
+        expect(html.match(/aria-expanded="true"/g)).toHaveLength(2);
         expect(html.match(/class="roadmap-card /g)).toHaveLength(17);
         expect(html).toContain('MODULE 04 · CURRENT');
         expect(html).toContain('100%');
