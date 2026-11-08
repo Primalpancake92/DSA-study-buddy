@@ -1506,9 +1506,11 @@ button {
     font-size: 11px;
 }
 .page {
-    max-width: 1240px;
-    margin: auto;
-    padding: 90px 32px;
+    width: 100%;
+    max-width: var(--layout-width);
+    margin-inline: auto;
+    padding: 90px var(--layout-gutter);
+    box-sizing: border-box;
 }
 .landing {
     padding-top: 108px;
@@ -2084,6 +2086,21 @@ button {
 .challenge-card span {
     font-size: 10px;
     color: var(--color-text-muted);
+}
+.challenge-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 6px;
+}
+.challenge-links a {
+    color: var(--color-primary-hover);
+    font-size: 11px;
+    text-decoration: none;
+}
+.challenge-links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 .challenge-label {
     margin-top: 45px;

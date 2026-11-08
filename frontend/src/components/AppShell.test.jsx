@@ -17,7 +17,7 @@ describe('shared application navigation', () => {
         expect(html).not.toContain('is-floating');
         expect(html).toContain('class="navbar-slot"');
         expect(html).toContain('class="app-navbar-inner"');
-        for (const path of ['/app/dashboard', '/app/roadmap', '/app/modules', '/notes']) {
+        for (const path of ['/app/dashboard', '/app/roadmap', '/app/modules', '/problems', '/notes']) {
             expect(html).toContain(`href="${path}"`);
         }
         expect(html).toMatch(/aria-current="page"[^>]+href="\/notes"/);

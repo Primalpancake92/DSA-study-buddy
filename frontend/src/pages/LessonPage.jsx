@@ -400,22 +400,17 @@ export function LessonPage() {
                             </p>
                         )}
                         <div className="section-kicker challenge-label">CHALLENGE</div>
-                        {lesson.problems.length ? (
-                            <Link className="challenge-card" to={`/app/weeks/${lesson.id}`}>
-                                <small>
-                                    {lesson.problems[0].difficulty.toUpperCase()} ·{' '}
-                                    {lesson.problems[0].topic.toUpperCase()}
-                                </small>
-                                <strong>{lesson.problems[0].title}</strong>
-                                <span>Open challenge →</span>
-                            </Link>
-                        ) : (
-                            <div className="challenge-card">
-                                <small>REVIEW</small>
-                                <strong>Use the practice set</strong>
-                                <span>Complete the exercises and checkpoint in this module.</span>
+                        <div className="challenge-card">
+                            <small>{lesson.problems.length ? 'RELATED PRACTICE' : 'PRACTICE SET'}</small>
+                            <strong>{lesson.problems[0]?.title || 'Practice this module'}</strong>
+                            <span>Move from this lesson into focused repository challenges.</span>
+                            <div className="challenge-links">
+                                <Link to={`/problems?module=${lesson.id}`}>View all challenges →</Link>
+                                <Link to={`/problems?module=${lesson.id}&difficulty=Easy`}>Practice easy</Link>
+                                <Link to={`/problems?module=${lesson.id}&difficulty=Medium`}>Practice medium</Link>
+                                <Link to={`/problems?module=${lesson.id}&difficulty=Hard`}>Practice hard</Link>
                             </div>
-                        )}
+                        </div>
                     </aside>
                 </main>
                 <LearningTools
