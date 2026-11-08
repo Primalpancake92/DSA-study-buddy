@@ -3,6 +3,9 @@ import { useLocation } from 'react-router-dom';
 
 export function useAutoHideNavbar() {
     const [visible, setVisible] = useState(false);
+    const [deep, setDeep] = useState(false);
+    const [height, setHeight] = useState(undefined);
+    const deepRef = useRef(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const header = useRef(null);
     const trigger = useRef(null);
@@ -17,8 +20,9 @@ export function useAutoHideNavbar() {
     const cancelHide = useCallback(() => clearTimeout(timer.current), []);
     const reveal = useCallback(() => {
         cancelHide();
-        setVisible(true);
+        if (deepRef.current) setVisible(true);
     }, [cancelHide]);
+
     const scheduleHide = useCallback(() => {
         cancelHide();
         timer.current = setTimeout(() => {
@@ -40,6 +44,30 @@ export function useAutoHideNavbar() {
             suppressFocus.current = false;
         }
     }, [cancelHide]);
+
+    useEffect(() => {
+        const update = () => {
+            const next = window.scrollY >= window.innerHeight;
+            if (next === deepRef.current) return;
+            deepRef.current = next;
+            setDeep(next);
+            close();
+        };
+        update();
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('scroll', update);
+            window.removeEventListener('resize', update);
+        };
+    }, [close]);
+
+    useEffect(() => {
+        const element = header.current;
+        const observer = new ResizeObserver(() => setHeight(element.offsetHeight));
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         menu.current = menuOpen;
@@ -82,7 +110,9 @@ export function useAutoHideNavbar() {
         scheduleHide();
     };
     return {
-        visible,
+        visible: !deep || visible,
+        deep,
+        height,
         menuOpen,
         setMenuOpen,
         header,

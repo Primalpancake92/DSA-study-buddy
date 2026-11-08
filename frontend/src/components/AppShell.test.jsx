@@ -9,11 +9,13 @@ vi.mock('./AuthProvider.jsx', () => ({
 }));
 
 describe('shared application navigation', () => {
-    it('starts with inert navigation and an accessible external reveal control', () => {
+    it('starts with normal-flow navigation and keeps the deep-scroll reveal controls hidden', () => {
         const html = renderToStaticMarkup(<StaticRouter location="/notes"><AppLayout /></StaticRouter>);
-        expect(html).toMatch(/<button[^>]+aria-controls="app-navbar"[^>]+aria-expanded="false"/);
-        expect(html).toMatch(/<header[^>]+inert=""[^>]+aria-hidden="true"/);
-        expect(html.indexOf('Open navigation')).toBeLessThan(html.indexOf('<header'));
+        expect(html).toMatch(/<button[^>]+hidden=""[^>]+aria-controls="app-navbar"/);
+        expect(html).toMatch(/<header[^>]+aria-hidden="false"/);
+        expect(html).not.toContain('inert=');
+        expect(html).not.toContain('is-floating');
+        expect(html).toContain('class="navbar-slot"');
         expect(html).toContain('class="app-navbar-inner"');
         for (const path of ['/app/dashboard', '/app/roadmap', '/app/modules', '/notes']) {
             expect(html).toContain(`href="${path}"`);

@@ -146,6 +146,7 @@ export function AppLayout() {
                 ref={navbar.trigger}
                 type="button"
                 className="navbar-trigger"
+                hidden={!navbar.deep}
                 aria-controls="app-navbar"
                 aria-expanded={navbar.visible}
                 onClick={navbar.toggle}
@@ -159,43 +160,46 @@ export function AppLayout() {
             </button>
             <div
                 className="navbar-activation-zone"
+                hidden={!navbar.deep}
                 aria-hidden="true"
                 onPointerEnter={navbar.pointerEnter}
                 onPointerLeave={navbar.pointerLeave}
             />
-            <header
-                ref={navbar.header}
-                id="app-navbar"
-                className={`app-navbar${navbar.visible ? ' is-visible' : ''}`}
-                inert={navbar.visible ? undefined : ''}
-                aria-hidden={!navbar.visible}
-                onPointerEnter={navbar.pointerEnter}
-                onPointerLeave={navbar.pointerLeave}
-                onPointerDownCapture={navbar.onPointerDown}
-                onFocusCapture={navbar.onFocus}
-                onBlurCapture={navbar.onBlur}
-                onKeyDown={(event) => {
-                    if (event.key === 'Escape') {
-                        event.preventDefault();
-                        navbar.close(true);
-                    }
-                }}
-                onClick={(event) => {
-                    if (event.target.closest('a[href]')) navbar.close();
-                }}
-            >
-                <div className="app-navbar-inner">
-                    <Brand />
-                    <nav className="app-nav" aria-label="Application navigation">
-                        <NavLink to="/app/dashboard">Dashboard</NavLink>
-                        <NavLink to="/app/roadmap">Roadmap</NavLink>
-                        <NavLink to="/app/modules">Modules</NavLink>
-                        <NavLink to="/notes">My Notes</NavLink>
-                    </nav>
-                    <AccountMenu user={user} onLogout={logout}
-                        open={navbar.menuOpen} setOpen={navbar.setMenuOpen} />
-                </div>
-            </header>
+            <div className="navbar-slot" style={{ height: navbar.height }}>
+                <header
+                    ref={navbar.header}
+                    id="app-navbar"
+                    className={`app-navbar${navbar.deep ? ' is-floating' : ''}${navbar.visible ? ' is-visible' : ''}`}
+                    inert={navbar.visible ? undefined : ''}
+                    aria-hidden={!navbar.visible}
+                    onPointerEnter={navbar.pointerEnter}
+                    onPointerLeave={navbar.pointerLeave}
+                    onPointerDownCapture={navbar.onPointerDown}
+                    onFocusCapture={navbar.onFocus}
+                    onBlurCapture={navbar.onBlur}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                            event.preventDefault();
+                            navbar.close(true);
+                        }
+                    }}
+                    onClick={(event) => {
+                        if (event.target.closest('a[href]')) navbar.close();
+                    }}
+                >
+                    <div className="app-navbar-inner">
+                        <Brand />
+                        <nav className="app-nav" aria-label="Application navigation">
+                            <NavLink to="/app/dashboard">Dashboard</NavLink>
+                            <NavLink to="/app/roadmap">Roadmap</NavLink>
+                            <NavLink to="/app/modules">Modules</NavLink>
+                            <NavLink to="/notes">My Notes</NavLink>
+                        </nav>
+                        <AccountMenu user={user} onLogout={logout}
+                            open={navbar.menuOpen} setOpen={navbar.setMenuOpen} />
+                    </div>
+                </header>
+            </div>
             <main>
                 <Outlet />
             </main>
