@@ -50,7 +50,7 @@ p,
 .topbar,
 .auth-topbar {
     background: transparent;
-    border-color: var(--color-border);
+    border: 0;
 }
 .brand,
 .brand em {
