@@ -63,13 +63,24 @@ test('provider rejection includes safe diagnostics without exposing response bod
     await assert.rejects(
         sendVerificationEmail(
             { email: 'learner@example.com', firstName: 'Test', rawToken: 'secret-token' },
-            { env: production, fetchImpl: async () => ({ ok: false, status: 403 }) }
+            {
+                env: production,
+                fetchImpl: async () => ({
+                    ok: false,
+                    status: 403,
+                    json: async () => ({
+                        name: 'restricted_api_key',
+                        message: 'Sensitive provider details must not be logged'
+                    })
+                })
+            }
         ),
         (error) => {
             assert.equal(error.code, 'EMAIL_DELIVERY_FAILED');
             assert.equal(error.emailCategory, 'provider-rejection');
             assert.equal(error.providerStatus, 403);
             assert.equal(error.retryable, false);
+            assert.equal(error.providerCode, 'restricted_api_key');
             return true;
         }
     );

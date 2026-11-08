@@ -121,11 +121,13 @@ export async function sendVerificationEmail(
             })
         });
         if (!response.ok) {
+            const providerCode = await readProviderCode(response);
             const retryable = response.status === 429 || response.status >= 500;
             throw createDeliveryError(
                 retryable ? 'provider-temporary-failure' : 'provider-rejection',
                 response.status,
-                retryable
+                retryable,
+                providerCode
             );
         }
     } catch (cause) {
@@ -150,6 +152,7 @@ export async function sendVerificationEmail(
                 provider: env.EMAIL_PROVIDER || 'unconfigured',
                 category: error.emailCategory,
                 status: error.providerStatus,
+                providerCode: error.providerCode,
                 correlationId,
                 durationMs: Math.round(performance.now() - startedAt),
                 retryable: error.retryable
@@ -159,7 +162,20 @@ export async function sendVerificationEmail(
     }
 }
 
-function createDeliveryError(category, providerStatus, retryable) {
+async function readProviderCode(response) {
+    if (typeof response.json !== 'function') return undefined;
+    try {
+        const body = await response.json();
+        const candidate = body?.name || body?.code || body?.error?.code;
+        return typeof candidate === 'string' && /^[a-z0-9][a-z0-9_.-]{0,80}$/i.test(candidate)
+            ? candidate
+            : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function createDeliveryError(category, providerStatus, retryable, providerCode) {
     const error = new Error(
         'We could not send your verification email. Please try again shortly.'
     );
@@ -167,5 +183,6 @@ function createDeliveryError(category, providerStatus, retryable) {
     error.emailCategory = category;
     error.providerStatus = providerStatus;
     error.retryable = retryable;
+    error.providerCode = providerCode;
     return error;
 }
