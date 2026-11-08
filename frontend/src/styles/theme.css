@@ -49,7 +49,7 @@ p,
 }
 .topbar,
 .auth-topbar {
-    background: var(--color-background);
+    background: transparent;
     border-color: var(--color-border);
 }
 .brand,
