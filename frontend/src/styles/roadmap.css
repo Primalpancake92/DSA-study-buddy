@@ -1,6 +1,6 @@
 .diagram-page {
     max-width: 1440px;
-    padding-top: 56px;
+    padding-top: 88px;
 }
 .diagram-page h1 {
     font-size: clamp(2rem, 5vw, 3.8rem);
