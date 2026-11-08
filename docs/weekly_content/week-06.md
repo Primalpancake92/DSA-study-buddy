@@ -1,6 +1,8 @@
 # Week 6 - Binary Search
 <!-- lesson-id:w6-section-chapter-introduction -->
 
+Binary search is not just a faster loop; it is a disciplined way to throw away half of a search space without losing the answer. We will keep asking what the current boundaries mean, what evidence lets us move one boundary, and what invariant remains true after the move.
+
 Suppose you are looking for a number in an ordered collection. A comparison with the middle number can tell you that a whole side is impossible. That is the useful idea behind binary search, our topic this week. We will use it to locate sorted records, find where repeated values begin and end, and choose the smallest operating setting that can finish a job.
 
 We will first search for an exact value. Then we will find boundaries, search a sorted array whose beginning has been moved to its end, and search possible numeric answers rather than array positions. For each version, we will say exactly which candidates remain between our boundaries. That meaning determines the updates; you do not need to memorize several unrelated loop templates.
@@ -355,6 +357,47 @@ In **Demonstration 1**, target 2 in `[2,2,2,4]` makes the nonstrict helper retur
 
 6. On `[8,3]`, searching for 8 matches midpoint zero. Searching for 3 discards the singleton sorted left half and finds index one. Keep endpoint tests inclusive whenever that endpoint is still a possible answer; midpoint equality is handled separately.
 7–8. **Demonstration 1** and **Demonstration 4** in “JavaScript Implementations” solve exact search and minimum speed. Explain their invariants from memory before adapting the platform's function signatures. For an independent speed-search check, enumerate small speeds directly and compare the first feasible result with binary search's result.
+
+### Data Structure Deep Dive: Search intervals and JavaScript arrays
+
+Binary search works on an ordered representation: usually a JavaScript array whose
+values are stored contiguously and addressed by integer indexes. The array gives
+constant-time access to `values[middle]`, but it does not give the algorithm its
+speed by itself; the sortedness promise lets one comparison eliminate many
+candidates. A useful conversational picture is a dictionary: opening the middle
+page is cheap, but only because every earlier word and every later word remain in
+known order. A rotated sorted array keeps two sorted runs, so the task is to discover
+which run contains the current index before applying the same bound reasoning.
+
+The core operations are choosing a midpoint, comparing, and moving a bound. With
+inclusive bounds, initialize `left = 0`, `right = values.length - 1`; with a
+half-open interval, use `right = values.length`. Do not mix those conventions.
+For a boundary search, equality narrows the candidate interval (`right = middle` or
+`left = middle + 1`) instead of ending the search. In JavaScript, `Math.floor((left
++ right) / 2)` is readable, while `left + Math.floor((right - left) / 2)` avoids
+overflow in languages with fixed-width integers. `Array.prototype.includes()` is
+convenient for a small unsorted array, but it is linear and cannot replace a
+monotone predicate search.
+
+| Operation or representation | Time cost | Auxiliary space | Trade-off |
+| --- | --- | --- | --- |
+| Read `values[index]` | O(1) | O(1) | Requires a valid array index |
+| Linear scan with `includes` | O(n) | O(1) | Works without sorting |
+| Exact binary search | O(log n) | O(1) iterative | Requires sorted order |
+| First-true boundary search | O(log n) | O(1) | Needs a monotone predicate |
+| Search a numeric answer | O(log R · C) | O(1) | `C` is feasibility-check cost |
+
+### A worked boundary conversation
+
+Suppose the predicate is false for speeds 1–4 and true from speed 5 onward. Start
+with `[1, 13]`, test 7, and retain `[1, 7]` because 7 works. Test 4, retain
+`[5, 7]` because 4 fails; then test 6 and 5. The final candidate is 5, and a
+separate feasibility check can confirm it. The interval shrinks even when the
+answer is equal to the midpoint. In an interview, state the invariant, name the
+discarded region, and explain why the result is the first true value. That is more
+persuasive than merely reciting a loop. The principal trade-off is preprocessing:
+sorting first costs O(n log n), so binary search pays off when many queries reuse
+the ordered array; one query may be better served by a scan.
 
 ## Sources and Further Reading
 <!-- lesson-id:w6-section-sources-and-further-reading -->

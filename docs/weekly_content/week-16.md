@@ -1,6 +1,8 @@
 # Week 16 - Interview Consolidation
 <!-- lesson-id:w16-section-chapter-introduction -->
 
+Interview problems rarely announce their pattern. This module is a chance to practice recognizing the shape of an unfamiliar problem, asking clarifying questions, and explaining trade-offs aloud. Treat each exercise like a short teaching session: state the brute force idea, improve it, and defend the final complexity.
+
 This week, we will practice solving unfamiliar problems with the tools you have built across the course. The goal is independent reasoning under time pressure: recognize a possible approach, check what makes it valid, and explain how its state preserves the answer. A familiar problem title is less useful than an argument you can adapt when the requirements change.
 
 We will use a repeatable interview workflow, then develop complete solutions for matching symbol frequencies, finding a unique substring, and measuring grid components. You will compare an optimized solution with a simpler exhaustive checker, often called an oracle: an implementation used to tell us the expected answer on small inputs.
@@ -335,6 +337,32 @@ Use the course as a collection of arguments you can transfer. Hashing avoids rep
 Practice rejecting plausible alternatives aloud. A unique-substring task requires contiguity, so LCS's gapped subsequences answer a different question. Ordinary BFS minimizes weighted cost only when weights are equal. An arbitrary sum constraint with negative numbers may not support a monotone window. No-reuse board search cannot generally cache solely by coordinates.
 
 If an optimization fails during a mock, retain the smallest counterexample you can explain and return to the last justified invariant. If time expires, communicate a correct baseline and its bottleneck. Afterward, distinguish a modeling failure, implementation mistake, and communication gap. Each suggests a different next drill; repeating the same problem without diagnosing the cause may repeat the same failure.
+
+### Interview structures: choose the index that proves the claim
+
+The mock problems deliberately use different data structures because “optimize it” is not a sufficient design. Frequency matching uses a `Map` from symbol to count. The map is an index: one pass increments counts, a second pass decrements them, and a negative or missing count disproves equality. A unique-character window uses a `Set` or last-seen `Map` plus two numeric boundaries. A component traversal uses a grid and a visited structure, often a boolean matrix or a set of encoded coordinates.
+
+| Structure/pattern | Core operations | Total time | Auxiliary space | Trade-off |
+| --- | --- | --- | --- | --- |
+| Frequency `Map` | `get`, increment, decrement | O(n + m) expected | O(k) symbols | Extra memory buys direct multiplicity checks |
+| Set window | `has`, `add`, `delete` while moving bounds | O(n) | O(k) current symbols | Simple invariant; cannot assume monotonicity for every constraint |
+| Last-seen `Map` window | read last index, jump left bound | O(n) expected | O(k) symbols | Fewer left moves; index update must never move backward |
+| Grid + visited | inspect neighbors, mark/unmark or mark in place | O(RC) | O(RC) worst case | Explicit state is safer; in-place marking mutates input |
+| Exhaustive oracle | enumerate candidates and compare | Often quadratic or worse | Depends on output | Slow but excellent for testing optimized code |
+
+Walk a frequency example such as “aab” versus “aba”: after consuming the first string, counts are `a:2, b:1`; consuming the second returns them to zero. For a window, expand the right boundary, repair duplicates by moving the left boundary until the invariant is restored, and record the best width only after repair. If the left boundary is assigned to an old last-seen index without taking the maximum, it can move backward and include an invalid duplicate. For grid components, choose four-way or eight-way adjacency before counting; changing neighbors changes the problem.
+
+JavaScript method choices carry costs and contracts: `Map.get` is a lookup, `Set.has` tests membership, and `Array.slice` in an oracle creates a copy whose cost must be counted. A baseline can use nested loops and still be the correct first implementation. In an interview, explain which repeated work the index removes, what the invariant says after each iteration, and whether expected hash cost is an assumption. Also count output space: returning every matching range can dominate an otherwise linear scan.
+
+### Turning a mock into reusable interview evidence
+
+After a timed problem, separate three outcomes: the answer, the reasoning, and the communication. A passing test does not prove that the invariant was understood, and a polished explanation does not excuse an unchecked edge case. Keep a short record: contract assumptions, baseline, repeated work, optimized state, one adversarial input, and the measured complexity. This turns a mock from a score into a next practice action.
+
+For frequency matching, first decide whether symbols mean code points and whether case or normalization matters. Then test empty strings, different lengths, repeated symbols, and a visually similar but different symbol. For a sliding window, write the left and right boundaries after every expansion and repair. The key invariant is usually that the current window satisfies a constraint; if removing the left item can make the constraint worse, the proposed repair rule is not justified. For grid components, explicitly state whether diagonal neighbors count before writing the neighbor loop.
+
+Beginners often choose a named pattern from a keyword: “substring means window” or “grid means DP.” Instead, inspect what must remain true and what the output requires. A baseline is valuable because it gives an oracle for small random cases and exposes the exact repetition an optimization removes. In an interview, say what your algorithm would change if the contract changed—for example, returning all matches instead of one, or allowing diagonal adjacency.
+
+The final recap is a decision loop: clarify, model, baseline, invariant, optimize, test, then account for preprocessing and output space. If stuck, reduce the input and enumerate it. That is not retreat; it is a way to recover evidence and make the next claim precise.
 
 ## Practice Exercises
 <!-- lesson-id:w16-section-practice-exercises -->

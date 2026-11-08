@@ -1,6 +1,8 @@
 # Week 7 - Linked Lists
 <!-- lesson-id:w7-section-chapter-introduction -->
 
+A linked list asks you to stop thinking of a collection as a row of numbered boxes. Instead, follow the references from one node to the next. Once that picture is clear, reversing a list, using a dummy node, or detecting a cycle becomes a sequence of deliberate pointer changes rather than a collection of memorized diagrams.
+
 Imagine a sequence in which each item tells you where the next item lives. That is a linked list. Each item is a node—an object containing a value and a reference to the next object. This week we will use lists to practice inserting, removing, and rearranging items without losing access to the rest. That care with references also prepares you for trees and other connected structures.
 
 First we will follow links to understand how a list differs from an array. Then we will reverse those links, join two sorted chains using a temporary starting node, and detect a chain that loops back on itself. Finally, we will combine midpoint finding, reversal, and alternating links to reorder a list. Each stage has a small, explainable job.
@@ -400,6 +402,48 @@ In **Demonstration 1**, `[2,2,1,2,3,2]` starts with previous at the dummy. Remov
 
 8. Before mutation, collect input objects in a Set. Afterwards, use another Set while traversing: reject repeated identities and compare the surviving objects with the expected originals. The test uses O(n) memory, but that does not change the algorithm's O(1) working-space claim. Measurement helpers and the operation being measured have separate costs.
 9. Use **Demonstration 1** in “JavaScript Implementations” as the worked reversal solution. Adapt the `value` field name if the platform supplies a different one. When the task asks to reverse links, constructing a new chain with reversed values does not satisfy the same object-preservation contract.
+
+### Data Structure Deep Dive: Nodes, links, and list operations
+
+A singly linked list is a chain of small records. Each node stores a payload such as
+`value` and one reference, `next`; the list itself usually stores a `head`, and may
+also store a `tail` and `size`. The representation explains both its strengths and
+its costs: a node can be inserted by changing a couple of references, but there is
+no address formula for “the node at index 20.” In JavaScript, a node can be a plain
+object such as `{ value: 7, next: null }`. `Array.prototype.push()` and
+`unshift()` operate on arrays, not on this chain; list methods must explicitly
+follow references.
+
+Core operations are traversal, insertion, deletion, reversal, and merging. To
+insert after `previous`, save `previous.next`, set the new node’s `next` to that
+saved reference, then set `previous.next` to the new node. To delete the following
+node, bypass it with `previous.next = previous.next.next`; a dummy predecessor makes
+deleting the head follow exactly the same rule. Reversal repeatedly saves the
+forward link, points the current node backward, and advances the two boundaries.
+Merging sorted lists compares front nodes and attaches the smaller one. None of
+these operations requires copying payloads or allocating replacement nodes.
+
+| Operation | Time | Auxiliary space | Important trade-off |
+| --- | --- | --- | --- |
+| Read head / insert after known node | O(1) | O(1) | Excellent local updates |
+| Find or reach index `i` | O(i), worst O(n) | O(1) | No random access |
+| Append with a tail reference | O(1) | O(1) | Tail must stay correct |
+| Delete by predecessor | O(1) | O(1) | Must already know predecessor |
+| Reverse `n` nodes | O(n) | O(1) iterative | Mutates every link |
+| Merge lengths `a` and `b` | O(a+b) | O(1) | Reuses existing nodes |
+| Convert to array with `Array.from`-style traversal | O(n) | O(n) output | Faster later indexing |
+
+### Step-by-step and interview framing
+
+For `A → B → C`, the reversal trace is: protect `B`, point A to `null`, advance;
+protect C, point B to A, advance; point C to B and return C. The live invariant is
+“the prefix behind `previous` is already reversed, and `current` still reaches the
+untouched suffix.” A cycle breaks the assumption that traversal reaches `null`;
+Floyd’s slow/fast references detect that using O(1) space, while a `Set` of node
+identities is simpler but costs O(n). In an interview, mention object identity,
+head/tail edge cases, and whether mutation is allowed. Arrays offer cache-friendly
+indexing and simpler built-in methods; linked lists offer cheap local rewiring but
+extra reference overhead and less predictable access.
 
 ## Sources and Further Reading
 <!-- lesson-id:w7-section-sources-and-further-reading -->

@@ -59,9 +59,24 @@ test('Resend delivery uses authorization, escaped HTML, URL token and bounded re
     assert.equal(calls, 1);
 });
 
-test('rejection, network failure and timeout become controlled delivery failures', async () => {
+test('provider rejection includes safe diagnostics without exposing response bodies', async () => {
+    await assert.rejects(
+        sendVerificationEmail(
+            { email: 'learner@example.com', firstName: 'Test', rawToken: 'secret-token' },
+            { env: production, fetchImpl: async () => ({ ok: false, status: 403 }) }
+        ),
+        (error) => {
+            assert.equal(error.code, 'EMAIL_DELIVERY_FAILED');
+            assert.equal(error.emailCategory, 'provider-rejection');
+            assert.equal(error.providerStatus, 403);
+            assert.equal(error.retryable, false);
+            return true;
+        }
+    );
+});
+
+test('network failure and timeout become retryable delivery failures', async () => {
     for (const fetchImpl of [
-        async () => ({ ok: false, status: 403 }),
         async () => {
             throw new TypeError('network');
         },
@@ -74,7 +89,11 @@ test('rejection, network failure and timeout become controlled delivery failures
                 { email: 'learner@example.com', firstName: 'Test', rawToken: 'secret-token' },
                 { env: production, fetchImpl }
             ),
-            { code: 'EMAIL_DELIVERY_FAILED' }
+            (error) => {
+                assert.equal(error.code, 'EMAIL_DELIVERY_FAILED');
+                assert.equal(error.retryable, true);
+                return true;
+            }
         );
     }
 });

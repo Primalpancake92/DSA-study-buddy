@@ -1,7 +1,7 @@
 # Production verification email
 
 1. Create a Resend account and add a domain you own under Domains. Publish the SPF and DKIM records Resend supplies and configure DMARC for that domain. Wait for Resend to report verification. The application cannot authorise a sender itself.
-2. Generate a Resend API key with sending permission for that domain.
+2. Generate a Resend API key with sending permission for that domain. The Render blueprint declares the key and sender as required manual values (`sync: false`); do not put either value in source control.
 3. In Render → backend service → Environment, set `NODE_ENV=production`, `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` (secret), `EMAIL_FROM=DSA Grind <verify@YOUR-VERIFIED-DOMAIN>`, `EMAIL_VERIFICATION_BASE_URL=https://dsa-study-buddy.vercel.app/verify-email`, and `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES=60`. Replace the sender with your actual verified address. Preserve database, session, CORS and TLS settings.
 4. Redeploy Render. Missing required email configuration now stops startup with the variable name, never its value. Apply existing migrations with `npm run migrate` against the configured database; this change adds no migration. Email verification and activity tables from migrations 003 and 004 must exist.
 5. Vercel needs only its existing public API base URL; never put the Resend key or database credentials there. Existing SPA rewrites must allow direct `/verify-email` and `/check-your-email` navigation.

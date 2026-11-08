@@ -1,6 +1,8 @@
 # Week 14 - Dynamic Programming I
 <!-- lesson-id:w14-section-chapter-introduction -->
 
+Dynamic programming starts with a simple observation: many recursive questions solve the same smaller problem more than once. We will make those repeated states visible, decide what a state means, and then choose memoisation or tabulation to reuse the work without losing the original recurrence.
+
 This week, we will learn to avoid answering the same smaller question over and over. That reuse is the idea behind dynamic programming, usually shortened to DP. Different decision sequences can reach an identical remaining problem; once we recognize that identity, we can compute its answer once and reuse it.
 
 We will count stair-climbing sequences, then change the question to minimum stair cost, maximum value from nonadjacent houses, and minimum coins for an exact amount. You will define a state—the information identifying one smaller question—and a recurrence, the rule connecting its answer to smaller answers.
@@ -307,6 +309,29 @@ In 0/1 capacity DP, each item can be used at most once. A descending capacity lo
 Ask what the future needs to know: remaining amount, next index, previous selection, or capacity. If two histories with the same proposed key have different legal futures, they cannot safely share one cached answer. Add the missing information or justify why it is irrelevant.
 
 Climbing Stairs counts ordered routes; Min Cost Climbing Stairs minimizes payment; House Robber maximizes a constrained selection; Coin Change minimizes coin count with unlimited reuse. Their bases and combination rules differ because the questions differ. Derive those choices before borrowing a familiar loop.
+
+### DP data structures, costs, and trade-offs
+
+The main DP data structures this week are a state table and, when using top-down evaluation, a `Map` used as a memo. A table is not automatically “the DP”; it is the storage that makes a precisely defined state reusable. For stair counts, an array indexed by height gives direct O(1) access. For irregular or sparse states, a `Map` can avoid allocating entries that will never be visited. The trade-off is that arrays are simpler and usually faster for dense integer indexes, while maps express missing states explicitly and accept richer keys.
+
+| Representation | Typical time per state | Auxiliary space | Best fit | Trade-off |
+| --- | --- | --- | --- | --- |
+| Recursive + `Map` memo | O(1) lookup, plus each transition | O(number of states) plus call stack | Sparse or naturally recursive dependencies | Call-stack depth and recursion limits |
+| Full array table | O(1) lookup and predictable order | O(number of states) | Dense numeric states and reconstruction | Stores states that may not be needed |
+| Rolling variables/row | O(1) update | O(1) for one-dimensional recurrences | Only recent dependencies matter | Cannot reconstruct or revisit discarded history |
+| Table plus parent choice | O(1) state update | O(number of states) extra choices | Need a witness, not only its score | More bookkeeping and memory |
+
+Walk through minimum coins with amount six: initialize `dp[0]` to zero, mark every other amount unreachable, then compute amounts one through six. At amount six, inspect the predecessor for each legal coin, ignore infinity candidates, and retain the smallest count. The loop order is part of correctness: ascending amounts is safe because every predecessor is smaller. A House Robber rolling solution instead keeps “two houses ago” and “one house ago”; shifting those variables before calculating the new take candidate silently loses a dependency.
+
+The JavaScript choice follows the state shape. `Array(amount + 1).fill(Infinity)` creates independent scalar entries, while `new Map()` lets `has` distinguish an absent state from a stored zero. Avoid `Array(n).fill([])` for tables of mutable rows: every row would share one array. In an interview, state the number of states, work per state, and what the output requires. A score-only rolling algorithm may be optimal for space, but a requested sequence of coins or selected houses usually requires parent pointers or a second pass.
+
+### A learner's DP checkpoint: say the state aloud
+
+Before choosing memoisation, tabulation, or rolling storage, pause and tell a one-sentence story for one table entry. For example, “`best[i]` is the best value obtainable from the first `i` houses” makes the two choices visible: skip house `i`, or take it and combine its value with the answer before its neighbor. If you cannot say what an index counts, the recurrence may still run while answering a different question.
+
+A useful walkthrough is to write a tiny table for houses `[2, 7, 9, 3]`. Start with the empty prefix, then the first house, and at each new house compare the skip candidate with the take candidate. Do not compare only neighboring values; compare complete candidate answers. For coin change, ask a different diagnostic question: is this amount reachable at all? Keeping `Infinity` distinct from zero prevents “no coins” from being mistaken for “zero coins make a positive amount.”
+
+Beginners often think DP means “use an array,” or that every recurrence can be compressed to two variables. Neither is true. The state must include every fact that changes future choices, and storage can be discarded only after proving no later transition needs it. In an interview, explain the state, base cases, transition, evaluation order, and complexity in that order. Then mention one edge case—zero stairs, an unreachable amount, or an empty input—and trace it by hand. The recurring lesson is that optimization comes after a correct model: caching a wrong state only makes the wrong answer faster.
 
 ## Practice Exercises
 <!-- lesson-id:w14-section-practice-exercises -->

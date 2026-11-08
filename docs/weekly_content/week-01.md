@@ -1,6 +1,8 @@
 # Week 1 - Introduction to Algorithm Complexity
 <!-- lesson-id:w1-section-chapter-introduction -->
 
+Before we begin, think like an instructor at a whiteboard: first ask what the input looks like, then ask what work the algorithm performs as that input grows. This module gives names to those questions so you can explain a solution instead of guessing from how short the code looks. Keep a small example beside you, trace it by hand, and let the formal notation summarize what you just observed.
+
 Suppose your program gives the right answer for three values. What will happen when someone gives it three million? Correctness alone cannot tell you whether the program will finish in a useful amount of time. This week, we will learn to answer that second question by following small JavaScript examples one step at a time, counting their work, and explaining how those counts grow. You do not need to know logarithms or mathematical proofs yet; we will build those ideas as we use them.
 
 Work through the fifteen lessons in order, with variables, functions, comparisons, conditional branches, and basic loops as your starting tools. When an array appears, you can read it simply as a sequence of input values. Its length tells us how many values we have, and an index is the number identifying one position. We will leave array methods and copying techniques to the separate [Arrays module](week-17.md), so you can concentrate here on explaining work.
@@ -539,6 +541,35 @@ Before giving a complexity label, name the event, the meaning of input size, the
 **Worked correction:** suppose someone says, “It visits half the entries, so it is logarithmic,” about a loop advancing by two. At n = 100, it still visits about fifty positions; doubling n roughly doubles that count. About n/2 visits is Θ(n). Logarithmic work comes from repeatedly halving what remains, not from visiting every second entry.
 
 **Try it:** correct this statement in one sentence: “This search was fast on my example, so its worst case is constant.” Make clear what a single execution can and cannot establish.
+
+### A conversational way to estimate cost
+
+When you meet a new algorithm, do not begin by memorising a label such as O(n²). Begin by asking what the algorithm repeatedly touches. Let `n` be the amount of input, choose one representative operation (a comparison, lookup, or write), and count how many times that operation can happen. A loop that visits each item once is linear. Two loops that both range over the same input are usually quadratic when one is nested inside the other, while two loops placed one after another add their costs and remain dominated by the larger term. This is why a short-looking function can still be expensive: the shape of the repetition matters more than the number of lines.
+
+Try a tiny trace before generalising. For an array of length 4, a pair loop visits 4 + 3 + 2 + 1 pairs (or 16 ordered pairs if self-pairs and direction are included). Writing those counts makes the triangular pattern visible; replacing 4 with `n` then gives a reliable expression. For binary search, record the candidate interval after every midpoint. Its width is roughly halved, so the number of rounds grows with the number of halvings, `log₂ n`, rather than with every element.
+
+### Misconceptions and interview language
+
+Big O is not a stopwatch and it does not erase correctness. Two O(n) solutions can have different constants, and an O(log n) claim is meaningless if the input is not sorted or the interval does not shrink. Also distinguish extra space from the input itself: a few counters are O(1), but a copied array is O(n). In an interview, say: “I define `n`, count the dominant operation, state the worst-case bound, and mention the input assumption.” That compact explanation shows both mathematical care and practical judgment.
+
+### Quick recap before practice
+
+1. Name the input size and the operation being counted.
+2. Separate fixed setup from work that scales with `n`.
+3. Use worst, best, and average cases only when their meanings are explicit.
+4. Report time and auxiliary space, plus assumptions such as sorted input.
+
+### A field guide to sequence operations
+
+For the sequence algorithms in this module, representation determines the cost. A JavaScript array gives direct indexed access with `values[i]`, so reading a known position is expected O(1). `push` is usually amortized O(1), while `pop` removes from the end in O(1). In contrast, `shift` and `unshift` generally move the remaining elements and are O(n), so repeatedly taking the front can accidentally turn a linear algorithm into quadratic work. `slice` and spread create a new array and therefore cost O(k) time and O(k) auxiliary space for k copied entries; a loop that only keeps `left`, `right`, and `count` can stay O(1) auxiliary space.
+
+Search methods deserve the same honesty. `includes`, `indexOf`, and `find` may inspect every entry, so their worst-case time is O(n), even though their call sites are one line. Sorting with `sort` is not a constant-time helper either: its cost depends on the engine and comparison count, and the resulting copy or in-place mutation changes the space and side-effect story. A binary-search loop earns O(log n) only when the representation is sorted and each iteration discards a provably impossible half.
+
+Use the following interview checklist when comparing two implementations: What does one operation do to the physical representation? Does it move or copy entries? Does the algorithm allocate a result, a visited set, or only scalar state? Is the input allowed to be mutated? A two-pointer scan may be O(n) time and O(1) auxiliary space, but sorting first can add O(n log n) time and may destroy original order. Conversely, a Set can make membership expected O(1) and simplify the proof, at the cost of O(n) extra space and hash overhead.
+
+### Walkthrough: from code to a defensible bound
+
+Take a loop that starts `left = 0`, `right = n - 1`, compares the endpoints, and moves one pointer inward. At least one index changes each round, and neither pointer moves backward, so there are at most n pointer moves. The comparison and update are constant work, giving O(n) time. The variables are a fixed number of scalars, giving O(1) auxiliary space. If the code first creates `values.slice().sort(...)`, the scan is still linear, but the complete algorithm is no longer linear and now stores a second sequence. Say that explicitly rather than reporting only the final loop.
 
 ## Practice exercises and module assessment
 <!-- lesson-id:w1-section-practice-exercises-and-module-assessment -->

@@ -1,6 +1,8 @@
 # Week 4 - Sliding Window
 <!-- lesson-id:w4-section-chapter-introduction -->
 
+Sliding windows become much easier when you imagine a frame moving across a stream of data. At every step, one value enters the frame and another may leave. We will use that picture to avoid recomputing the same totals and frequencies, then make the boundary rules precise enough for an interview explanation.
+
 This week, we will work with ranges of consecutive input positions, called contiguous ranges. Instead of recomputing everything when a range moves, we will update the information that changed. That is the sliding-window idea. We will use fixed and changing widths to calculate sums, find substrings without repeats, limit distinct characters, and locate the smallest range supplying required characters.
 
 We will start with fixed-width sums because adjacent ranges visibly share most of their entries. Then we will let width vary and define what makes each range valid. Some tasks require us to shrink an invalid range until it becomes valid. Others require us to shrink a valid range while it still covers everything needed. We will derive those different decisions rather than memorize a single loop template.
@@ -494,6 +496,34 @@ When you hear contiguous, substring, subarray, fixed width, longest, shortest, a
 For longest uniqueness and at-most-k distinctness, restore validity before measuring. For minimum coverage, measure while valid and keep shrinking to seek improvement. Say that distinction aloud as part of your solution. Minimum Window Substring is a stretch task because you must coordinate two frequency tables, one exact shortage count, and this reversed recording rule. Understand each piece independently before putting them into one loop.
 
 Begin an interview explanation with a correct baseline and point to the repeated work. Fixed sums repeat additions; independently growing unique substrings rebuilds membership; coverage enumeration rebuilds tables or repeatedly checks all requirements. Then show how an arriving or departing entry changes the previous state. That specific update is the optimization. Merely saying “sliding window is faster” leaves both the saving and the correctness unexplained.
+
+### Make the window a small state machine
+
+A sliding window is not merely two indices moving together. It is a state machine with three questions: what does the current interval contain, when is it valid, and what update repairs or records it? For a fixed-width window, add the entering item and remove the leaving item, so each element participates in constant work. For a longest-valid problem, expand the right edge, repair by advancing the left edge while invalid, then record the valid width. For a shortest-cover problem, expand until valid, record the candidate, and shrink while validity survives. Naming that order prevents accidental measurement of an invalid window.
+
+Trace a repeated character slowly. If a window contains two copies of `b`, removing one `b` decreases its count but does not make `b` absent; delete the key only when its count reaches zero. The same multiplicity rule explains minimum coverage: surplus copies are useful, but they must not be mistaken for required copies. For permutation matching, equal width removes the “surplus” possibility, so matching every required count is enough.
+
+### When the pattern does not apply
+
+The classic expand-and-repair proof relies on monotonicity: enlarging a window should not make a previously valid “at most” condition invalid in an unpredictable way, and shrinking should move toward validity for a coverage condition. Signed-number sums can break that assumption because adding a negative value may improve a sum. In an interview, state the predicate and its monotonic direction before choosing a window; if no such direction exists, consider prefix sums, dynamic programming, or a different baseline.
+
+### Three-line recap
+
+1. Define the window’s invariant and its exact boundary convention.
+2. Update state incrementally; never rescan the whole window.
+3. Repair before measuring for longest windows, and measure before further shrinking for shortest windows.
+
+### Window representation and JavaScript operations
+
+A window is represented by boundaries, usually inclusive `left` and `right`, plus a summary of the values between them. The summary might be a running sum, a `Map` of frequencies, a `Set` of present values, or a `missing` counter. `right - left + 1` is the inclusive length; writing that formula beside the code prevents the common off-by-one error. `slice(left, right + 1)` creates a copy in O(w) time and space for width w, so use indices while searching and materialise the answer only after choosing the best boundaries. `Set.add`, `Set.delete`, `Map.get`, and `Map.set` are expected O(1), which is what keeps a repaired window linear.
+
+The operation order is part of the proof. On expansion, add the incoming value before testing validity. On contraction, remove the outgoing value, decrement its count, and delete a key only when its count becomes zero. A `while` loop is needed when one expansion can leave several violations; each leftward move permanently removes one position, so all left moves across the scan total at most n. A fixed-width window uses an `if` because expansion creates exactly one extra position and one removal restores the width.
+
+### Complexity and trade-offs in an interview
+
+For an input of n characters, longest-unique and at-most-k-distinct scans take expected O(n) time and O(min(n, alphabet)) auxiliary space. Minimum coverage takes O(n + m) time when m is the pattern length and O(u) space for the required keys. A fixed-width numeric scan is O(n) time and O(1) auxiliary space when it stores only a sum and best value. Returning the actual substring adds O(w) result space; that output space should be reported separately from working memory.
+
+The trade-off is state versus rescanning. Recomputing each window’s counts is easier to write but can cost O(nw); maintaining counts is more delicate but preserves linear time. In interview language: “The invariant says the current boundaries and summary agree. I expand once, repair monotonically, and charge each index at most one right move and one left move.” If the predicate is not monotone, explain why this proof fails and choose another technique instead of forcing a window.
 
 ## Practice Exercises
 <!-- lesson-id:w4-section-practice-exercises -->

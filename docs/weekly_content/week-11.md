@@ -1,6 +1,8 @@
 # Week 11 - Graph Foundations
 <!-- lesson-id:w11-section-chapter-introduction -->
 
+A graph is a way to model relationships that do not fit neatly into a line or hierarchy. Start by deciding what the vertices and edges represent, then let a visited set keep the exploration under control. The examples build toward the practical questions of reachability, components, and shortest unweighted paths.
+
 This week, we will learn to describe connected things precisely enough that a program can explore them. A graph is a collection of things and the connections between them: cities and roads, people and friendships, or cells you can move between on a board. Unlike a tree, those connections can meet again or lead you back to your starting point. Our program needs to remember where it has been.
 
 We will first name the things and connections, formally called vertices and edges. Then we will store neighbors in adjacency lists, remember discoveries in a visited set, and explore with breadth-first search (BFS) and depth-first search (DFS). You will use those tools to find connected groups and routes with the fewest steps. A grid and a graph made of linked objects will help you recognize the same problem in different clothing.
@@ -357,6 +359,38 @@ When a question asks for “connected groups,” consider a traversal inside an 
 Sometimes an input promise makes traversal unnecessary. In Find Center of Star Graph, a valid star has one center connected to every other vertex. With at least three vertices, the shared endpoint of the first two edges must be that center. Keep the promise attached to the shortcut: it does not find a general graph's center.
 
 Before you write a loop, ask whether the answer concerns every vertex or only the region reachable from one source. Then establish edge direction and whether “shortest” means fewest edges or least total weight. These decisions tell you what must be represented and what your processing order has to guarantee.
+
+### A guided graph walk: make representation and visitation agree
+
+Graph problems become less mysterious when you separate three decisions: what a vertex is, how neighbors are represented, and when a vertex becomes visited. In an adjacency list, `neighbors[u]` is the contract for leaving `u`; it is not automatically symmetric. An undirected edge must be recorded in both directions, while a directed edge records only its arrow. That small modeling choice determines whether a traversal can discover the intended component.
+
+Suppose the graph has edges `A-B`, `B-C`, and isolated vertex `D`. A DFS from `A` should visit `A`, then `B`, then `C`; it should never “guess” that `D` is connected. To count all components, wrap the traversal in an outer loop and start a new walk whenever a vertex is still unvisited:
+
+| Moment | Vertex considered | Action | Visited set |
+| --- | --- | --- | --- |
+| 1 | A | start DFS | A |
+| 2 | B | follow A’s neighbor | A, B |
+| 3 | C | follow B’s neighbor | A, B, C |
+| 4 | D | start a second component | A, B, C, D |
+
+Marking on discovery, rather than on removal from the stack or queue, prevents duplicate work and keeps parent pointers meaningful. For shortest unweighted routes, BFS adds one more idea: record `parent[child] = current` at first discovery, then walk parents backward from the destination and reverse the collected route. A common misconception is that DFS gives the shortest path simply because it eventually finds a path; it does not. For grid “islands,” cells are vertices and valid neighboring land cells are edges, even though no adjacency list is written down. In an interview, say the representation and visitation invariant aloud before discussing complexity: each vertex and edge is processed at most once, so traversal is `O(V + E)`.
+
+### Data-structure field guide: adjacency lists, queues, stacks, and grids
+
+An adjacency list is a representation choice with practical consequences. A JavaScript object or `Map` can map each vertex to an array of neighbors: `graph.get("A") ?? []`. A `Map` is safer when vertex labels are objects or when keys such as `"__proto__"` could collide with object behavior. For an undirected graph, add both `u → v` and `v → u`; for a directed graph, add only the stated direction. An adjacency matrix uses a row-and-column lookup, which makes an edge test `O(1)` but consumes `O(V²)` space even when very few edges exist. The list uses `O(V + E)` space and is usually the better fit for sparse interview graphs.
+
+DFS can be recursive or explicit. The recursive version uses the call stack as its stack; the iterative version uses `const stack = [start]` and `stack.pop()`. Mark a vertex when pushing it, not after popping it, so two parents do not enqueue duplicate work. BFS uses `queue.shift()` conceptually, but repeated `shift()` can be costly in JavaScript because it reindexes the array. Prefer a head index: `for (let head = 0; head < queue.length; head += 1) { const u = queue[head]; ... }`. BFS’s queue can hold `O(V)` vertices; DFS’s stack or recursion depth is also `O(V)` in the worst case. Both traverse in `O(V + E)` with an adjacency list, while an adjacency matrix scan can cost `O(V²)`.
+
+Grid traversal is the same structure in disguise. A cell coordinate is a vertex, and the four direction offsets `[[1,0],[-1,0],[0,1],[0,-1]]` describe edges. Check bounds before reading a neighbor. If the contract says not to mutate the grid, keep a `Set` of encoded coordinates such as ```${r},${c}```; mutation saves auxiliary space but changes the caller’s data. For shortest unweighted distance, store `distance` or `parent` at first discovery. For cloning, a `Map` from original object to copy preserves repeated references and breaks cycles safely.
+
+| Representation/operation | Time | Auxiliary space | Trade-off |
+| --- | ---: | ---: | --- |
+| List neighbor iteration | `O(deg(v))` | `O(V + E)` storage | sparse-friendly |
+| Matrix edge test | `O(1)` | `O(V²)` storage | fast dense lookup |
+| DFS/BFS traversal | `O(V + E)` | `O(V)` | reachability |
+| BFS shortest route | `O(V + E)` | `O(V)` | unweighted edges |
+
+Interview framing: state whether the graph is directed, weighted, sparse, and allowed to mutate before choosing the representation.
 
 ## Practice Exercises
 <!-- lesson-id:w11-section-practice-exercises -->

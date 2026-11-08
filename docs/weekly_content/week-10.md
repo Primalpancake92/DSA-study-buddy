@@ -1,6 +1,8 @@
 # Week 10 - BSTs and Heaps
 <!-- lesson-id:w10-section-chapter-introduction -->
 
+Binary search trees and heaps both organize values, but they answer different questions. One helps you navigate by ordering; the other helps you repeatedly retrieve the highest- or lowest-priority item. We will compare those guarantees directly so you can choose a structure from the operation you need.
+
 If you need to find a particular value, you want comparisons that tell you which direction to search. If you need the next most urgent job, you want that job ready at the front. This week we will build structures for both needs: binary search trees, abbreviated BSTs, and heaps. We will use heaps for scheduling-style priorities and for keeping the largest K observations, usually called top-K selection.
 
 We will add a whole-subtree ordering rule to last week's trees, then search, insert, and check that rule. Next we will store a binary heap in an array and trace how it repairs order after a change. Finally, we will limit a min-heap to k entries and use its smallest retained value as the cutoff for incoming observations in a stream.
@@ -353,6 +355,36 @@ In broken **Demonstration 1**, use parent 10 with left child 3 and right child 7
 When a prompt asks for ordered membership, neighboring keys—the predecessor or successor—or values in a range, consider a search tree. Repeated requests for the next smallest or largest item, scheduling, and continuing top-K updates suggest a heap. A one-time kth-largest array query also admits quickselect, but an ongoing stream fits the bounded-heap contract naturally. Choose based on the sequence of operations the caller needs.
 
 Before writing a comparator, say what you want at the root. A min-heap exposes the globally smallest entry. A largest-K client wants the weakest retained winner there, which becomes kth largest after k observations exist. A frequency client compares counts rather than original values, with a stated tie rule. That sentence determines both heap direction and eviction behavior.
+
+### A guided decision trace: ordered search or priority access?
+
+When a prompt mentions “find,” pause before reaching for a BST. Ask what the operation really promises. A BST is useful when comparisons can eliminate an entire subtree: at a node containing 8, a target of 5 belongs only in the left subtree, provided every ancestor constraint is still true. A heap makes a weaker promise. Its root is extreme, but the remaining nodes are not globally sorted, so searching a heap for an arbitrary value can still touch everything.
+
+Here is a compact trace for inserting 6 into a BST containing 8, 3, 10, and 5:
+
+| Step | Current node | Decision | Next state |
+| --- | --- | --- | --- |
+| 1 | 8 | 6 < 8 | move left to 3 |
+| 2 | 3 | 6 > 3 | move right to 5 |
+| 3 | 5 | 6 > 5 | insert as right child |
+
+The beginner trap is validating only each parent-child pair. A node that is smaller than its parent can still violate a grandparent bound. Carry `(low, high)` constraints down the recursion, or perform an inorder traversal and require strict increase. Another trap is treating a heap array as sorted; only the parent-child relation is guaranteed. In an interview, explain the invariant first, then the operation it buys you: BST search is guided by ordering, while heap removal is guided by the root extreme and repaired with sift-down. For top-K, the “weakest winner at the root” is intentional: if a new value beats that cutoff, replace it and restore the heap; otherwise discard it. Before coding, state whether duplicates are allowed and whether the requested result is a value, a node, or an ordered list.
+
+### Data-structure field guide: BSTs, heaps, and the operations they buy
+
+It helps to picture a BST as a set of linked records rather than as a sorted array. Each node stores a value plus `left` and `right` references; the representation is sparse and can grow without moving unrelated values. The core operations are search, insertion, and (when implemented) deletion. Search compares once at each level and follows one reference. Insertion follows the same path until a missing reference is found. Deletion has three cases: remove a leaf, replace a one-child node with its child, or replace a two-child node with its inorder successor/predecessor and then remove that replacement. All of these rely on the same ancestor-bound invariant. A balanced BST costs `O(log n)` per operation, but an already sorted insertion sequence can turn it into a chain and make the cost `O(n)`. A self-balancing tree avoids that worst case at the cost of rotations and more bookkeeping; a sorted array gives fast binary search but expensive middle insertion.
+
+A binary heap is usually represented compactly in a zero-based JavaScript array. For index `i`, the children are `2 * i + 1` and `2 * i + 2`, while the parent is `Math.floor((i - 1) / 2)`. `push` appends, then repeatedly swaps upward while the parent violates the min- or max-heap rule. `pop` saves the root, moves the last element to index zero, and sifts it down by choosing the better child. `peek` reads `heap[0]` without changing the structure. Building a heap bottom-up is `O(n)`, not `O(n log n)`, because most nodes have very short sift-down paths. A heap gives `O(1)` peek and `O(log n)` insertion/removal, but arbitrary lookup is `O(n)` and traversal is not sorted. JavaScript has no built-in priority queue, so a small class can expose `push`, `peek`, and `pop` while keeping the array private by convention.
+
+| Structure/operation | Time | Auxiliary space | Best fit |
+| --- | ---: | ---: | --- |
+| BST search/insert | `O(h)` | `O(h)` recursive stack | ordered lookup |
+| Heap peek | `O(1)` | `O(1)` | next priority |
+| Heap push/pop | `O(log n)` | `O(1)` extra | repeated priorities |
+| Bottom-up heapify | `O(n)` | `O(1)` extra | bulk construction |
+| Top-K min-heap | `O(n log k)` | `O(k)` | bounded stream |
+
+Interview framing: name the guarantee you need, state whether height is bounded, and distinguish auxiliary memory from the storage occupied by the input structure. A heap is not a replacement for a BST merely because both compare values; their invariants answer different questions.
 
 ## Practice Exercises
 <!-- lesson-id:w10-section-practice-exercises -->

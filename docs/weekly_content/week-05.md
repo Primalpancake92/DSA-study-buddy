@@ -1,6 +1,8 @@
 # Week 5 - Stacks and Queues
 <!-- lesson-id:w5-section-chapter-introduction -->
 
+Stacks and queues are really two answers to one question: which item should be handled next? Start with that question, trace a few additions and removals, and the LIFO and FIFO names will feel natural. From there, the more advanced patterns, including monotonic stacks and efficient queues, have a reason rather than looking like tricks.
+
 When several jobs are waiting, which one should we handle next? This week we will build two containers that answer that question: a stack handles the newest waiting item, while a queue handles the oldest. You already use both ideas. You close the most recently opened bracket first, but serve the customer who arrived first. Undo histories, programs that read structured expressions, and visits through trees depend on these same rules.
 
 We will give those rules their usual names, LIFO and FIFO, and then build queues that avoid repeatedly moving their contents. We will also build a monotonic stack: a stack whose values stay in a particular order, allowing it to remember questions waiting for future answers. Before you run a program, trace a small input on paper. Predicting each change is how you learn to build the container yourself.
@@ -276,6 +278,37 @@ while (pending.length && temperatures[day] >= temperatures[pending.at(-1)]) {
 When you hear “most recent unmatched,” nested work, undo, or expression evaluation, try a stack. When you hear “oldest pending,” arrival order, or levels, try a queue. A request for the next greater or smaller value, especially its distance, suggests a monotonic stack. Treat these as starting hypotheses. Ask whether equality qualifies and whether the answer needs a value, an index, or a distance before stating what your container remembers.
 
 For Valid Parentheses, use `([)]` to show why counts do not prove nesting. For Implement Queue using Stacks, explain why an existing outgoing item must precede new incoming work. For Daily Temperatures, start with the simple repeated forward searches, then identify the work eliminated by keeping unresolved indexes. Support your proof with an input designed to expose a mistake—an adversarial example—such as all-equal temperatures for the strict comparison rule.
+
+### Think in obligations and service order
+
+A stack is ideal when the newest unresolved obligation must be completed first: a closing bracket answers the most recent unmatched opening bracket, and an undo operation reverses the latest action. A queue is ideal when arrival order is part of fairness or correctness: the first item enqueued is the first item processed. Before choosing one, ask whether the problem says “most recent” or “oldest.” That wording is often the whole data-structure clue.
+
+Walk through a stack trace by writing the contents after every push and pop. For brackets, reject a closer when the stack is empty or its top is the wrong opener; accept only when the stack is empty at the end. For a queue implemented with an array, keep a `head` index instead of shifting every item. The consumed prefix can be compacted occasionally, but the logical queue is the slice from `head` onward. Two stacks implement a queue by making one stack the input side and moving items to the output side only when output is empty; each item moves at most twice, giving amortized O(1) operations.
+
+### Monotonic stacks and common misconceptions
+
+A monotonic stack stores unresolved questions, not simply all previous values. For “next warmer day,” keep indices whose warmer day has not appeared; when the current temperature is strictly greater, resolve those indices from the top. Equality does not resolve a strictly-warmer question. Each index is pushed and popped once, so the total work is linear even though one iteration may pop several entries.
+
+In an interview, state what each entry means and why anything popped can never become useful again. Also distinguish worst-case cost of one operation from amortized cost across the sequence. That explanation demonstrates the proof, not just a memorised pattern.
+
+### Recall card
+
+- **Stack:** newest obligation first.
+- **Queue:** oldest arrival first.
+- **Head index:** avoid repeated front-element shifts.
+- **Monotonic stack:** keep unresolved candidates in a useful order.
+
+### Representation and operation costs
+
+A stack needs one active end. JavaScript arrays make `push` and `pop` natural expected O(1) operations, so `stack[stack.length - 1]` is a constant-time peek. Avoid `shift` for stack removal because it moves the remaining elements. A queue can use an array plus a `head` index: enqueue with `push`, inspect `queue[head]`, and advance `head` on dequeue. Advancing is O(1); periodically compacting with `slice(head)` costs O(n) at that moment but prevents abandoned slots from retaining memory indefinitely. A linked-list queue gives O(1) head and tail updates without compaction, at the cost of node allocations and pointer bookkeeping.
+
+The two-stack queue separates representation from policy. `incoming.push(value)` records arrivals. When output is empty, repeatedly `pop` incoming and `push` outgoing; the reversal makes the oldest arrival appear on top. `peek` prepares without removing, while `dequeue` prepares and then pops. One transfer may cost O(k), but an item transfers at most once in each direction and is removed once, so a sequence of operations is O(1) amortized per operation. The queue’s auxiliary space is O(n).
+
+### Monotonic-stack walkthrough and trade-offs
+
+For next-greater or next-warmer questions, store indexes rather than values when the answer needs a distance or original position. The stack invariant is usually monotonic temperatures from bottom to top. On each new reading, pop while the new value is strictly greater, resolve each popped index, then push the new index. Every index is pushed once and popped at most once: O(n) time and O(n) auxiliary space. A nested `while` does not make this quadratic because popped entries never return.
+
+Interview framing should include the comparison policy. `>` answers “strictly warmer”; `>=` answers “warmer or equal” and changes duplicate behaviour. A stack is excellent for nested matching and unresolved future relationships, but it is the wrong choice when arbitrary middle removal or sorted-order queries dominate. Mention mutation and output allocation too: a bracket checker can use O(n) working space, while a returned answer array adds O(n) result space. The data structure is justified by the lifetime of an obligation, not by a memorised problem name.
 
 ## Practice Exercises
 <!-- lesson-id:w5-section-practice-exercises -->

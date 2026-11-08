@@ -1,6 +1,8 @@
 # Week 13 - Greedy and Intervals
 <!-- lesson-id:w13-section-chapter-introduction -->
 
+Greedy algorithms ask whether a choice that looks best right now can safely be part of an optimal solution. That confidence must be justified, not assumed. We will use intervals and exchange-style reasoning to see when a local choice works and when it needs a different strategy.
+
 This week, we will learn when it is safe to make a choice and never reconsider it. That is the central question behind a greedy algorithm. We will use meetings, intervals of coverage, room demand, and cookie assignments to make the reasoning concrete. A short loop is useful only when you can explain why its discarded alternatives are unnecessary.
 
 We will begin by keeping as many compatible meetings as possible, using an exchange argument: show how an optimal answer can be changed to include our choice without becoming worse. Then we will compare that objective with merging coverage and serving every meeting in enough rooms. Those problems accept similar inputs but need different state.
@@ -285,6 +287,39 @@ In broken **Demonstration 1**, start with `last` equal to `[1,10]` and next inte
 First ask what must be preserved. Merge Intervals retains all coverage. Non-overlapping Intervals removes as few meetings as possible to retain a compatible subset. Meeting Rooms II serves every meeting with enough rooms. Assign Cookies maximizes matches under size thresholds. Recognizing that all can use sorting is only the beginning; the output contract decides the scan.
 
 Try small adversarial inputs when judging a greedy rule: one long interval against several short ones, a nested pair, touching boundaries, or a scarce large resource. A failure disproves the rule. If it survives, you still need an exchange argument or invariant. When choices interact without a safe discard, reconsider the model; dynamic programming is one possible alternative.
+
+### A guided greedy trace: prove what the local choice protects
+
+Greedy algorithms are not “pick what looks best.” They permanently discard alternatives, so the important question is why the discarded choice can never lead to a better valid result. For interval scheduling, sorting by earliest finishing time protects the largest amount of room for every future meeting. Sorting by start time or longest duration may feel natural, but neither preserves that exchange argument.
+
+Consider meetings `[1, 3]`, `[2, 4]`, and `[3, 5]`. After sorting by finish, choose `[1, 3]`; `[2, 4]` conflicts, while `[3, 5]` is compatible and can be chosen:
+
+| Candidate | Compatible with last choice? | Decision | Why |
+| --- | --- | --- | --- |
+| `[1, 3]` | yes | keep | earliest finish |
+| `[2, 4]` | no | skip | overlaps at time 2 |
+| `[3, 5]` | yes | keep | starts at the boundary |
+
+For merging intervals, the objective changes: you are preserving union coverage, not maximizing the number selected. Sort by start, keep a current frontier, and extend its end when the next interval overlaps. For closed intervals, `[1, 3]` and `[3, 5]` overlap at 3; using `<` instead of `<=` silently changes the contract. Room counting is another different state problem: sort starts and ends separately, advance the earlier event, and track the peak active count. Finally, Assign Cookies pairs the smallest adequate cookie with the least-demanding child, preserving large cookies for children who truly need them. In an interview, name the objective, boundary convention, and proof idea before code. The common misconception is that one universal interval sort exists; the correct sort follows from whether you select, cover, count, or match.
+
+### Data-structure field guide: interval arrays, frontiers, and event sweeps
+
+Intervals are commonly represented as two-element arrays such as `[start, end]`, but the representation is only useful once the boundary contract is explicit. Are endpoints closed, half-open, or allowed to be equal? For closed intervals, `[1, 3]` and `[3, 5]` overlap; for half-open intervals `[1, 3)` and `[3, 5)` they do not. Keep that decision beside the comparison in code instead of relying on a remembered template.
+
+The standard operations begin with sorting. Sorting intervals by start costs `O(n log n)` and lets a single forward scan maintain a current merged interval. If the next start is within the current end, extend the frontier with `Math.max(currentEnd, nextEnd)`; otherwise emit the finished interval and start a new one. The output array is `O(n)` auxiliary space in addition to the input, while the scan itself is `O(1)` extra if output storage is excluded. Do not mutate caller-owned intervals unless the contract permits it; `intervals.map(([s, e]) => [s, e]).sort(...)` makes the copy explicit.
+
+For maximum compatible meetings, sort by end and retain only the last selected end. The selected list may be omitted when only the count is required, reducing auxiliary space to `O(1)` after sorting. The exchange intuition is that an earliest-finishing compatible meeting leaves at least as much room as any later-finishing alternative. For room counting, represent starts and ends as separate sorted arrays, or create events like `[time, +1]` and `[time, -1]`. Tie ordering matters: if a meeting ending at time `t` frees a room before another starts at `t`, process the end first. A min-heap of end times is another implementation; remove the earliest end when it is compatible, then push the new end. It costs `O(n log n)` and `O(n)` space.
+
+Assign Cookies uses sorted greed and two pointers. Advance the child pointer when the current cookie is large enough; otherwise consume the cookie and let it go to waste because it cannot satisfy that child. This preserves larger cookies for larger appetites. Sorting costs `O(n log n + m log m)`, and the two-pointer scan costs `O(n + m)` with `O(1)` auxiliary state.
+
+| Problem/data structure | Core method | Time | Auxiliary space |
+| --- | --- | ---: | ---: |
+| Merge intervals | sorted frontier scan | `O(n log n)` | `O(n)` output |
+| Meeting selection | earliest-finish scan | `O(n log n)` | `O(1)` beyond result |
+| Room allocation | ends heap or event sweep | `O(n log n)` | `O(n)` |
+| Cookie matching | two sorted pointers | `O(n log n + m log m)` | `O(1)` |
+
+Interview framing: identify the objective first—select, cover, count concurrency, or match—because it determines the sort key and the invariant.
 
 ## Practice Exercises
 <!-- lesson-id:w13-section-practice-exercises -->

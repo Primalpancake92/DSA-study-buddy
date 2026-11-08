@@ -1,11 +1,13 @@
 # Week 3 - Two Pointers
 <!-- lesson-id:w3-section-chapter-introduction -->
 
+Picture two markers on the same problem rather than one loop doing everything. Sometimes they face each other, sometimes one marker records where to write, and sometimes they move through a linked structure at different speeds. The goal is not to memorize pointer choreography; it is to understand what each marker means and why a movement is safe.
+
 This week, we will use two positions to avoid repeatedly searching or rebuilding the same information. Sometimes they start at opposite ends; sometimes one reads while the other writes; sometimes they travel through linked objects at different speeds. We call these positions pointers. The useful part is the relationship between them: we will explain what each position means and why moving it cannot lose a required answer.
 
 We will begin with a sorted array and prove when an endpoint can be discarded from pair search. Then we will compare characters from opposite ends of a string, pack retained array entries together without overwriting unread values, and follow linked nodes at different speeds. Finally, we will reuse the pair-search proof inside 3Sum, where we need three values rather than two.
 
-By the end, you should be able to choose a pointer relationship and state its preconditions, the facts that must hold before it can work correctly. You will trace boundary changes, justify the answers they rule out, and explain why the loop eventually stops. We will also decide when sorting beforehand is allowed and when it would break a requirement about original indexes or changing the caller's input.
+Let's put this on the whiteboard and watch the moving parts together. By the end, you should be able to choose a pointer relationship and state Thinkinganges, justify the answers they rule out, and explain why the loop eventually stops. We will also decide when sorting beforehand is allowed and when it would break a requirement about original indexes or changing the caller's input. If you can explain this aloud while tracing an example, you are ready to implement it.
 
 Use the final checklist to update your progress logs after attempting the exercises. Its Theory, JavaScript, Practice, and Reflection categories cover both implementations and explanations. Aim to describe why a pointer moves without reading the code: that explanation is what lets you adapt the method when the next problem changes its return value or boundary rules.
 

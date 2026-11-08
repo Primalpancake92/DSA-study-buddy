@@ -1,6 +1,8 @@
 # Week 17 - Arrays and Array Operations
 <!-- lesson-id:w17-section-chapter-introduction -->
 
+Arrays look familiar, which is exactly why their hidden costs can surprise us. We will slow down and watch indexes, shifts, references, callbacks, copying, sorting, and two-pointer patterns change the data. Keep asking whether an operation reads, moves, or shares values; that question usually reveals the real complexity.
+
 Welcome to **Module 2 — Arrays**. You have practiced counting work; this week, we will use that reasoning to choose how to read, change, and copy a real data structure. A data structure is a way of organizing values so that certain operations are easy to express. After this chapter, [Module 3 — Hash Maps and Sets](week-02.md) continues the ideas of remembering membership and counting occurrences that we first meet in these array problems.
 
 Think of daily temperatures, prices over time, scores, or records waiting to be processed. In each case, an array lets us keep values in a sequence where position matters. We will learn what each operation promises and what information you need to remember while visiting the entries. We will also follow an important source of bugs: copying an array can leave its objects shared with the original. By combining these ideas into small algorithms, you will be able to explain why a result is correct instead of relying on a method's name.
@@ -752,6 +754,36 @@ Before reaching for a pattern, ask what must be returned, whether the input may 
 - [Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) — LeetCode, Easy. A purchase must happen before its sale. Compare enumerating every legal pair with scanning in day order while keeping the cheapest earlier price and the best completed profit.
 
 These descriptions and solutions are original teaching material rather than reproduced platform statements or editorials. We explicitly define local behavior for empty and singleton inputs even when an external judge's constraints are narrower. Use local traces as evidence about the stated local contract. They do not establish that a solution was submitted to or accepted by an external judge.
+
+### Array structures and operation economics
+
+An ordinary JavaScript array is a mutable sequence with a `length` property and indexed properties. Treat it as a logical row of positions, not as a promise about physical memory. Core operations have different movement costs: reading or replacing `values[i]` is expected O(1), appending with `push` and removing the last item with `pop` are amortized O(1), while `shift`, `unshift`, and interior `splice` generally move O(n) entries. `slice` and copying methods read the selected range, so their time and result space are proportional to the copied length.
+
+| Operation | Return contract | Mutates? | Typical time | Extra result/auxiliary space |
+| --- | --- | --- | --- | --- |
+| `arr[i]` / assignment | value / assigned value | assignment yes | O(1) | O(1) |
+| `push` / `pop` | new length / removed value | yes | amortized O(1) | O(1) |
+| `shift` / `unshift` | removed value / new length | yes | O(n) | O(1) beyond movement |
+| `slice` | copied array | no | O(k) | O(k) |
+| `splice` | removed array | yes | O(n + k) typical | O(k) for returned removals |
+| `map` / `filter` | new array | no | O(n) plus callback work | O(n) result |
+| `sort` / `reverse` | same array reference | yes | sort typically O(n log n), reverse O(n) | implementation-dependent |
+
+Step through `splice(start, deleteCount, ...items)` as three movements: preserve the removed range for the return value, close the gap, then open space and write inserted items. By contrast, a two-pointer compaction reads each entry once and writes only retained values; its O(n) time and O(1) auxiliary space are often preferable when order must remain stable and only a prefix length is required. Prefix/suffix products use O(n) output space, but avoid division and handle a zero naturally by excluding one position's value from each product.
+
+JavaScript details matter. `map` returns a new array, `forEach` returns `undefined`, and `reduce` returns its accumulator; callback work belongs in the cost. `sort()` compares strings by default, so numeric data needs `(a, b) => a - b`. `const copy = original.slice()` copies only the outer array; nested objects remain shared. `structuredClone` can provide deeper separation for supported data, at extra time and space.
+
+In an interview, state mutation policy, stable-order requirements, return value, and whether output space is allowed. Then name the processed prefix or unexamined interval invariant. The winning method is the one whose contract and movement cost match the task, not the one with the shortest spelling.
+
+### Array reasoning clinic: contract before method
+
+For every array method, practice a two-column trace: “what is returned?” and “what is now stored?” `push` returns a new length and mutates; `slice` returns a copy and does not mutate; `splice` returns removed entries while changing the original. This tiny habit prevents the frequent mistake of assigning a method's return value when the task needed the array itself. It also makes interview explanations concrete instead of relying on method names.
+
+Then draw the positions that move. Inserting or deleting near the front shifts many entries, while changing an existing index does not shift anything. A reader/writer compaction avoids repeated shifting because the writer only advances when a qualifying value is retained. The invariant is that the prefix before the writer already equals the filtered result. For opposite pointers, state what each fixed position means and why the unexamined interval shrinks after every swap or comparison.
+
+Copying deserves the same precision. A shallow array copy creates a new outer container but preserves references to nested objects. If one nested record changes through either container, both views can change. Copy only the path you will edit when that is enough; use a supported deep clone when the whole nested graph must be independent and its values are cloneable. Do not confuse `undefined` with a hole: iteration and membership methods may treat them differently.
+
+For an interview, state the input contract, mutation policy, return contract, and dominant movement cost before coding. Mention stability when retaining order, strict equality when searching, and numeric comparison when sorting numbers. A final recap should answer: which values are shared, which positions have been processed, and which work remains? Those three questions connect references, callbacks, two pointers, and every in-place array pattern in this module.
 
 ## Practice Exercises
 <!-- lesson-id:w17-section-practice-exercises -->

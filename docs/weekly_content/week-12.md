@@ -1,6 +1,8 @@
 # Week 12 - Advanced Graphs
 <!-- lesson-id:w12-section-chapter-introduction -->
 
+Advanced graph problems often feel difficult because several ideas are interacting at once: direction, ordering constraints, weights, and revisiting rules. We will separate those decisions, draw a small graph, and let each algorithm earn its place by matching a particular guarantee.
+
 This week, we will learn to answer graph questions that require more than knowing whether a route exists. Can you finish a group of tasks if some depend on each other in a circle? If roads have different costs, which route is cheapest? These questions appear in course planning, software build systems, and routing.
 
 We will distinguish work still on the current exploration path from work already finished, then put prerequisites into a legal order. For weighted routes, we will build Dijkstra's algorithm with a binary min-heap, a tree-shaped structure that efficiently retrieves the smallest pending cost. An itinerary extension will ask how to use every ticket exactly once.
@@ -406,6 +408,40 @@ In broken **Demonstration 1**, source 0 first offers vertex 1 cost eight and mar
 Use the requested result to choose among these candidates. Course Schedule asks whether an order exists. Network Delay Time asks when all vertices can receive a signal: take the largest finite shortest distance, but report failure if any vertex is unreachable.
 
 Graph promises also matter. A weighted DAG supports topological relaxation even with negative edges because predecessors are processed first. A general graph with negative edges needs another method, such as Bellman–Ford. The word “graph” describes the model, not a complete algorithm choice.
+
+### A guided dependency trace: discovery is not settlement
+
+Advanced graph algorithms differ mainly in what “safe to finalize” means. In directed cycle detection, a visited bit answers only “have we seen this vertex?” It cannot distinguish a finished branch from a vertex still on the current recursion path. The three colors make that distinction explicit: white is unseen, gray is active, and black is completely explored. A gray back-edge is a cycle; an edge to black is not.
+
+For topological sorting, think in terms of unfinished prerequisites. Kahn’s algorithm starts with every zero-indegree task, emits one, and decrements its outgoing neighbors. If the queue empties before all vertices are emitted, some dependency cycle remains. A trace makes the invariant concrete:
+
+| Step | Ready queue | Emitted | Indegree change |
+| --- | --- | --- | --- |
+| 1 | `A` | — | `A` has no prerequisites |
+| 2 | `B` | `A` | remove `A → B` |
+| 3 | `C` | `B` | remove `B → C` |
+| 4 | — | `C` | all tasks released |
+
+Dijkstra adds a different distinction: a tentative distance can improve after it is discovered, but a nonnegative-weight vertex is settled only when it is removed with the smallest current distance. With a lazy heap, stale entries are expected; skip an entry when its distance no longer equals `dist[node]`. The beginner mistake is marking a node settled when it is inserted, which can freeze a longer route before a shorter alternative is processed. In an interview, state the precondition—no negative edge weights—before claiming correctness. For route reconstruction, update `parent` at the same moment you relax a shorter edge, then follow parents from destination to source. Euler itinerary problems are a useful contrast: they consume edges, so visiting every vertex once is the wrong invariant.
+
+### Data-structure field guide: directed graphs, indegrees, and priority queues
+
+The advanced algorithms still use adjacency lists, but the state attached to each vertex becomes the important data structure. For cycle detection, keep a color array or `Map`: `0` means unvisited, `1` means active on the current DFS path, and `2` means finished. The active state is auxiliary memory, not a property of the graph itself. A directed edge to an active vertex proves a back-edge and therefore a cycle. A plain `Set` cannot tell that edge apart from an edge to a completed vertex.
+
+Kahn’s topological sort adds an indegree table and a ready queue. Initialize `indegree[v]` by counting incoming edges, enqueue every zero-indegree vertex, then remove its outgoing edges logically by decrementing neighbors. Each decrement that reaches zero enqueues a newly released task. The queue can be an array plus a head index, just as in BFS. Processing costs `O(V + E)`, with `O(V)` auxiliary space for indegrees, queue, and output. If fewer than `V` vertices are emitted, the graph contains a cycle. This is a useful diagnostic because the incomplete output identifies that no full dependency order exists.
+
+Dijkstra needs a min-priority queue of `[distance, vertex]` entries plus `dist` and usually `parent` maps. A JavaScript heap implementation can expose `push([candidate, next])` and `pop()`; when popped, compare the entry with `dist.get(vertex)` and skip stale entries. That lazy strategy avoids an expensive decrease-key operation. Each edge can create a new heap entry, giving `O((V + E) log V)` with a binary heap and `O(V + E)` distance/parent storage. The algorithm is not valid with negative edge weights; Bellman-Ford or another method is needed there. Route reconstruction walks `parent` pointers backward and reverses the array, while unreachable destinations have no parent chain.
+
+Euler itinerary reconstruction uses a different representation again: adjacency lists are treated as mutable edge inventories. Removing or consuming a ticket changes what remains available, and a postorder stack can delay output until all outgoing edges from a vertex are exhausted. Sorting destinations first gives deterministic lexical choices, but sorting can add `O(E log E)` preprocessing.
+
+| State structure | Main operation | Cost | Space |
+| --- | --- | ---: | ---: |
+| Color map | mark/check phase | `O(1)` expected | `O(V)` |
+| Indegree + queue | release zero-prerequisite task | `O(1)` amortized | `O(V)` |
+| Binary min-heap | relax candidate route | `O(log V)` | `O(V + E)` entries |
+| Parent map | reconstruct route | `O(V)` total | `O(V)` |
+
+Interview framing: announce the invariant that makes removal safe—active-path detection, zero remaining prerequisites, or minimum settled distance—before explaining code.
 
 ## Practice Exercises
 <!-- lesson-id:w12-section-practice-exercises -->

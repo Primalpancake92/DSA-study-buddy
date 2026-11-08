@@ -42,6 +42,12 @@ if (!process.env.DATABASE_URL)
 if (!sessionSecret || sessionSecret.length < 32)
     console.warn('SESSION_SECRET should be a random value of at least 32 characters.');
 
+app.use((req, res, next) => {
+    req.correlationId = crypto.randomUUID();
+    res.setHeader('X-Request-ID', req.correlationId);
+    next();
+});
+
 const pool = createDatabasePool();
 const PgSession = connectPgSimple(session);
 const allowedOrigins = new Set(
@@ -285,7 +291,7 @@ app.post('/api/auth/register', authLimiter, csrfProtection, async (req, res, nex
         );
         await client.query('COMMIT');
         committed = true;
-        await sendVerificationEmail({ email, firstName, rawToken });
+        await sendVerificationEmail({ email, firstName, rawToken }, { correlationId: req.correlationId });
         res.status(202).json({
             code: 'EMAIL_VERIFICATION_REQUIRED',
             message: 'Check your inbox to verify your email before signing in.',
@@ -673,10 +679,9 @@ app.post(
                     email: user.email,
                     firstName: user.first_name,
                     rawToken
-                });
+                }, { correlationId: req.correlationId });
             } catch (error) {
-                if (error.code === 'EMAIL_DELIVERY_FAILED')
-                    return errorResponse(res, 503, error.code, error.message);
+                if (error.code === 'EMAIL_DELIVERY_FAILED') return res.status(202).json(generic);
                 throw error;
             }
             res.status(202).json(generic);

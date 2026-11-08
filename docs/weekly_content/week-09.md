@@ -1,6 +1,8 @@
 # Week 9 - Binary Trees
 <!-- lesson-id:w9-section-chapter-introduction -->
 
+Trees give us a useful middle ground between a flat sequence and a general graph. Begin at one node, decide what visiting means, and watch how the same problem changes when you go depth first or breadth first. The traversal names matter, but the order of the work matters more.
+
 A menu can contain submenus, and an expression can contain smaller expressions. A tree represents that kind of hierarchy by connecting parent objects to children. This week we will study binary trees, where each node has at most a left child and a right child. Each child begins a smaller tree, making recursion a natural way to describe the work.
 
 First we will name the parts of a tree and learn three ways to visit a parent relative to its descendants. Then we will calculate the longest downward path, mirror the child relationships, and visit one complete level at a time. We will compare narrow chains with broad trees because shape changes memory needs even when the node count stays the same.
@@ -388,6 +390,48 @@ console.log(leafCount(null));
 
 In **Demonstration 1**, node 2 contributes one leaf and node 4 contributes one. Node 3 has a child, so it returns that child's count without adding another leaf for itself. Root returns two; the subtree rooted at 3 returns one; null returns zero. Every node is visited once, giving Θ(n) time and O(h) waiting frames.
 9. Use **Demonstration 5** in “JavaScript Implementations” as the worked level-order solution. Test empty input, a zero-valued root, uneven shape, and a chain. If you convert it to a queue, freeze the live queue size at each level and analyze retained memory again; changing the container can change the space claim.
+
+### Data Structure Deep Dive: Tree nodes, traversals, and frontiers
+
+A binary tree is made of nodes with a payload, `left` reference, and `right`
+reference; a variable points at the root, and an empty tree is `null`. Unlike an
+array, the shape carries information: a child reference may be missing, and a
+subtree is itself a complete smaller tree. In JavaScript, a plain object such as
+`{ value: 4, left: null, right: null }` is enough. A binary search tree adds an
+ordering promise; an ordinary binary tree does not, so never use sorted-search
+logic without that promise.
+
+The core operations are visiting, measuring, searching, inserting, and transforming.
+Preorder handles a node before children, inorder between children, and postorder
+after both. Level-order traversal uses a queue or a pair of frontier arrays. A
+recursive function receives a subtree and returns its answer; an iterative function
+stores pending nodes or ancestors explicitly. In JavaScript, `queue.shift()` is easy
+to read but can be O(n) per call in some engines; a head index (`queue[head++]`) or
+frontier arrays avoids repeatedly moving elements. Inversion is a local operation:
+swap `left` and `right`, then recurse or iterate into the children.
+
+| Operation | Time | Auxiliary space | Trade-off |
+| --- | --- | --- | --- |
+| Any full traversal of `n` nodes | Θ(n) | O(h) DFS or O(w) BFS | Must inspect every node |
+| Recursive depth / leaf count | Θ(n) | O(h) | Clear subtree contract |
+| Iterative inorder | Θ(n) | O(h) stack | Explicit continuation state |
+| Level-order grouping | Θ(n) | O(w) frontier | Natural distance layers |
+| In-place inversion | Θ(n) | O(h) recursive or O(w) iterative | Reuses node objects |
+| Store traversal values | Θ(n) | Θ(n) output | Output dominates storage |
+
+### Trace the frontier and frame
+
+For a root with children L and R, a preorder visit records root, then explores L
+before R. A postorder calculation first receives L’s answer and R’s answer, then
+combines them as `1 + Math.max(leftDepth, rightDepth)`. For BFS, freeze the current
+frontier `[root]`, record its values, enqueue `[L, R]`, and repeat; the frontier
+length is the level boundary. The representation makes the trade-off visible:
+deep skinny trees have large `h` but small `w`, while broad trees have the reverse.
+In an interview, state whether your result mutates nodes, whether traversal order is
+part of the required output, and whether “space” excludes returned arrays. A common
+misconception is that `inorder` is always sorted—it is sorted only for a valid
+binary search tree. The reliable habit is to name the structural promise before
+choosing the algorithm.
 
 ## Sources and Further Reading
 <!-- lesson-id:w9-section-sources-and-further-reading -->

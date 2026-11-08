@@ -4,6 +4,7 @@ import { domainToASCII } from 'node:url';
 import validator from 'validator';
 
 const lookupTimeoutMs = 3000;
+const deliveryTimeoutMs = 10000;
 
 async function withTimeout(promise, label) {
     let timer;
@@ -88,8 +89,9 @@ export function validateEmailConfiguration(env = process.env) {
 
 export async function sendVerificationEmail(
     { email, firstName, rawToken },
-    { env = process.env, fetchImpl = fetch } = {}
+    { env = process.env, fetchImpl = fetch, correlationId = 'unknown' } = {}
 ) {
+    const startedAt = performance.now();
     try {
         validateEmailConfiguration(env);
         if (env.EMAIL_PROVIDER !== 'resend') return; // Development transport intentionally never sends or logs tokens.
@@ -105,7 +107,7 @@ export async function sendVerificationEmail(
             );
         const response = await fetchImpl('https://api.resend.com/emails', {
             method: 'POST',
-            signal: AbortSignal.timeout(10000),
+            signal: AbortSignal.timeout(deliveryTimeoutMs),
             headers: {
                 Authorization: `Bearer ${env.RESEND_API_KEY}`,
                 'Content-Type': 'application/json'
@@ -119,26 +121,51 @@ export async function sendVerificationEmail(
             })
         });
         if (!response.ok) {
-            console.error(
-                '[email]',
-                JSON.stringify({ category: 'provider-rejection', status: response.status })
+            const retryable = response.status === 429 || response.status >= 500;
+            throw createDeliveryError(
+                retryable ? 'provider-temporary-failure' : 'provider-rejection',
+                response.status,
+                retryable
             );
-            throw new Error('Provider rejection');
         }
     } catch (cause) {
-        // Never log provider bodies, tokens, recipient details or exception messages.
+        const error =
+            cause.code === 'EMAIL_DELIVERY_FAILED'
+                ? cause
+                : createDeliveryError(
+                      ['TimeoutError', 'AbortError'].includes(cause.name)
+                          ? 'timeout'
+                          : cause.code === 'ERR_INVALID_ARG_TYPE' ||
+                              cause.code === 'ENOTFOUND' ||
+                              cause.code === 'ECONNRESET' ||
+                              cause.code === 'ECONNREFUSED'
+                            ? 'network-failure'
+                            : 'delivery-failure',
+                      cause.status,
+                      true
+                  );
         console.error(
             '[email]',
             JSON.stringify({
-                category: ['TimeoutError', 'AbortError'].includes(cause.name)
-                    ? 'timeout'
-                    : 'delivery-failure'
+                provider: env.EMAIL_PROVIDER || 'unconfigured',
+                category: error.emailCategory,
+                status: error.providerStatus,
+                correlationId,
+                durationMs: Math.round(performance.now() - startedAt),
+                retryable: error.retryable
             })
         );
-        const error = new Error(
-            'We could not send your verification email. Please try again shortly.'
-        );
-        error.code = 'EMAIL_DELIVERY_FAILED';
         throw error;
     }
+}
+
+function createDeliveryError(category, providerStatus, retryable) {
+    const error = new Error(
+        'We could not send your verification email. Please try again shortly.'
+    );
+    error.code = 'EMAIL_DELIVERY_FAILED';
+    error.emailCategory = category;
+    error.providerStatus = providerStatus;
+    error.retryable = retryable;
+    return error;
 }

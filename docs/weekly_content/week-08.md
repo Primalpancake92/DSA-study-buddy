@@ -1,6 +1,8 @@
 # Week 8 - Recursion and Backtracking
 <!-- lesson-id:w8-section-chapter-introduction -->
 
+Recursion is easiest to understand when every call has a smaller job and a clear promise about what it returns. We will follow the call stack, identify the base case, and then use the choose, explore, and undo rhythm for backtracking. Trace one small input before worrying about the recursion tree.
+
 Sometimes a problem becomes easier when we ask the same question about a smaller input. That is recursion: a function delegates a smaller version of its job to another call of itself. When we need to try choices and then undo them to try alternatives, we use backtracking. This week you will use both ideas for hierarchical data and combinations, especially when taking one locally attractive choice—a greedy step—cannot settle the whole problem.
 
 We will begin with one chain of calls so you can see where each result returns. Then we will draw branching calls and generate subsets, different orders of values, sums that reuse candidates, and letters for phone digits. Throughout, we will track the shared working array and restore it between alternatives. We will also count the cost of storing answers, because generating many answers is real work.
@@ -394,6 +396,48 @@ In **Demonstration 1**, choosing two from A, B, C explores AB and AC before retu
 For 1≤k≤n, the number of length-k answers is C(n,k), read “n choose k.” Every explored prefix can complete and has at most k ancestors, so time is O(k·C(n,k)), matching the copying lower bound. Working space is O(k), and output costs Θ(k·C(n,k)). Handle k=0 and k>n as constant-size cases rather than substituting zero into the positive-k formula.
 8. Digit 2 has three choices and digits 7 and 9 have four each. Multiplying gives 3·4·4=48 strings, each containing three letters. No enumeration is needed to establish that count.
 9. Rebuild **Demonstration 2** in “JavaScript Implementations.” On small distinct inputs, check that there are 2^n results, each contains only input values, and normalized subsets are unique. Normalizing means representing equivalent subsets consistently before comparing them; together these checks help establish completeness.
+
+### Data Structure Deep Dive: Call stacks, paths, and choice state
+
+Recursion is a data structure in motion: each active call is a frame holding
+parameters, local variables, and a return address on the JavaScript call stack.
+Backtracking adds an explicit mutable path, commonly an array, plus state such as
+`start`, `index`, `used`, or remaining capacity. The path represents one partial
+answer, not the entire result set. A result array stores completed snapshots. This
+distinction is the reason `results.push(path)` is usually wrong: later `pop()` calls
+would mutate the same object already stored. Use `results.push([...path])` when a
+snapshot is required.
+
+The core operations are choose, recurse, and undo. At a subset decision, skip the
+current item, recurse, then include it and recurse again. At the end of a
+combination, record the path; on return, remove its last choice. Permutations use a
+`used` boolean array or a set of chosen indexes so that each position appears once.
+Combination sum changes the next index depending on reuse: recursing with `i` allows
+the same value again, while `i + 1` forbids reuse. JavaScript methods make the
+mutation readable: `path.push(candidate)` enters a choice and `path.pop()` restores
+the caller’s state. `slice()` or spread creates a shallow snapshot of references.
+
+| Pattern | Main state | Time cost | Auxiliary space (excluding output) |
+| --- | --- | --- | --- |
+| Sum / one recursive chain | index and return value | O(n) | O(n) stack |
+| Subsets | index and path | O(n·2ⁿ) with copying | O(n) stack/path |
+| Permutations | used positions and path | O(n·n!) | O(n) state |
+| Fixed-size combinations | start, `k`, path | O(k·C(n,k)) | O(k) |
+| Pruned combination sum | start and remaining target | input-dependent | O(depth) |
+
+### Walking one branch and discussing trade-offs
+
+For candidates A, B, C, begin with an empty path. Exclude A, explore B’s choices,
+return, then include A and explore again. When `[A, C]` is complete, copy it before
+undoing C, then undo A before the root explores alternatives. The stack depth is the
+number of active decisions, while total work includes every branch and every output
+copy. Sorting can enable an early `break` when the next candidate exceeds the
+remaining target, trading O(n log n) preprocessing for fewer recursive calls.
+Interviewers listen for the base case, parameter contract, restoration point, and a
+proof that pruning cannot remove a valid answer. Iteration can avoid call-stack
+limits, but then you must build an explicit stack of frames and preserve the same
+state transitions; recursion is often clearer when the branching structure is the
+main idea.
 
 ## Sources and Further Reading
 <!-- lesson-id:w8-section-sources-and-further-reading -->

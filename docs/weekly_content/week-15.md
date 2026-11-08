@@ -1,6 +1,8 @@
 # Week 15 - Dynamic Programming II and Tries
 <!-- lesson-id:w15-section-chapter-introduction -->
 
+The second dynamic programming module raises the difficulty by adding dimensions, subsequences, grids, and tries. Keep the same habit from the earlier module: define the state in plain English before writing a table. Once the state has a precise meaning, transitions become explanations rather than mysterious formulas.
+
 This week, we will learn to name smaller questions with two pieces of information and to share the beginnings of stored words. Two-dimensional dynamic programming uses states such as a grid coordinate or a pair of string-prefix lengths. A prefix is the beginning of a sequence, including possibly the whole sequence or nothing. A trie, also called a prefix tree, stores words along paths that share those beginnings.
 
 We will first count right/down grid routes, including obstacles. Then we will derive longest common subsequence and recover one best answer. A subsequence keeps symbols in order while allowing gaps. After that, we will implement exact-word and prefix lookup in a trie, and use Word Search to examine when a grid question depends on the particular path taken.
@@ -474,6 +476,33 @@ In broken **Demonstration 1**, assigning seven to the cell at row one, column on
 Two strings often suggest a pair of prefix lengths. Right/down grid moves suggest dependencies without cycles and therefore a natural table order. Repeated dictionary-prefix queries suggest a trie. But a board plus “do not reuse cells in the current path” suggests backtracking rather than automatically implying DP.
 
 Ask what makes two future subproblems equivalent. Unique Paths counts arrivals without needing route history. LCS maximizes matched length over two prefixes. Word Search asks whether a path exists under history-dependent restrictions. Contacts asks how many names share a prefix, requiring counts beyond Boolean membership. Input shape is less informative than the information needed for the answer.
+
+### Grids, LCS tables, and tries as concrete structures
+
+This module uses three different representations. A grid DP table is a rectangular array of arrays where each cell stores an answer for one coordinate. An LCS table is also rectangular, but its row and column indexes mean prefix lengths, so it has `(A.length + 1) × (B.length + 1)` entries and a deliberately empty row and column for base cases. A trie is a graph of nodes: each node owns a `Map` from one symbol to a child and a boolean endpoint flag. The child map shares common prefixes without copying complete words.
+
+| Structure | Core operation | Typical time | Auxiliary space | Main trade-off |
+| --- | --- | --- | --- | --- |
+| Full grid table | read above/left, write current | O(RC) total | O(RC) | Clear tracing and reconstruction; more memory |
+| Rolling grid row | read old-above/new-left, overwrite | O(RC) total | O(C) | Less space; direction and obstacle reset matter |
+| Full LCS table | compare prefixes and take max | O(mn) | O(mn) | Easy reconstruction; memory-heavy |
+| Trie | follow/create one child per symbol | O(L) per word/query | O(total stored symbols) | Fast prefixes; node/map overhead |
+
+Build a trie for “car” and “cart” step by step: start at the root, create or follow `c`, then `a`, then `r`, mark `r` as an endpoint for “car,” and finally add `t` and mark that node. Searching “ca” succeeds as a prefix but not as an exact word unless its node is marked. In JavaScript, `node.children.get(symbol)` follows an edge, `set(symbol, child)` creates one, and `node.isWord = true` records completion. `Array.from(text)` is useful when the contract says to iterate code points rather than UTF-16 code units.
+
+For a compressed grid row, process columns left to right: before writing column `c`, its value is above; after writing `c - 1`, the left value is current-row data. At an obstacle assign zero, not “leave the old value.” For LCS compression, preserve old diagonal history before overwriting. These are representation-level invariants, not implementation trivia.
+
+In an interview, contrast exact lookup with prefix lookup, and score-only LCS with reconstruction. Explain that Word Search needs path-local visited state, so a trie can prune prefixes but cannot replace backtracking. The best trade-off is the smallest structure that still preserves every fact affecting the future.
+
+### Two-dimensional state clinic
+
+When a DP table has two coordinates, read them as a sentence rather than as a picture. In an LCS table, `(i, j)` means “the first `i` symbols of the first input and the first `j` symbols of the second.” In a grid, `(r, c)` names a location and the legal predecessors determine the transition. Write the sentence beside a small table before compressing anything; this catches swapped axes and off-by-one bases early.
+
+Try tracing LCS for two short strings with a pencil. On a matching pair, move diagonally and record why the symbol can be appended. On a mismatch, compare the top and left values; either direction is acceptable when the lengths tie. The reconstruction walk is not a second optimization—it is a proof that the stored length corresponds to an actual subsequence. For a blocked grid cell, erase its arrival count even if the cell above has many paths. A block changes reachability, not merely the score.
+
+A common beginner misconception is that a trie node represents a word. It represents a prefix path; only the endpoint flag represents a stored word. Similarly, a Word Search state is not just a coordinate and character index: the set of already-used cells affects what can happen next. Backtracking therefore marks, explores, and unmarks in one balanced pattern.
+
+In an interview, name the two dimensions, explain one dependency before showing code, and state what compression preserves. If history affects legal moves, say why a smaller memo key is unsound. A good recap question is: “What information would make two apparently identical states have different futures?” That question unifies obstacles, LCS prefixes, trie endpoints, and path-local marking.
 
 ## Practice Exercises
 <!-- lesson-id:w15-section-practice-exercises -->

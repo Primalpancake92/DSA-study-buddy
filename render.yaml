@@ -25,3 +25,13 @@ services:
         value: true
       - key: PASSWORD_RESET_BASE_URL
         value: https://dsa-study-buddy.vercel.app/reset-password
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_VERIFICATION_BASE_URL
+        value: https://dsa-study-buddy.vercel.app/verify-email
+      - key: EMAIL_VERIFICATION_TOKEN_TTL_MINUTES
+        value: 60

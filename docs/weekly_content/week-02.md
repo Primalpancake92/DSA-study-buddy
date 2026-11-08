@@ -1,6 +1,8 @@
 # Week 2 - Hash Maps and Sets
 <!-- lesson-id:w2-section-chapter-introduction -->
 
+A useful way to approach hash maps and sets is to start with a frustrating search problem: how often do we keep asking whether we have already seen something? We will build the intuition first, then connect it to hashing, collisions, and the trade-off of spending memory to save time. As you read, pause whenever a Map or Set changes and say what information it represents.
+
 Suppose you receive another event identifier and need to know whether you have handled it already. You could search your entire history again. This week, we will learn how to remember just enough information to avoid that repeated search. JavaScript's Set remembers which values have appeared; Map connects each key with information such as a count or an index. We will explain how hashing supports these collections, what happens when keys share a storage location, and how those ideas help with duplicates and rearranged words.
 
 Our starting question will be “what must we remember?” Sometimes we only need presence: whether a value exists. Other tasks need its occurrence count, its earlier position, or the group it belongs to. We will connect those choices to key equality, the collection methods you call, and small implementations you can trace by hand. At every step, we will say what a stored entry tells us about the input we have already read.
@@ -469,6 +471,36 @@ When a problem repeatedly asks whether something appeared, how often it appeared
 In an interview, explain what your stored entries mean before announcing the container. “This Map stores unmatched required occurrences” gives the interviewer a correctness argument to examine. “I'll use hashing” names a tool without explaining why it helps. Ask whether preprocessing—work performed before the main scan—is allowed, too. Sorting a copy can preserve a boolean existence question while complicating original-index answers and replacing arrival order.
 
 Use the external assignments to practice reading constraints. The preparation notes for the previously verified Valid Anagram and Group Anagrams pages specify lowercase English letters, which justify 26-count keys for those tasks. Our general code-point implementations deliberately support a broader local contract. Choose the representation for the contract you are actually solving; these source notes do not claim a fresh verification of those pages.
+
+### The hash-map question to ask aloud
+
+Hashing is useful because it turns a repeated search into a remembered answer. Before writing code, name the question your map answers: “Have I seen this value?”, “How many copies have I seen?”, or “Which index completes the target?” The key is the question’s identity, and the value is the smallest piece of evidence needed later. For Two Sum, scan left to right, compute `target - current`, look up that complement first, and only then store the current index. Looking up first preserves the rule that an element cannot pair with itself and naturally returns the earlier index.
+
+For frequency problems, trace one item at a time. Start an absent key at zero, increment it, and keep the map as a visible ledger. When grouping anagrams, the canonical key must make equivalent words identical: sorting characters is easy to explain, while a fixed 26-count signature is faster under a lowercase-input contract. A Set is the right tool when only presence matters; a Map is needed when counts, indices, or other evidence must survive.
+
+### Beginner traps and interview explanations
+
+Do not confuse a missing key with a stored value of zero, `false`, or an empty string. Use `has` or an explicit `undefined` check when truthiness could hide valid state. Do not promise constant time as a guarantee: hashing is expected O(1), with collisions and implementation details handled by the runtime. In an interview, state the invariant—“the map contains exactly the earlier portion of the scan”—then explain what each update preserves. That makes the solution auditable rather than magical.
+
+### Recall card
+
+- **Presence:** Set or `map.has(key)`.
+- **Multiplicity:** increment a Map count.
+- **Partner lookup:** query the complement before insertion.
+- **Canonical grouping:** equal keys mean equal groups.
+- **Ranking:** count first, then select using buckets or another ordered structure.
+
+### Map and Set operations as data-structure choices
+
+In JavaScript, `Map` represents key-to-value associations without coercing keys to strings. The core operations are `set(key, value)`, `get(key)`, `has(key)`, and `delete(key)`; `size` reports the number of distinct keys, and `for...of` preserves insertion order for iteration. A `Set` represents unique membership and uses `add(value)`, `has(value)`, and `delete(value)`. Both provide expected O(1) insertion, lookup, and deletion under ordinary hashing assumptions, but a full iteration is O(m) for m stored entries. A plain object can be convenient for known string keys, yet it has prototype and key-coercion concerns; choose it deliberately rather than by habit.
+
+The right value prevents repeated work. Store an index when a later answer needs location, a count when it needs multiplicity, and a Boolean or Set entry when it only needs presence. `counts.set(value, (counts.get(value) ?? 0) + 1)` performs a read-modify-write update; the `?? 0` default distinguishes an absent key from a legitimate zero. For lookup-only code, `has` is clearer than `get(...) !== undefined` when `undefined` could itself be a valid stored value.
+
+### Cost, space, and trade-off walkthrough
+
+For n input items and m distinct keys, frequency counting is expected O(n) time and O(m) auxiliary space. Two Sum is expected O(n) time and O(n) space in the worst case because the map may retain almost every earlier index. Sorting first can reduce auxiliary map state in some variants, but it changes the bound to O(n log n), may mutate the input, and can lose original indices unless pairs are decorated. Grouping by sorted character keys adds the cost of sorting each word; a fixed alphabet signature trades generality for O(L) processing per word and constant-size alphabet state, where L is word length.
+
+An interview answer should name those trade-offs: “I spend expected constant-time lookups and linear extra space to preserve one pass and original order.” Then state the assumption and the invariant: after processing the prefix, the structure summarizes exactly that prefix. This framing makes collision behaviour, duplicate handling, empty input, and output ordering visible rather than accidental.
 
 ## Practice Exercises
 <!-- lesson-id:w2-section-practice-exercises -->
