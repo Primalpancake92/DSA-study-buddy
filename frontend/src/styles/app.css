@@ -1506,11 +1506,9 @@ button {
     font-size: 11px;
 }
 .page {
-    width: 100%;
-    max-width: var(--layout-width);
-    margin-inline: auto;
-    padding: 90px var(--layout-gutter);
-    box-sizing: border-box;
+    max-width: 1240px;
+    margin: auto;
+    padding: 90px 32px;
 }
 .landing {
     padding-top: 108px;
